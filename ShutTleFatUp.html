@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>🏸 จับคู่แบด</title>
+<style>
+:root {
+  --primary: #1a56db;
+  --primary-light: #3b82f6;
+  --success: #059669;
+  --warning: #d97706;
+  --danger: #dc2626;
+  --bg: #f1f5f9;
+  --card: #ffffff;
+  --text: #1e293b;
+  --text2: #64748b;
+  --border: #e2e8f0;
+  --shadow: 0 1px 4px rgba(0,0,0,.08);
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;-webkit-text-size-adjust:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+button{touch-action:manipulation;cursor:pointer;-webkit-tap-highlight-color:transparent}
+input,button{font-size:inherit;font-family:inherit}
+
+/* Header */
+header{background:var(--primary);color:#fff;padding:12px 16px;position:sticky;top:0;z-index:10}
+.header-top{display:flex;align-items:center;justify-content:space-between}
+header h1{font-size:20px;font-weight:700}
+.court-ctrl{display:flex;align-items:center;gap:8px}
+.court-ctrl button{background:rgba(255,255,255,.2);border:none;color:#fff;width:36px;height:36px;border-radius:50%;font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center}
+.court-ctrl button:active{background:rgba(255,255,255,.35)}
+.court-ctrl span{font-weight:700;font-size:18px;min-width:20px;text-align:center}
+.btn-icon{background:none;border:none;font-size:22px;padding:6px;border-radius:8px;line-height:1}
+.btn-icon:active{background:rgba(0,0,0,.08)}
+
+/* Queue bar */
+.queue-bar{background:var(--card);margin:8px 12px;padding:10px 12px;border-radius:var(--radius);box-shadow:var(--shadow)}
+.queue-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.queue-header span:first-child{font-weight:600;font-size:15px}
+.badge{background:var(--primary);color:#fff;font-size:12px;padding:2px 8px;border-radius:10px;font-weight:600}
+.queue-players{display:flex;flex-wrap:wrap;gap:6px;min-height:32px}
+.queue-chip{display:inline-flex;align-items:center;gap:4px;background:#eef2ff;color:var(--primary);padding:4px 10px;border-radius:16px;font-size:13px;font-weight:500;white-space:nowrap}
+.queue-chip .remove{background:none;border:none;color:#94a3b8;font-size:16px;padding:0 2px;line-height:1;cursor:pointer}
+.queue-chip .remove:active{color:var(--danger)}
+.queue-empty{color:var(--text2);font-size:13px;padding:4px 0}
+
+/* Courts */
+.courts{padding:0 12px 12px;display:flex;flex-direction:column;gap:10px}
+.court-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.court-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px 8px}
+.court-title{font-weight:700;font-size:16px;display:flex;align-items:center;gap:8px}
+.court-status{font-size:12px;padding:3px 10px;border-radius:10px;font-weight:600}
+.court-status.playing{background:#d1fae5;color:#065f46}
+.court-status.waiting{background:#fef3c7;color:#92400e}
+.court-body{padding:0 14px 14px}
+.court-empty{text-align:center;padding:16px 0;color:var(--text2)}
+.court-empty .big-btn{display:block;width:100%;max-width:260px;margin:10px auto 0;padding:14px;background:var(--primary);color:#fff;border:none;border-radius:var(--radius-sm);font-size:16px;font-weight:600}
+.court-empty .big-btn:disabled{background:#94a3b8;opacity:.6}
+.court-empty .big-btn:not(:disabled):active{background:var(--primary-light)}
+.match-display{display:flex;align-items:center;justify-content:center;gap:8px;padding:8px 0}
+.team-box{flex:1;max-width:38%;background:#f8fafc;border-radius:var(--radius-sm);padding:12px 10px;text-align:center;cursor:pointer;border:2px solid transparent;transition:border-color .15s;user-select:none;-webkit-tap-highlight-color:transparent}
+.team-box:active{border-color:var(--primary);background:#eef2ff}
+.team-box .names{font-weight:600;font-size:15px;line-height:1.4}
+.team-box .tap-hint{font-size:10px;color:var(--text2);margin-top:4px}
+.vs{font-size:14px;font-weight:700;color:var(--text2);padding:0 4px}
+.waiting-actions{display:flex;gap:8px;margin-top:8px}
+.waiting-actions button{flex:1;padding:12px;border:none;border-radius:var(--radius-sm);font-weight:600;font-size:14px}
+.waiting-actions .btn-primary{background:var(--primary);color:#fff}
+.waiting-actions .btn-primary:disabled{background:#94a3b8}
+.waiting-actions .btn-primary:not(:disabled):active{background:var(--primary-light)}
+.waiting-actions .btn-outline{background:#fff;color:var(--text2);border:2px solid var(--border)}
+
+/* Collapse sections */
+.collapse-section{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;margin:0 12px 10px}
+.collapse-section:first-child{margin-top:8px}
+.collapse-header{padding:14px 16px;font-weight:600;font-size:15px;display:flex;align-items:center;justify-content:space-between;user-select:none;-webkit-tap-highlight-color:transparent;cursor:pointer}
+.collapse-header:active{opacity:.8}
+.collapse-header.head-players{background:#eef2ff;color:#1e40af}
+.collapse-header.head-stats{background:#ecfdf5;color:#065f46}
+.collapse-header.head-settings{background:#fffbeb;color:#92400e}
+.collapse-icon{font-size:12px;transition:transform .2s;color:var(--text2)}
+.collapse-icon.open{transform:rotate(90deg)}
+.collapse-body{display:none;padding:0 16px 16px;border-top:1px solid var(--border)}
+.collapse-body.open{display:block}
+
+
+
+/* Players panel */
+.section-title{font-size:16px;font-weight:700;margin:16px 0 8px;display:flex;align-items:center;justify-content:space-between}
+.section-title:first-child{margin-top:0}
+.input-row{display:flex;gap:8px;margin-bottom:8px}
+.input-row input{flex:1;padding:10px 12px;border:2px solid var(--border);border-radius:var(--radius-sm);outline:none;font-size:15px}
+.input-row input:focus{border-color:var(--primary)}
+.input-row button{padding:10px 16px;background:var(--primary);color:#fff;border:none;border-radius:var(--radius-sm);font-weight:600;white-space:nowrap}
+.input-row button:active{background:var(--primary-light)}
+.player-item{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f1f5f9}
+.player-item:last-child{border-bottom:none}
+.player-item .name{flex:1;font-size:15px}
+.player-item .guest-tag{font-size:11px;background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:4px}
+.player-item .del-btn{background:none;border:none;color:#94a3b8;font-size:18px;padding:4px;line-height:1}
+.player-item .del-btn:active{color:var(--danger)}
+.pool-toggle{width:44px;height:28px;background:#cbd5e1;border-radius:14px;border:none;position:relative;transition:background .2s;flex-shrink:0}
+.pool-toggle::after{content:'';position:absolute;top:3px;left:3px;width:22px;height:22px;background:#fff;border-radius:50%;transition:transform .2s}
+.pool-toggle.active{background:var(--primary)}
+.pool-toggle.active::after{transform:translateX(16px)}
+.action-bar{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.action-bar button{flex:1;min-width:120px;padding:12px;border:none;border-radius:var(--radius-sm);font-weight:600;font-size:14px}
+.action-bar .btn-primary{background:var(--primary);color:#fff}
+.action-bar .btn-primary:active{background:var(--primary-light)}
+.action-bar .btn-danger{background:#fee2e2;color:var(--danger)}
+.action-bar .btn-danger:active{background:#fecaca}
+
+/* Stats panel */
+.stats-nav{display:flex;gap:4px;margin-bottom:12px;background:var(--card);border-radius:var(--radius-sm);padding:4px;box-shadow:var(--shadow)}
+.stats-nav button{flex:1;padding:8px;border:none;border-radius:6px;background:none;font-weight:500;font-size:13px;color:var(--text2)}
+.stats-nav button.active{background:var(--primary);color:#fff}
+.stat-table{width:100%;border-collapse:collapse;font-size:13px;background:var(--card);border-radius:var(--radius-sm);overflow:hidden;box-shadow:var(--shadow)}
+.stat-table th{background:#f8fafc;padding:8px 6px;text-align:left;font-weight:600;font-size:12px;color:var(--text2);border-bottom:2px solid var(--border)}
+.stat-table td{padding:6px;border-bottom:1px solid #f1f5f9}
+.stat-table tr:last-child td{border-bottom:none}
+.history-list{background:var(--card);border-radius:var(--radius-sm);box-shadow:var(--shadow);padding:8px 12px}
+.history-item{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:13px}
+.history-item:last-child{border-bottom:none}
+.history-item .time{color:var(--text2);font-size:12px;min-width:44px}
+.history-item .court-label{font-weight:600;min-width:52px}
+.history-item .teams{flex:1}
+.history-item .trophy{font-size:14px}
+
+/* Settings */
+.setting-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid #f1f5f9}
+.setting-row:last-child{border-bottom:none}
+.setting-label{font-size:15px}
+.setting-desc{font-size:12px;color:var(--text2);margin-top:2px}
+select.setting-input{padding:6px 12px;border:2px solid var(--border);border-radius:var(--radius-sm);font-size:14px;background:#fff}
+.toggle-switch{width:48px;height:28px;background:#cbd5e1;border-radius:14px;border:none;position:relative;flex-shrink:0}
+.toggle-switch::after{content:'';position:absolute;top:3px;left:3px;width:22px;height:22px;background:#fff;border-radius:50%;transition:transform .2s}
+.toggle-switch.active{background:var(--primary)}
+.toggle-switch.active::after{transform:translateX(20px)}
+.danger-btn{width:100%;padding:14px;border:none;border-radius:var(--radius-sm);font-weight:600;font-size:15px;margin-top:8px}
+.danger-btn.danger{background:#fee2e2;color:var(--danger)}
+.danger-btn.danger:active{background:#fecaca}
+.danger-btn.outline{background:none;color:var(--primary);border:2px solid var(--primary)}
+
+/* Modal */
+.modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);z-index:30;align-items:flex-end;justify-content:center}
+.modal-overlay.active{display:flex}
+.modal-content{background:var(--card);width:100%;max-width:400px;border-radius:16px 16px 0 0;padding:20px;max-height:70vh;overflow-y:auto}
+.modal-content h3{font-size:18px;margin-bottom:12px}
+.modal-close{width:100%;padding:12px;background:#f1f5f9;border:none;border-radius:var(--radius-sm);font-weight:600;font-size:15px;margin-top:12px}
+.modal-close:active{background:#e2e8f0}
+.modal-player-list{max-height:300px;overflow-y:auto}
+.modal-player-item{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f1f5f9}
+.modal-player-item button{padding:8px 16px;background:var(--primary);color:#fff;border:none;border-radius:var(--radius-sm);font-weight:600;font-size:13px}
+
+/* Toast */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:10px 20px;border-radius:8px;font-size:14px;z-index:40;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
+
+/* Empty state */
+.empty-state{text-align:center;padding:40px 20px;color:var(--text2)}
+.empty-state .icon{font-size:48px;margin-bottom:12px}
+.empty-state p{font-size:15px;margin-bottom:4px}
+.empty-state .sub{font-size:13px}
+
+/* Animation */
+@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.court-card{animation:slideUp .25s ease}
+
+/* Scrollbar */
+.queue-players::-webkit-scrollbar{height:4px}
+.queue-players::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:2px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <h1>🏸 จับคู่แบด</h1>
+    <div class="court-ctrl">
+      <button onclick="removeCourt()" title="ลดสนาม">−</button>
+       <span id="courtCount">2</span>
+      <button onclick="addCourt()" title="เพิ่มสนาม">+</button>
+    </div>
+  </div>
+</header>
+
+<main id="mainView">
+  <!-- Collapsible: ผู้เล่น (บนสุด) -->
+  <div class="collapse-section">
+    <div class="collapse-header head-players" onclick="toggleCollapse('Players')">
+      <span>👤 ผู้เล่น</span>
+      <span class="collapse-icon">▶</span>
+    </div>
+    <div id="collapsePlayers" class="collapse-body"></div>
+  </div>
+
+  <div class="queue-bar">
+    <div class="queue-header">
+      <span>👥 คิวรอเล่น</span>
+      <span id="queueCount" class="badge">0</span>
+      <button onclick="shuffleQueue()" class="btn-icon" title="สับคิว">🔀</button>
+      <button onclick="openAddToQueue()" class="btn-icon" title="เพิ่มเข้าคิว">➕</button>
+    </div>
+    <div id="queuePlayers" class="queue-players"></div>
+  </div>
+
+  <div id="scheduleInfo" style="margin:0 12px 8px;font-size:13px;color:var(--text2)"></div>
+  <div id="courtsContainer" class="courts"></div>
+
+  <!-- Collapsible: สถิติ -->
+  <div class="collapse-section">
+    <div class="collapse-header head-stats" onclick="toggleCollapse('Stats')">
+      <span>📊 สถิติ</span>
+      <span class="collapse-icon">▶</span>
+    </div>
+    <div id="collapseStats" class="collapse-body"></div>
+  </div>
+
+  <!-- Collapsible: ตั้งค่า -->
+  <div class="collapse-section">
+    <div class="collapse-header head-settings" onclick="toggleCollapse('Settings')">
+      <span>⚙️ ตั้งค่า</span>
+      <span class="collapse-icon">▶</span>
+    </div>
+    <div id="collapseSettings" class="collapse-body"></div>
+  </div>
+</main>
+
+<!-- Modal -->
+<div id="addModal" class="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal-content">
+    <h3>➕ เพิ่มผู้เล่นเข้าคิว</h3>
+    <div class="input-row">
+      <input type="text" id="modalGuestInput" placeholder="ชื่อแขก..." onkeydown="if(event.key==='Enter')addGuestFromModal()">
+      <button onclick="addGuestFromModal()">เพิ่ม</button>
+    </div>
+    <div id="modalPlayerList" class="modal-player-list"></div>
+    <button class="modal-close" onclick="closeModal()">ปิด</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== STORAGE =====
+const SK = 'bdm_rotation';
+function getDef() {
+  return {
+    mainPlayers: [], guests: [], pool: {},
+    queue: [],
+    courts: [{id:1,status:'waiting',teamA:[],teamB:[],games:0,consecutive:{}},{id:2,status:'waiting',teamA:[],teamB:[],games:0,consecutive:{}}],
+    nextCourtId: 3,
+    history: [],
+    pairCount: {}, oppCount: {}, gameCount: {},
+    schedule: { enabled: false, rounds: [], currentRound: 0, pairIdx: 0, used: [] },
+    settings: { mode: 'roundrobin', gamesPerMatch: 2 }
+  };
+}
+function loadData() {
+  try {
+    const raw = localStorage.getItem(SK);
+    if (raw) {
+      const d = JSON.parse(raw);
+      if (!d.courts || !d.courts.length)
+        d.courts = [{id:1,status:'waiting',teamA:[],teamB:[],games:0,consecutive:{}},{id:2,status:'waiting',teamA:[],teamB:[],games:0,consecutive:{}}];
+      for (const c of d.courts) { if (c.games===undefined) c.games=0; if (!c.consecutive) c.consecutive={}; }
+      if (!d.settings) d.settings = getDef().settings;
+      if (!d.schedule) d.schedule = { enabled: false, rounds: [], currentRound: 0, pairIdx: 0, used: [] };
+      // Migrate old schedule format
+      if (d.schedule.rounds && d.schedule.rounds.length) {
+        let needsReset = false;
+        for (const round of d.schedule.rounds) {
+          for (const item of round) {
+            if (item.teamA) { needsReset = true; break; }
+          }
+          if (needsReset) break;
+        }
+        if (needsReset) d.schedule = { enabled: false, rounds: [], currentRound: 0, pairIdx: 0, used: [] };
+        else if (d.schedule.rounds.length > 5) {
+          d.schedule.rounds = d.schedule.rounds.slice(0, d.schedule.currentRound + 1);
+        }
+      }
+      if (d.schedule.pairIdx === undefined) d.schedule.pairIdx = 0;
+      if (!d.settings.gamesPerMatch) d.settings.gamesPerMatch = 2;
+      if (!d.settings.mode) d.settings.mode = 'roundrobin';
+      return d;
+    }
+  } catch(e) {}
+  return JSON.parse(JSON.stringify(getDef()));
+}
+function saveData() { localStorage.setItem(SK, JSON.stringify(data)); }
+let data = loadData();
+
+// ===== UTILITY =====
+function key(a,b) { const s=[a,b].sort(); return s[0]+'_'+s[1]; }
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._timer); t._timer = setTimeout(()=>t.classList.remove('show'), 2200);
+}
+function jsStr(s) { return s.replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ===== SCHEDULE GENERATOR (Pairs only) =====
+function generateSchedule() {
+  for (const c of data.courts) {
+    if (c.status === 'playing')
+      for (const p of [...c.teamA, ...c.teamB])
+        if (!data.queue.includes(p)) data.queue.push(p);
+    c.teamA = []; c.teamB = []; c.status = 'waiting'; c.games = 0;
+    c.consecutive = {}; c._pairA = null; c._pairB = null;
+  }
+  const pool = [...new Set([...data.queue])];
+  if (pool.length < 4) { toast('ต้องการอย่างน้อย 4 คน'); return; }
+  if (pool.length % 2 !== 0) { toast('จำนวนคนต้องเป็นเลขคู่'); return; }
+
+  data.schedule.baseOrder = [...pool];
+  data.schedule.rounds = [];
+  data.schedule.roundCount = 0;
+  const next = generateOneRound();
+  if (next) {
+    data.schedule.rounds.push(next);
+    data.schedule.roundCount = 1;
+    data.schedule.currentRound = 0;
+    data.schedule.pairIdx = 0;
+    data.schedule.enabled = true;
+    saveData(); render();
+    toast('✅ รอบ 1 (' + next.length + ' คู่)');
+  }
+}
+
+function generateNextRound() {
+  if (!data.schedule.baseOrder) { generateSchedule(); return; }
+  let base = data.schedule.baseOrder.filter(p => data.queue.includes(p));
+  for (const p of data.queue)
+    if (!base.includes(p)) base.push(p);
+  if (base.length < 4) { toast('ต้องการอย่างน้อย 4 คน'); return; }
+  if (base.length % 2 !== 0) base.pop();
+
+  data.schedule.baseOrder = base;
+  const next = generateOneRound();
+  if (next) {
+    data.schedule.rounds.push(next);
+    data.schedule.roundCount++;
+    data.schedule.currentRound = data.schedule.rounds.length - 1;
+    data.schedule.pairIdx = 0;
+    data.schedule.enabled = true;
+    saveData(); render();
+    toast('✅ รอบ ' + data.schedule.roundCount + ' (' + next.length + ' คู่)');
+  }
+}
+
+function generateOneRound() {
+  const base = data.schedule.baseOrder;
+  const n = base.length;
+  const roundNum = data.schedule.rounds ? data.schedule.rounds.length : 0;
+  const fixed = base[n-1];
+  let rotating = base.slice(0, n-1);
+  for (let r = 0; r < roundNum; r++) rotating.unshift(rotating.pop());
+  const players = [...rotating, fixed];
+  const pairs = [[players[n-1], players[0]]];
+  for (let i = 1; i < n/2; i++)
+    pairs.push([players[i], players[n-1-i]]);
+  // Return array of pair objects
+  return pairs.map(p => ({ players: p, used: false }));
+}
+
+function pairIsDone(player) {
+  if (!data.schedule.enabled || !data.schedule.rounds.length) return false;
+  const round = data.schedule.rounds[data.schedule.currentRound];
+  if (!round) return false;
+  return round.some(p => p.players.includes(player) && p.used);
+}
+
+function checkRoundComplete() {
+  if (!data.schedule.enabled || !data.schedule.rounds.length) return false;
+  const round = data.schedule.rounds[data.schedule.currentRound];
+  if (!round) return false;
+  const allDone = round.every(p => p.used);
+  if (allDone && data.schedule.rounds.length > 0) {
+    // Show popup
+    setTimeout(() => {
+      if (confirm('✅ เล่นครบทุกคู่ในรอบนี้แล้ว!\nสร้างรอบถัดไปเลยหรือเปล่า?')) {
+        generateNextRound();
+      }
+    }, 100);
+    return true;
+  }
+  return false;
+}
+
+function scheduleProgress() {
+  const s = data.schedule;
+  if (!s || !s.enabled || !s.rounds.length) return null;
+  let total = 0, used = 0;
+  for (const round of s.rounds)
+    for (const m of round) { total++; if (m.used) used++; }
+  return { total, used, pct: total ? Math.round(used/total*100) : 0,
+    round: s.currentRound + 1, rounds: s.rounds.length };
+}
+
+// ===== QUEUE (FIFO) =====
+function syncQueueCount() {
+  const el = document.getElementById('queueCount');
+  if (el) el.textContent = data.queue.length;
+}
+function addToQueue(name) {
+  if (!name || !name.trim()) return;
+  name = name.trim();
+  if (data.queue.includes(name)) { toast('"' + name + '" อยู่ในคิวแล้ว'); return; }
+  if (!data.pool[name] && !data.mainPlayers.includes(name) && !data.guests.includes(name))
+    { toast('ไม่พบผู้เล่น "' + name + '"'); return; }
+  data.queue.push(name);
+  saveData(); render(); syncQueueCount();
+}
+function removeFromQueue(name) {
+  data.queue = data.queue.filter(p => p !== name);
+  for (const c of data.courts) {
+    if (c.status === 'playing') {
+      c.teamA = c.teamA.filter(p => p !== name);
+      c.teamB = c.teamB.filter(p => p !== name);
+      if (c.teamA.length < 2 || c.teamB.length < 2) {
+        for (const p of [...c.teamA, ...c.teamB])
+          if (!data.queue.includes(p)) data.queue.push(p);
+        c.teamA = []; c.teamB = []; c.status = 'waiting'; c.games = 0; c.consecutive = {};
+      }
+    }
+  }
+  saveData(); render(); syncQueueCount();
+}
+function shuffleQueue() {
+  const q = data.queue;
+  if (q.length < 2) { toast('คิวมีคนน้อยเกินไป'); return; }
+  for (let i = q.length-1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i+1));
+    [q[i], q[j]] = [q[j], q[i]];
+  }
+  data.queue = q;
+  saveData(); render(); syncQueueCount();
+  toast('🔀 สับคิวแล้ว');
+}
+
+// ===== COURTS =====
+function renumberCourts() {
+  data.courts.forEach((c, i) => c.id = i + 1);
+  data.nextCourtId = data.courts.length + 1;
+}
+function addCourt() {
+  if (data.courts.length >= 6) { toast('สูงสุด 6 สนาม'); return; }
+  data.courts.push({id: data.nextCourtId++, status:'waiting', teamA:[], teamB:[], games:0, consecutive:{}});
+  renumberCourts();
+  saveData(); renderCourtCount(); render(); syncQueueCount();
+}
+function removeCourt() {
+  if (data.courts.length <= 1) { toast('ต้องมีอย่างน้อย 1 สนาม'); return; }
+  const c = data.courts.pop();
+  if (c.status === 'playing')
+    for (const p of [...c.teamA, ...c.teamB])
+      if (!data.queue.includes(p)) data.queue.push(p);
+  c.games = 0;
+  renumberCourts();
+  saveData(); renderCourtCount(); render(); syncQueueCount();
+}
+function renderCourtCount() { document.getElementById('courtCount').textContent = data.courts.length; }
+
+function fillCourt(courtId) {
+  const court = data.courts.find(c => c.id === courtId);
+  if (!court) return;
+  if (court.status === 'playing') { toast('สนามนี้กำลังเล่นอยู่'); return; }
+  if (data.queue.length < 4) { toast('คิวต้องมีอย่างน้อย 4 คน'); return; }
+
+  // Round-robin mode: find 2 unused pairs from schedule
+  if (data.settings.mode === 'roundrobin' && data.schedule.enabled && data.schedule.rounds.length) {
+    const round = data.schedule.rounds[data.schedule.currentRound];
+    if (round) {
+      let pair1 = null, pair2 = null;
+      for (let i = 0; i < round.length; i++) {
+        const p = round[i];
+        if (!p.used && p.players.every(n => data.queue.includes(n))) {
+          if (!pair1) { pair1 = p; }
+          else if (!pair2) {
+            // Check if all 4 players are distinct
+            const all4 = [...pair1.players, ...p.players];
+            if (new Set(all4).size === 4) { pair2 = p; break; }
+          }
+        }
+      }
+      if (pair1 && pair2) {
+        court.teamA = [...pair1.players];
+        court.teamB = [...pair2.players];
+        court.status = 'playing';
+        court.games = 0;
+        court.consecutive = {};
+        court._pairA = pair1;
+        court._pairB = pair2;
+        data.queue = data.queue.filter(n => !court.teamA.includes(n) && !court.teamB.includes(n));
+        saveData(); render(); syncQueueCount();
+        return;
+      }
+    }
+    toast('หมดคู่ในตาราง — กด "➕ รอบถัดไป"');
+  }
+
+  // Fallback / Winner Stays: first 4 from queue
+  if (data.queue.length < 4) { toast('คิวต้องมีอย่างน้อย 4 คน'); return; }
+  court.teamA = [data.queue[0], data.queue[1]];
+  court.teamB = [data.queue[2], data.queue[3]];
+  court.status = 'playing';
+  court.games = 0;
+  court.consecutive = {};
+  court._pairA = null; court._pairB = null;
+  data.queue = data.queue.slice(4);
+  saveData(); render(); syncQueueCount();
+}
+
+function declareWinner(courtId, winner) {
+  const court = data.courts.find(c => c.id === courtId);
+  if (!court || court.status !== 'playing') return;
+  if (!court.consecutive) court.consecutive = {};
+
+  // Record game
+  const rec = {
+    time: new Date().toLocaleTimeString('th-TH', {hour:'2-digit',minute:'2-digit'}),
+    court: courtId, teamA: [...court.teamA], teamB: [...court.teamB], winner
+  };
+  data.history.push(rec);
+
+  // Stats
+  for (let i = 0; i < court.teamA.length; i++) {
+    for (let j = i+1; j < court.teamA.length; j++) {
+      const k = key(court.teamA[i], court.teamA[j]);
+      data.pairCount[k] = (data.pairCount[k] || 0) + 1;
+    }
+    for (let j = 0; j < court.teamB.length; j++) {
+      const k = key(court.teamA[i], court.teamB[j]);
+      data.oppCount[k] = (data.oppCount[k] || 0) + 1;
+    }
+    data.gameCount[court.teamA[i]] = (data.gameCount[court.teamA[i]] || 0) + 1;
+  }
+  for (let i = 0; i < court.teamB.length; i++) {
+    for (let j = i+1; j < court.teamB.length; j++) {
+      const k = key(court.teamB[i], court.teamB[j]);
+      data.pairCount[k] = (data.pairCount[k] || 0) + 1;
+    }
+    data.gameCount[court.teamB[i]] = (data.gameCount[court.teamB[i]] || 0) + 1;
+  }
+
+  court.games++;
+  const limit = data.settings.gamesPerMatch || 2;
+
+  if (court.games >= limit) {
+    // 2 games done → both teams rest, mark pairs used
+    if (court._pairA) court._pairA.used = true;
+    if (court._pairB) court._pairB.used = true;
+    toast('✅ จบ! ทั้ง 4 คนไปพัก');
+    for (const p of [...court.teamA, ...court.teamB])
+      if (!data.queue.includes(p)) data.queue.push(p);
+    court.teamA = []; court.teamB = []; court.status = 'waiting';
+    const completed = checkRoundComplete();
+    if (!completed) fillCourt(courtId);
+  } else {
+    // Winner Stays for game 2
+    const winTeam = winner === 'A' ? court.teamA : court.teamB;
+    const loseTeam = winner === 'A' ? court.teamB : court.teamA;
+    for (const p of loseTeam)
+      if (!data.queue.includes(p)) data.queue.push(p);
+    // Filter out players whose schedule pair is already done
+    const avail = data.queue.filter(p => !winTeam.includes(p) && !pairIsDone(p));
+    if (avail.length >= 2) {
+      const newP = [avail[0], avail[1]];
+      court.teamA = winTeam;
+      court.teamB = newP;
+      data.queue = data.queue.filter(p => !newP.includes(p));
+      toast('⏳ เกม 2/' + limit + ' — ' + winTeam.join('+') + ' อยู่ vs ' + newP.join('+'));
+    } else {
+      court.teamA = [...winTeam]; court.teamB = []; court.status = 'waiting';
+      toast('รอผู้เล่นเพิ่มเติม');
+    }
+  }
+
+  saveData(); render(); syncQueueCount();
+}
+
+function swapBoth(courtId) {
+  const court = data.courts.find(c => c.id === courtId);
+  if (!court || court.status !== 'playing') return;
+  for (const p of [...court.teamA, ...court.teamB])
+    if (!data.queue.includes(p)) data.queue.push(p);
+  court.teamA = []; court.teamB = []; court.status = 'waiting'; court.consecutive = {};
+  court._pairA = null; court._pairB = null;
+  fillCourt(courtId);
+  saveData(); render(); syncQueueCount();
+}
+
+// ===== MODAL =====
+function openAddToQueue() {
+  const modal = document.getElementById('addModal');
+  const list = document.getElementById('modalPlayerList');
+  document.getElementById('modalGuestInput').value = '';
+  list.innerHTML = '';
+  const inQueue = new Set(data.queue);
+  const available = [];
+  for (const p of data.mainPlayers)
+    if (!inQueue.has(p)) available.push(p);
+  for (const p of data.guests)
+    if (!inQueue.has(p)) available.push(p);
+  if (available.length === 0) {
+    list.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text2)">ไม่มีผู้เล่นว่าง</div>';
+  } else {
+    for (const p of available) {
+      const div = document.createElement('div');
+      div.className = 'modal-player-item';
+      const isGuest = data.guests.includes(p);
+      div.innerHTML = '<span>' + escHtml(p) + (isGuest ? ' <span style="font-size:11px;color:var(--warning)">(แขก)</span>' : '') +
+        ' <span style="font-size:12px;color:var(--text2)">(' + ((data.gameCount[p]||0)) + ' เกม)</span>' +
+        ' <button onclick="addToQueueFromModal(\'' + jsStr(p) + '\')">➕</button></span>';
+      list.appendChild(div);
+    }
+  }
+  modal.classList.add('active');
+}
+function addToQueueFromModal(name) { addToQueue(name); openAddToQueue(); }
+function addGuestFromModal() {
+  const input = document.getElementById('modalGuestInput');
+  const name = input.value.trim();
+  if (!name) return;
+  if (!data.guests.includes(name) && !data.mainPlayers.includes(name)) data.guests.push(name);
+  data.pool[name] = true; addToQueue(name);
+  input.value = ''; openAddToQueue();
+}
+function closeModal() { document.getElementById('addModal').classList.remove('active'); }
+
+// ===== PLAYERS =====
+function addMainPlayer() {
+  const input = document.getElementById('newPlayerInput');
+  const name = input.value.trim();
+  if (!name) return;
+  if (data.mainPlayers.includes(name)) { toast('มีชื่อนี้อยู่แล้ว'); return; }
+  data.mainPlayers.push(name); data.pool[name] = true;
+  input.value = '';
+  // จำ cursor แล้ว restore หลัง render
+  const selStart = input.selectionStart;
+  saveData(); render(); renderPlayers(); syncQueueCount();
+  const ni = document.getElementById('newPlayerInput');
+  if (ni) { ni.focus(); ni.selectionStart = ni.selectionEnd = ni.value.length; }
+}
+function removePlayer(name) {
+  if (!confirm('ลบ "' + name + '"?')) return;
+  data.mainPlayers = data.mainPlayers.filter(p => p !== name);
+  data.guests = data.guests.filter(p => p !== name);
+  delete data.pool[name]; data.queue = data.queue.filter(p => p !== name);
+  saveData(); render(); renderPlayers(); syncQueueCount();
+}
+function togglePool(name) {
+  data.pool[name] = !data.pool[name];
+  if (!data.pool[name]) data.queue = data.queue.filter(p => p !== name);
+  saveData(); render(); renderPlayers(); syncQueueCount();
+}
+function addPoolToQueue() {
+  let added = 0;
+  for (const p of data.mainPlayers)
+    if (data.pool[p] && !data.queue.includes(p)) { data.queue.push(p); added++; }
+  for (const p of data.guests)
+    if (data.pool[p] && !data.queue.includes(p)) { data.queue.push(p); added++; }
+  if (added === 0) { toast('ไม่มีคนเพิ่ม'); return; }
+  // สับคิวเพื่อคละคน
+  for (let i = data.queue.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i+1));
+    [data.queue[i], data.queue[j]] = [data.queue[j], data.queue[i]];
+  }
+  saveData(); render(); syncQueueCount();
+  toast('เพิ่ม ' + added + ' คน');
+}
+function clearQueue() { data.queue = []; saveData(); render(); syncQueueCount(); }
+
+// ===== COLLAPSE =====
+function toggleCollapse(name) {
+  const body = document.getElementById('collapse' + name);
+  if (!body) return;
+  const icon = body.parentElement.querySelector('.collapse-icon');
+  const isOpen = body.classList.toggle('open');
+  if (icon) icon.classList.toggle('open', isOpen);
+  if (isOpen) {
+    if (name === 'Players') renderPlayers();
+    else if (name === 'Stats') renderStats();
+    else if (name === 'Settings') renderSettings();
+  }
+}
+
+// ===== RENDER =====
+function render() { renderCourts(); renderQueue(); renderCourtCount(); renderScheduleInfo(); }
+
+function renderQueue() {
+  const el = document.getElementById('queuePlayers');
+  if (!el) return;
+  if (data.queue.length === 0)
+    el.innerHTML = '<div class="queue-empty">คิวว่าง — เพิ่มผู้เล่นจาก 👤</div>';
+  else
+    el.innerHTML = data.queue.map(p =>
+      '<span class="queue-chip">' + escHtml(p) +
+      '<button class="remove" onclick="removeFromQueue(\'' + jsStr(p) + '\')">✕</button></span>'
+    ).join('');
+  syncQueueCount();
+}
+
+function renderScheduleInfo() {
+  const el = document.getElementById('scheduleInfo');
+  if (!el) return;
+  const prog = scheduleProgress();
+  if (prog && data.settings.mode === 'roundrobin' && data.schedule.enabled) {
+    el.style.display = 'block';
+    const s = data.schedule;
+    const roundIdx = Math.min(s.currentRound, s.rounds.length - 1);
+    const round = s.rounds[roundIdx];
+    const allDone = round && round.every(p => p.used);
+    let h = '📋 <strong>รอบ ' + prog.round + '</strong> | ใช้ไป ' + prog.used + '/' + prog.total + ' คู่';
+    if (round) {
+      h += '<div style="font-size:12px;margin-top:4px;line-height:1.7">';
+      for (const p of round) {
+        const done = p.used ? '✅' : '⏳';
+        h += '<span style="margin-right:10px;white-space:nowrap">' + done + ' ' + escHtml(p.players.join('+')) + '</span>';
+      }
+      h += '</div>';
+    }
+    el.innerHTML = h;
+  } else {
+    el.innerHTML = data.settings.mode === 'winnerstays' ? '🏆 Winner Stays' : '';
+  }
+}
+
+function showTeam(court, team) {
+  const limit = data.settings.gamesPerMatch || 2;
+  return team.map(p => {
+    const n = (court.consecutive || {})[p];
+    return escHtml(p) + (n !== undefined ? '<span style="font-size:11px;color:var(--text2)">(' + n + '/' + limit + ')</span>' : '');
+  }).join('<span style="color:var(--text2);margin:0 4px">+</span>');
+}
+
+function renderCourts() {
+  const el = document.getElementById('courtsContainer');
+  if (!el) return;
+  el.innerHTML = data.courts.map(c => {
+    const isPlaying = c.status === 'playing' && c.teamA.length === 2 && c.teamB.length === 2;
+    const hasTeamA = c.teamA.length > 0;
+    return `<div class="court-card">
+      <div class="court-header">
+        <span class="court-title">🏟️ สนาม ${c.id}</span>
+        <span class="court-status ${isPlaying?'playing':'waiting'}">${isPlaying ? '🟢 เกม ' + (c.games+1) + '/' + (data.settings.gamesPerMatch||2) : '🟡 รอ'}</span>
+      </div>
+      <div class="court-body">
+        ${isPlaying ? `
+          <div class="match-display">
+            <div class="team-box" onclick="declareWinner(${c.id},'A')"><div class="names">${showTeam(c, c.teamA)}</div><div class="tap-hint">👆 ชนะ</div></div>
+            <div class="vs">🆚</div>
+            <div class="team-box" onclick="declareWinner(${c.id},'B')"><div class="names">${showTeam(c, c.teamB)}</div><div class="tap-hint">👆 ชนะ</div></div>
+          </div>
+          <div style="margin-top:4px;text-align:center">
+            <button onclick="swapBoth(${c.id})" style="background:none;border:none;color:var(--text2);font-size:12px;padding:6px">🔄 เปลี่ยนทั้งคู่</button>
+          </div>
+        ` : `
+          <div class="court-empty">
+            ${hasTeamA ? `<div style="margin-bottom:8px;font-size:14px">⏳ รอคู่: ${escHtml(c.teamA.join(' + '))}</div>`
+            : `<div style="font-size:14px;margin-bottom:4px">⏳ สนามว่าง</div>
+               <div style="font-size:12px;color:var(--text2);margin-bottom:10px">คิว ${data.queue.length} คน</div>`}
+            <button class="big-btn" onclick="fillCourt(${c.id})" ${data.queue.length<4?'disabled':''}>👥 จัดผู้เล่น</button>
+          </div>
+        `}
+      </div>
+    </div>`;
+  }).join('');
+  syncQueueCount();
+}
+
+// ===== PLAYERS TAB =====
+function renderPlayers() {
+  const el = document.getElementById('collapsePlayers');
+  if (!el) return;
+  let h = '<div class="input-row"><input type="text" id="newPlayerInput" placeholder="ชื่อ..." onkeydown="if(event.key===\'Enter\')addMainPlayer()"><button onclick="addMainPlayer()">เพิ่ม</button></div>';
+  h += '<div class="section-title">ผู้เล่นหลัก <span style="font-size:13px;font-weight:400;color:var(--text2)">(' + data.mainPlayers.length + ')</span></div>';
+  if (data.mainPlayers.length === 0)
+    h += '<div style="padding:12px 0;color:var(--text2);font-size:14px">ยังไม่มีผู้เล่น</div>';
+  else for (const p of data.mainPlayers) {
+      const active = !!data.pool[p];
+      h += `<div class="player-item"><button class="pool-toggle ${active?'active':''}" onclick="togglePool('${jsStr(p)}')"></button><span class="name">${escHtml(p)} <span style="font-size:12px;color:var(--text2)">(${(data.gameCount[p]||0)} เกม)</span></span><button class="del-btn" onclick="removePlayer('${jsStr(p)}')">✕</button></div>`;
+  }
+  if (data.guests.length > 0) {
+    h += '<div class="section-title">แขก <span style="font-size:13px;font-weight:400;color:var(--text2)">(' + data.guests.length + ')</span></div>';
+    for (const p of data.guests) {
+      const active = !!data.pool[p];
+      h += `<div class="player-item"><button class="pool-toggle ${active?'active':''}" onclick="togglePool('${jsStr(p)}')"></button><span class="name">${escHtml(p)} <span class="guest-tag">แขก</span></span><button class="del-btn" onclick="removePlayer('${jsStr(p)}')">✕</button></div>`;
+    }
+  }
+  h += '<div class="action-bar"><button class="btn-primary" onclick="addPoolToQueue()">➕ เพิ่มเข้าคิว</button>';
+  h += '<button class="btn-danger" onclick="if(confirm(\'ล้างคิว?\'))clearQueue()">🗑️ ล้างคิว</button></div>';
+
+  // Generate schedule
+  h += '<div style="margin-top:16px;background:var(--card);border-radius:var(--radius-sm);box-shadow:var(--shadow);padding:12px 16px">';
+  h += '<div class="section-title">📋 รอบหมุน</div>';
+  if (data.schedule.enabled && data.schedule.rounds.length) {
+    const prog = scheduleProgress();
+    const roundIdx = Math.min(data.schedule.currentRound, data.schedule.rounds.length - 1);
+    const curRound = data.schedule.rounds[roundIdx];
+    const allDone = curRound && curRound.every(p => p.used);
+    h += '<div style="font-size:13px;color:var(--text2);margin-bottom:8px">สร้างแล้ว ' + prog.rounds + ' รอบ | ใช้ไป ' + prog.used + '/' + prog.total + ' คู่</div>';
+    for (let ri = 0; ri < data.schedule.rounds.length; ri++) {
+      const round = data.schedule.rounds[ri];
+      const isActive = ri === data.schedule.currentRound;
+      h += '<div style="font-size:13px;font-weight:' + (isActive?'700':'500') + ';margin-bottom:2px;margin-top:' + (ri>0?'8px':'0') + '">' + (isActive?'▶ ':'') + 'รอบ ' + (ri+1) + ':</div>';
+      for (const p of round) {
+        const done = p.used ? '✅' : '⏳';
+        h += '<div style="font-size:12px;color:var(--text2);padding:1px 0">' + done + ' ' + escHtml(p.players.join('+')) + '</div>';
+      }
+    }
+    if (allDone) {
+      h += '<div style="margin-top:8px;padding:10px 14px;background:#dbeafe;border-radius:8px;display:flex;align-items:center;justify-content:space-between">';
+      h += '<span style="font-size:14px;color:#1e40af;font-weight:600">✅ เล่นครบรอบนี้</span>';
+      h += '<button onclick="generateNextRound()" style="padding:8px 16px;background:#1e40af;color:#fff;border:none;border-radius:6px;font-weight:600;font-size:14px">➕ รอบถัดไป</button>';
+      h += '</div>';
+    }
+    h += '<div class="action-bar" style="margin-top:10px">';
+    h += '<button class="btn-primary" onclick="generateNextRound()" style="padding:10px;border:none;border-radius:var(--radius-sm);font-weight:600;font-size:13px;background:var(--primary);color:#fff">➕ รอบถัดไป</button>';
+    h += '<button class="btn-danger" onclick="if(confirm(\'สร้างตารางใหม่? (เคลียร์สนาม)\'))generateSchedule()" style="padding:10px;border:none;border-radius:var(--radius-sm);font-weight:600;font-size:13px">🔄 สร้างใหม่</button>';
+    h += '</div>';
+  } else {
+    h += '<div style="font-size:13px;color:var(--text2);margin-bottom:8px">สร้างรอบหมุน (ระบบจะเคลียร์สนามแล้วจัดคู่ให้)</div>';
+    h += '<button class="btn-primary" onclick="generateSchedule()" style="width:100%;padding:12px;border:none;border-radius:var(--radius-sm);font-weight:600;font-size:14px;background:var(--primary);color:#fff">📋 สร้างรอบ 1</button>';
+  }
+  h += '</div>';
+
+  h += '<div style="margin-top:12px">';
+  h += '<div class="section-title">เพิ่มแขก</div>';
+  h += '<div class="input-row"><input type="text" id="guestInput" placeholder="ชื่อแขก..." onkeydown="if(event.key===\'Enter\')addGuest()"><button onclick="addGuest()">เพิ่ม</button></div></div>';
+
+  el.innerHTML = h;
+}
+function addGuest() {
+  const input = document.getElementById('guestInput');
+  const name = input.value.trim();
+  if (!name) return;
+  if (data.guests.includes(name) || data.mainPlayers.includes(name)) { toast('มีชื่อนี้อยู่แล้ว'); return; }
+  data.guests.push(name); data.pool[name] = true;
+  input.value = ''; saveData(); renderPlayers(); syncQueueCount();
+  const gi = document.getElementById('guestInput');
+  if (gi) { gi.focus(); gi.selectionStart = gi.selectionEnd = gi.value.length; }
+  toast('เพิ่มแขก "' + name + '"');
+}
+
+// ===== STATS =====
+function renderStats() {
+  const el = document.getElementById('collapseStats');
+  if (!el) return;
+  el.innerHTML = '<div class="stats-nav"><button class="active" onclick="switchStatsTab(this,\'pairs\')">คู่</button><button onclick="switchStatsTab(this,\'opps\')">คู่แข่ง</button><button onclick="switchStatsTab(this,\'games\')">เกม</button><button onclick="switchStatsTab(this,\'history\')">ประวัติ</button></div><div id="statsContent"></div>';
+  renderStatsPairs();
+}
+function switchStatsTab(btn, tab) {
+  btn.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (tab==='pairs') renderStatsPairs(); else if (tab==='opps') renderStatsOpps();
+  else if (tab==='games') renderStatsGames(); else renderStatsHistory();
+}
+function renderStatsPairs() {
+  const el = document.getElementById('statsContent');
+  if (!el) return;
+  const e = Object.entries(data.pairCount).sort((a,b)=>b[1]-a[1]);
+  if (!e.length) { el.innerHTML = '<div class="empty-state"><div class="icon">🤝</div><p>ยังไม่มีสถิติ</p></div>'; return; }
+  let h = '<table class="stat-table"><tr><th>คู่</th><th>จำนวน</th></tr>';
+  for (const [k,v] of e.slice(0,50)) h += '<tr><td>' + escHtml(k.replace(/_/g,' + ')) + '</td><td><strong>' + v + '</strong></td></tr>';
+  h += '</table>'; el.innerHTML = h;
+}
+function renderStatsOpps() {
+  const el = document.getElementById('statsContent');
+  if (!el) return;
+  const e = Object.entries(data.oppCount).sort((a,b)=>b[1]-a[1]);
+  if (!e.length) { el.innerHTML = '<div class="empty-state"><div class="icon">⚔️</div><p>ยังไม่มีสถิติ</p></div>'; return; }
+  let h = '<table class="stat-table"><tr><th>คู่แข่ง</th><th>จำนวน</th></tr>';
+  for (const [k,v] of e.slice(0,50)) h += '<tr><td>' + escHtml(k.replace(/_/g,' 🆚 ')) + '</td><td><strong>' + v + '</strong></td></tr>';
+  h += '</table>'; el.innerHTML = h;
+}
+function renderStatsGames() {
+  const el = document.getElementById('statsContent');
+  if (!el) return;
+  const e = Object.entries(data.gameCount).sort((a,b)=>b[1]-a[1]);
+  if (!e.length) { el.innerHTML = '<div class="empty-state"><div class="icon">🏸</div><p>ยังไม่มีสถิติ</p></div>'; return; }
+  let h = '<table class="stat-table"><tr><th>ผู้เล่น</th><th>เกม</th></tr>';
+  for (const [k,v] of e.slice(0,50)) h += '<tr><td>' + escHtml(k) + '</td><td><strong>' + v + '</strong></td></tr>';
+  h += '</table>'; el.innerHTML = h;
+}
+function renderStatsHistory() {
+  const el = document.getElementById('statsContent');
+  if (!el) return;
+  const h = data.history;
+  if (!h.length) { el.innerHTML = '<div class="empty-state"><div class="icon">📜</div><p>ยังไม่มีประวัติ</p></div>'; return; }
+  let html = '<div class="history-list">';
+  for (let i = h.length-1; i >= 0; i--) {
+    const r = h[i];
+    const win = r.winner==='A'?r.teamA:r.teamB;
+    const lose = r.winner==='A'?r.teamB:r.teamA;
+    html += `<div class="history-item"><span class="time">${r.time}</span><span class="court-label">สนาม${r.court}</span><span class="teams">${escHtml(win.join('+'))} <span class="trophy">🏆</span> ${escHtml(lose.join('+'))}</span></div>`;
+  }
+  html += '</div>'; el.innerHTML = html;
+}
+
+// ===== SETTINGS =====
+function renderSettings() {
+  const el = document.getElementById('collapseSettings');
+  if (!el) return;
+  const s = data.settings;
+  el.innerHTML = `
+    <div style="background:var(--card);border-radius:var(--radius-sm);box-shadow:var(--shadow);padding:4px 16px 12px">
+      <div class="setting-row">
+        <div><div class="setting-label">ระบบการเล่น</div><div class="setting-desc">รอบหมุน = ทุกคู่ไม่ซ้ำ, WS = ชนะอยู่ต่อ</div></div>
+        <select class="setting-input" onchange="data.settings.mode=this.value;saveData();render()">
+          <option value="roundrobin" ${s.mode==='roundrobin'?'selected':''}>🌀 รอบหมุน</option>
+          <option value="winnerstays" ${s.mode==='winnerstays'?'selected':''}>🏆 Winner Stays</option>
+        </select>
+      </div>
+      <div class="setting-row">
+        <div><div class="setting-label">จำนวนเกม/คู่</div><div class="setting-desc">เล่นกี่เกมแล้วพัก</div></div>
+        <select class="setting-input" onchange="data.settings.gamesPerMatch=parseInt(this.value);saveData();render()">
+          ${[1,2,3,4,5].map(n => '<option value="'+n+'" '+(s.gamesPerMatch===n?'selected':'')+'>'+n+' เกม</option>').join('')}
+        </select>
+      </div>
+    </div>
+    <div style="margin-top:16px;background:var(--card);border-radius:var(--radius-sm);box-shadow:var(--shadow);padding:4px 16px 12px">
+      <div class="section-title">ข้อมูล</div>
+      <div style="font-size:14px;color:var(--text2);margin-bottom:8px">
+        ผู้เล่น: ${data.mainPlayers.length} คน | เกม: ${data.history.length} เกม
+      </div>
+      <button class="danger-btn outline" onclick="exportData()">📤 Export</button>
+      <div style="margin-top:6px"><input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)"><button class="danger-btn outline" onclick="document.getElementById('importFile').click()">📥 Import</button></div>
+      <button class="danger-btn danger" onclick="if(confirm('ลบข้อมูลทั้งหมด?\\nย้อนกลับไม่ได้')){localStorage.removeItem(SK);data=getDef();saveData();render();toast('ลบแล้ว')}">🗑️ ลบข้อมูลทั้งหมด</button>
+    </div>`;
+}
+function exportData() {
+  const json = JSON.stringify(data,null,2);
+  const blob = new Blob([json],{type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'badminton_data.json'; a.click();
+  URL.revokeObjectURL(a.href); toast('Export เรียบร้อย');
+}
+function importData(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    try {
+      const d = JSON.parse(ev.target.result);
+      if (!d.courts || !d.settings) { toast('ไฟล์ไม่ถูกต้อง'); return; }
+      data = d; saveData(); render(); renderCourtCount();
+      toast('Import เรียบร้อย (' + data.history.length + ' เกม)');
+    } catch(err) { toast('ไฟล์ไม่ถูกต้อง'); }
+  };
+  r.readAsText(file); e.target.value = '';
+}
+
+// ===== INIT =====
+function init() {
+  render();
+  renderCourtCount();
+}
+window.addEventListener('popstate', e => {
+  if (document.getElementById('addModal').classList.contains('active')) { closeModal(); e.preventDefault(); }
+});
+init();
+</script>
+</body>
+</html>
