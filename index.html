@@ -741,7 +741,7 @@ function renderCourts() {
     return `<div class="court-card">
       <div class="court-header">
         <span class="court-title">🏟️ สนาม ${c.id}</span>
-        <span class="court-status ${isPlaying?'playing':'waiting'}">${isPlaying ? '🟢 เกม ' + (c.games+1) + '/' + (data.settings.gamesPerMatch||2) : '🟡 รอ'}</span>
+        <span class="court-status ${isPlaying?'playing':'waiting'}">${isPlaying ? '🟢 ' + escHtml(c.teamA.join('+')) + ' 🆚 ' + escHtml(c.teamB.join('+')) : '🟡 รอ'}</span>
       </div>
       <div class="court-body">
         ${isPlaying ? `
