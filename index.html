@@ -394,10 +394,19 @@ function shuffleQueue() {
 }
 
 function startNewRound() {
+  const courtPlayers = [];
+  for (const c of data.courts) {
+    if (c.status === 'playing') {
+      courtPlayers.push(...c.teamA, ...c.teamB);
+    }
+  }
+  const allPlayers = [...new Set([...data.queue, ...courtPlayers])];
+  const shuffled = shuffle(allPlayers);
   data.roundPairs = {};
   data.currentRound++;
-  data.queue = shuffle(data.queue.slice());
-  snapshotSchedule();
+  for (const c of data.courts) c.startedRound = data.currentRound;
+  data.roundSchedule = buildScheduleFromQueue(shuffled);
+  data.queue = shuffle(data.queue.slice()).filter(p => !isInAnyCourt(p));
   persist();
   for (const c of data.courts)
     if (c.status === 'waiting' && data.queue.length >= 4) fillCourt(c.id);
@@ -444,15 +453,22 @@ function canPair(p1, p2) {
 function findScheduledMatch() {
   // Find 2 pairs from roundSchedule where all 4 players are in queue
   // and neither pair has hit the games limit.
+  // Pairs with earliest queue position (FIFO) get priority.
   const schedule = data.roundSchedule;
   if (!schedule || schedule.length < 2) return null;
   const qSet = new Set(data.queue);
   const limit = data.settings.gamesPerMatch || 2;
-  const eligible = schedule.filter(p => {
-    if (p.p2 === null) return false;
-    const played = data.roundPairs[key(p.p1, p.p2)] || 0;
-    return played < limit && qSet.has(p.p1) && qSet.has(p.p2);
-  });
+  const eligible = schedule
+    .filter(p => {
+      if (p.p2 === null) return false;
+      const played = data.roundPairs[key(p.p1, p.p2)] || 0;
+      return played < limit && qSet.has(p.p1) && qSet.has(p.p2);
+    })
+    .sort((a, b) => {
+      const aIdx = Math.min(data.queue.indexOf(a.p1), data.queue.indexOf(a.p2));
+      const bIdx = Math.min(data.queue.indexOf(b.p1), data.queue.indexOf(b.p2));
+      return aIdx - bIdx;
+    });
   for (let i = 0; i < eligible.length - 1; i++) {
     for (let j = i + 1; j < eligible.length; j++) {
       const a = eligible[i], b = eligible[j];
@@ -484,8 +500,13 @@ function scheduleHasPlayableMatch() {
   return false;
 }
 
+function isAnyCourtPlaying() {
+  return data.courts.some(c => c.status === 'playing');
+}
+
 function promptNewRoundIfExhausted() {
   if (scheduleHasPlayableMatch()) return false;
+  if (isAnyCourtPlaying()) return false;
   setTimeout(() => {
     if (confirm('🔄 ทุกคู่ใน schedule เล่นครบแล้ว\nเริ่มรอบใหม่?')) {
       startNewRound();
@@ -494,20 +515,27 @@ function promptNewRoundIfExhausted() {
   return true;
 }
 
-function findScheduledOpponents(winTeam) {
+function findScheduledOpponents(winTeam, exclude) {
   // Find a pair from roundSchedule that doesn't overlap with winTeam,
-  // has both players in queue, and hasn't hit the games limit.
+  // has both players in queue, hasn't hit the games limit,
+  // and is not the exclude pair (the team that just played).
+  // Prefers the pair with earliest queue position (FIFO).
   const limit = data.settings.gamesPerMatch || 2;
   const qSet = new Set(data.queue);
+  const excludeKey = exclude ? key(exclude[0], exclude[1]) : null;
+  let best = null;
+  let bestIdx = Infinity;
   for (const p of data.roundSchedule) {
     if (p.p2 === null) continue;
     if (p.p1 === winTeam[0] || p.p1 === winTeam[1]) continue;
     if (p.p2 === winTeam[0] || p.p2 === winTeam[1]) continue;
+    if (excludeKey && key(p.p1, p.p2) === excludeKey) continue;
     if (!qSet.has(p.p1) || !qSet.has(p.p2)) continue;
     if ((data.roundPairs[key(p.p1, p.p2)] || 0) >= limit) continue;
-    return [p.p1, p.p2];
+    const idx = Math.min(data.queue.indexOf(p.p1), data.queue.indexOf(p.p2));
+    if (idx < bestIdx) { bestIdx = idx; best = [p.p1, p.p2]; }
   }
-  return null;
+  return best;
 }
 
 function fillCourt(courtId) {
@@ -590,36 +618,51 @@ function declareWinner(courtId, winner) {
   const loseTeam = winner === 'A' ? court.teamB : court.teamA;
   const limit = data.settings.gamesPerMatch || 2;
 
-  for (const p of loseTeam)
-    if (!data.queue.includes(p)) data.queue.push(p);
+  // Each pair independently: if at limit → exit (queue), if not → stay
+  const winAtLimit = (data.roundPairs[key(winTeam[0], winTeam[1])] || 0) >= limit;
+  const loseAtLimit = (data.roundPairs[key(loseTeam[0], loseTeam[1])] || 0) >= limit;
 
-  // Winner must rest if everyone has hit the limit
-  const winnerRest = winTeam.every(p => (court.consecutive[p] || 0) >= limit);
+  if (winAtLimit)
+    for (const p of winTeam) if (!data.queue.includes(p)) data.queue.push(p);
+  if (loseAtLimit)
+    for (const p of loseTeam) if (!data.queue.includes(p)) data.queue.push(p);
 
-  if (winnerRest) {
-    for (const p of winTeam)
-      if (!data.queue.includes(p)) data.queue.push(p);
+  // Both at limit → court vacant
+  if (winAtLimit && loseAtLimit) {
     court.teamA = []; court.teamB = []; court.status = 'waiting'; court.consecutive = {};
-    saveData();
-    render();
-    syncQueueCount();
-    if (data.queue.length >= 4) {
-      if (promptNewRoundIfExhausted()) return;
-      fillCourt(courtId);
-    } else if (scheduleHasPlayableMatch() === false) {
-      promptNewRoundIfExhausted();
-    }
+    saveData(); render(); syncQueueCount();
+    promptNewRoundIfExhausted();
     return;
   }
 
-  // Winner stays — prefer scheduled opponent; if schedule exhausted, prompt new round
-  const scheduled = findScheduledOpponents(winTeam);
+  // Winners at limit, losers not → losers stay as the next team, find opponents
+  if (winAtLimit) {
+    court.teamA = [...loseTeam]; court.teamB = []; court.status = 'waiting'; court.consecutive = {};
+    const next = findScheduledOpponents(loseTeam, null);
+    if (next) {
+      court.teamB = next;
+      court.status = 'playing';
+      court.startedRound = data.currentRound;
+      data.queue = data.queue.filter(p => !next.includes(p));
+      toast('⏳ ' + loseTeam.join('+') + ' vs ' + next.join('+'));
+    } else {
+      toast('⏳ ' + loseTeam.join('+') + ' รอคู่ใหม่');
+    }
+    persist();
+    return;
+  }
+
+  // Winners not at limit → normal winner-stays
+  // Losers exit (whether at limit or not — at-limit already pushed above)
+  if (!loseAtLimit)
+    for (const p of loseTeam) if (!data.queue.includes(p)) data.queue.push(p);
+
+  const scheduled = findScheduledOpponents(winTeam, loseTeam);
   let newP;
   if (scheduled) {
     newP = scheduled;
   } else {
     if (promptNewRoundIfExhausted()) {
-      // Schedule exhausted — push winners to queue, leave court waiting
       for (const p of winTeam) if (!data.queue.includes(p)) data.queue.push(p);
       court.teamA = []; court.teamB = []; court.status = 'waiting'; court.consecutive = {};
       persist();
@@ -678,6 +721,7 @@ function removePlayer(name) {
   delete data.pool[name];
   data.queue = data.queue.filter(p => p !== name);
   ejectFromCourts(name);
+  data.roundSchedule = data.roundSchedule.filter(p => p.p1 !== name && p.p2 !== name);
   saveData();
   render();
   renderPlayers();
@@ -691,6 +735,7 @@ function togglePool(name) {
   } else {
     data.queue = data.queue.filter(p => p !== name);
     ejectFromCourts(name);
+    data.roundSchedule = data.roundSchedule.filter(p => p.p1 !== name && p.p2 !== name);
   }
   saveData();
   render();
@@ -782,10 +827,10 @@ function getRoundPairScores() {
     .sort((a, b) => b.games - a.games || b.wins - a.wins);
 }
 
-function buildScheduleFromQueue() {
+function buildScheduleFromQueue(players) {
   // Generate a perfect matching from current queue: one disjoint pair set per shuffle.
   // Each player appears in exactly one pair. If odd count, last player sits out.
-  const q = data.queue;
+  const q = players || data.queue;
   if (q.length < 2) return [];
   const schedule = [];
   for (let i = 0; i + 1 < q.length; i += 2) {
@@ -794,8 +839,8 @@ function buildScheduleFromQueue() {
   return schedule;
 }
 
-function snapshotSchedule() {
-  data.roundSchedule = buildScheduleFromQueue();
+function snapshotSchedule(players) {
+  data.roundSchedule = buildScheduleFromQueue(players);
 }
 
 function getMatchSchedule() {
