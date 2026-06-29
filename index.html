@@ -573,6 +573,23 @@ function renderQueue() {
     const ok = data.queue.length >= 4 && findValidTeams();
     if (ok) h += '<div style="font-size:12px;color:var(--success);margin-top:6px">🟢 พร้อมจัดคู่</div>';
     else if (data.queue.length >= 4) h += '<div style="font-size:12px;color:var(--warning);margin-top:6px">🔄 ทุกคู่เล่นครบแล้ว — กด 🔀 สับคิว</div>';
+    const limit = data.settings.gamesPerMatch || 2;
+    const pairsInQueue = [];
+    const qSet = new Set(data.queue);
+    for (const k of Object.keys(data.pairCount)) {
+      const [p1, p2] = k.split('_');
+      if (qSet.has(p1) && qSet.has(p2)) pairsInQueue.push({ p1, p2, games: data.pairCount[k] });
+    }
+    if (pairsInQueue.length) {
+      h += '<div style="margin-top:8px;font-size:12px;color:var(--text2)"><strong>คู่ในรอบนี้:</strong></div>';
+      for (const pr of pairsInQueue.sort((a,b)=>b.games-a.games)) {
+        const done = pr.games >= limit;
+        h += '<div style="font-size:12px;padding:1px 0">' +
+          escHtml(pr.p1) + '+' + escHtml(pr.p2) +
+          ' <span style="color:' + (done?'var(--danger)':'var(--text2)') + '">' + pr.games + '/' + limit + '</span>' +
+          (done ? ' ✅' : ' ⏳') + '</div>';
+      }
+    }
     el.innerHTML = h;
   }
   syncQueueCount();
