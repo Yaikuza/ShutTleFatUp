@@ -391,11 +391,26 @@ function findValidTeams() {
   return null;
 }
 
+function allPairsExhausted() {
+  const limit = data.settings.gamesPerMatch || 2;
+  // Collect all players currently in this round (queue + courts)
+  const players = new Set(data.queue);
+  for (const c of data.courts)
+    for (const p of [...c.teamA, ...c.teamB]) players.add(p);
+  if (players.size < 4) return false;
+  const arr = [...players];
+  for (let i = 0; i < arr.length; i++)
+    for (let j = i + 1; j < arr.length; j++)
+      if ((data.roundPairs[key(arr[i], arr[j])] || 0) < limit) return false;
+  return true;
+}
+
 function fillCourt(courtId) {
   const court = data.courts.find(c => c.id === courtId);
   if (!court) return;
   if (court.status === 'playing') { toast('สนามนี้กำลังเล่นอยู่'); return; }
   if (data.queue.length < 4) { toast('คิวต้องมีอย่างน้อย 4 คน'); return; }
+  if (allPairsExhausted()) { toast('ทุกคู่เล่นครบแล้ว — เริ่มรอบใหม่'); return; }
 
   const teams = findValidTeams();
   if (teams) {
@@ -478,10 +493,13 @@ function declareWinner(courtId, winner) {
     court.teamA = []; court.teamB = []; court.status = 'waiting';
     saveData(); render(); syncQueueCount();
     if (data.queue.length >= 4) {
+      fillCourt(courtId);
+    }
+    // Check if all pairs in the round are exhausted → prompt new round
+    if (allPairsExhausted() && data.queue.length < 4) {
       setTimeout(() => {
-        if (confirm('🔄 ' + winTeam.join('+') + ' ครบ ' + limit + ' เกมแล้ว\nจัดคู่ใหม่?')) {
-          shuffleQueue();
-          fillCourt(courtId);
+        if (confirm('🔄 ทุกคู่ในรอบนี้เล่นครบ ' + limit + ' เกมแล้ว\nเริ่มรอบใหม่?')) {
+          startNewRound();
         }
       }, 200);
     }
@@ -614,7 +632,7 @@ function renderQueue() {
     ).join('');
     const ok = data.queue.length >= 4 && findValidTeams();
     if (ok) h += '<div style="font-size:12px;color:var(--success);margin-top:6px">🟢 พร้อมจัดคู่</div>';
-    else if (data.queue.length >= 4) {
+    else if (allPairsExhausted()) {
       h += '<div style="font-size:12px;color:var(--warning);margin-top:6px;padding:6px 0">🔄 ทุกคู่ในรอบนี้เล่นครบแล้ว</div>';
       h += '<button onclick="startNewRound()" style="margin-top:6px;width:100%;padding:10px;border:none;border-radius:var(--radius-sm);font-weight:600;font-size:14px;background:var(--primary);color:#fff">🔄 เริ่มรอบใหม่ (รอบที่ ' + (data.currentRound+1) + ')</button>';
     }
