@@ -656,9 +656,8 @@ function addMainPlayer() {
   if (!name) return;
   if (data.mainPlayers.includes(name)) { toast('มีชื่อนี้อยู่แล้ว'); return; }
   data.mainPlayers.push(name); data.pool[name] = true;
+  if (!data.queue.includes(name)) data.queue.push(name);
   input.value = '';
-  // จำ cursor แล้ว restore หลัง render
-  const selStart = input.selectionStart;
   saveData(); render(); renderPlayers(); syncQueueCount();
   const ni = document.getElementById('newPlayerInput');
   if (ni) { ni.focus(); ni.selectionStart = ni.selectionEnd = ni.value.length; }
@@ -672,7 +671,8 @@ function removePlayer(name) {
 }
 function togglePool(name) {
   data.pool[name] = !data.pool[name];
-  if (!data.pool[name]) data.queue = data.queue.filter(p => p !== name);
+  if (data.pool[name]) { if (!data.queue.includes(name)) data.queue.push(name); }
+  else data.queue = data.queue.filter(p => p !== name);
   saveData(); render(); renderPlayers(); syncQueueCount();
 }
 function addPoolToQueue() {
@@ -808,9 +808,6 @@ function renderPlayers() {
       h += `<div class="player-item"><button class="pool-toggle ${active?'active':''}" onclick="togglePool('${jsStr(p)}')"></button><span class="name">${escHtml(p)} <span class="guest-tag">แขก</span></span><button class="del-btn" onclick="removePlayer('${jsStr(p)}')">✕</button></div>`;
     }
   }
-  h += '<div class="action-bar"><button class="btn-primary" onclick="addPoolToQueue()">➕ เพิ่มเข้าคิว</button>';
-  h += '<button class="btn-danger" onclick="if(confirm(\'ล้างคิว?\'))clearQueue()">🗑️ ล้างคิว</button></div>';
-
   h += '<div style="margin-top:12px">';
   h += '<div class="section-title">เพิ่มแขก</div>';
   h += '<div class="input-row"><input type="text" id="guestInput" placeholder="ชื่อแขก..." onkeydown="if(event.key===\'Enter\')addGuest()"><button onclick="addGuest()">เพิ่ม</button></div></div>';
@@ -870,6 +867,7 @@ function addGuest() {
   if (!name) return;
   if (data.guests.includes(name) || data.mainPlayers.includes(name)) { toast('มีชื่อนี้อยู่แล้ว'); return; }
   data.guests.push(name); data.pool[name] = true;
+  if (!data.queue.includes(name)) data.queue.push(name);
   input.value = ''; saveData(); renderPlayers(); syncQueueCount();
   const gi = document.getElementById('guestInput');
   if (gi) { gi.focus(); gi.selectionStart = gi.selectionEnd = gi.value.length; }
