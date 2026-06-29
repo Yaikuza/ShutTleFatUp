@@ -101,7 +101,6 @@ header h1{font-size:20px;font-weight:700}
 .player-item{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f1f5f9}
 .player-item:last-child{border-bottom:none}
 .player-item .name{flex:1;font-size:15px}
-.player-item .guest-tag{font-size:11px;background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:4px}
 .player-item .del-btn{background:none;border:none;color:#94a3b8;font-size:18px;padding:4px;line-height:1}
 .player-item .del-btn:active{color:var(--danger)}
 .pool-toggle{width:44px;height:28px;background:#cbd5e1;border-radius:14px;border:none;position:relative;transition:background .2s;flex-shrink:0}
@@ -243,10 +242,6 @@ select.setting-input{padding:6px 12px;border:2px solid var(--border);border-radi
 <div id="addModal" class="modal-overlay" onclick="if(event.target===this)closeModal()">
   <div class="modal-content">
     <h3>➕ เพิ่มผู้เล่นเข้าคิว</h3>
-    <div class="input-row">
-      <input type="text" id="modalGuestInput" placeholder="ชื่อแขก..." onkeydown="if(event.key==='Enter')addGuestFromModal()">
-      <button onclick="addGuestFromModal()">เพิ่ม</button>
-    </div>
     <div id="modalPlayerList" class="modal-player-list"></div>
     <button class="modal-close" onclick="closeModal()">ปิด</button>
   </div>
@@ -259,7 +254,7 @@ select.setting-input{padding:6px 12px;border:2px solid var(--border);border-radi
 const SK = 'bdm_rotation';
 function getDef() {
   return {
-    mainPlayers: [], guests: [], pool: {},
+    mainPlayers: [], pool: {},
     queue: [],
     courts: [{id:1,status:'waiting',teamA:[],teamB:[],games:0,consecutive:{}},{id:2,status:'waiting',teamA:[],teamB:[],games:0,consecutive:{}}],
     nextCourtId: 3,
@@ -423,7 +418,7 @@ function addToQueue(name) {
   if (!name || !name.trim()) return;
   name = name.trim();
   if (data.queue.includes(name)) { toast('"' + name + '" อยู่ในคิวแล้ว'); return; }
-  if (!data.pool[name] && !data.mainPlayers.includes(name) && !data.guests.includes(name))
+  if (!data.pool[name] && !data.mainPlayers.includes(name))
     { toast('ไม่พบผู้เล่น "' + name + '"'); return; }
   data.queue.push(name);
   saveData(); render(); syncQueueCount();
@@ -615,22 +610,16 @@ function swapBoth(courtId) {
 function openAddToQueue() {
   const modal = document.getElementById('addModal');
   const list = document.getElementById('modalPlayerList');
-  document.getElementById('modalGuestInput').value = '';
   list.innerHTML = '';
   const inQueue = new Set(data.queue);
-  const available = [];
-  for (const p of data.mainPlayers)
-    if (!inQueue.has(p)) available.push(p);
-  for (const p of data.guests)
-    if (!inQueue.has(p)) available.push(p);
+  const available = data.mainPlayers.filter(p => !inQueue.has(p));
   if (available.length === 0) {
     list.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text2)">ไม่มีผู้เล่นว่าง</div>';
   } else {
     for (const p of available) {
       const div = document.createElement('div');
       div.className = 'modal-player-item';
-      const isGuest = data.guests.includes(p);
-      div.innerHTML = '<span>' + escHtml(p) + (isGuest ? ' <span style="font-size:11px;color:var(--warning)">(แขก)</span>' : '') +
+      div.innerHTML = '<span>' + escHtml(p) +
         ' <span style="font-size:12px;color:var(--text2)">(' + ((data.gameCount[p]||0)) + ' เกม)</span>' +
         ' <button onclick="addToQueueFromModal(\'' + jsStr(p) + '\')">➕</button></span>';
       list.appendChild(div);
@@ -639,14 +628,6 @@ function openAddToQueue() {
   modal.classList.add('active');
 }
 function addToQueueFromModal(name) { addToQueue(name); openAddToQueue(); }
-function addGuestFromModal() {
-  const input = document.getElementById('modalGuestInput');
-  const name = input.value.trim();
-  if (!name) return;
-  if (!data.guests.includes(name) && !data.mainPlayers.includes(name)) data.guests.push(name);
-  data.pool[name] = true; addToQueue(name);
-  input.value = ''; openAddToQueue();
-}
 function closeModal() { document.getElementById('addModal').classList.remove('active'); }
 
 // ===== PLAYERS =====
@@ -665,7 +646,6 @@ function addMainPlayer() {
 function removePlayer(name) {
   if (!confirm('ลบ "' + name + '"?')) return;
   data.mainPlayers = data.mainPlayers.filter(p => p !== name);
-  data.guests = data.guests.filter(p => p !== name);
   delete data.pool[name]; data.queue = data.queue.filter(p => p !== name);
   saveData(); render(); renderPlayers(); syncQueueCount();
 }
@@ -678,8 +658,6 @@ function togglePool(name) {
 function addPoolToQueue() {
   let added = 0;
   for (const p of data.mainPlayers)
-    if (data.pool[p] && !data.queue.includes(p)) { data.queue.push(p); added++; }
-  for (const p of data.guests)
     if (data.pool[p] && !data.queue.includes(p)) { data.queue.push(p); added++; }
   if (added === 0) { toast('ไม่มีคนเพิ่ม'); return; }
   // สับคิวเพื่อคละคน
@@ -801,16 +779,6 @@ function renderPlayers() {
       const active = !!data.pool[p];
       h += `<div class="player-item"><button class="pool-toggle ${active?'active':''}" onclick="togglePool('${jsStr(p)}')"></button><span class="name">${escHtml(p)} <span style="font-size:12px;color:var(--text2)">(${(data.gameCount[p]||0)} เกม)</span></span><button class="del-btn" onclick="removePlayer('${jsStr(p)}')">✕</button></div>`;
   }
-  if (data.guests.length > 0) {
-    h += '<div class="section-title">แขก <span style="font-size:13px;font-weight:400;color:var(--text2)">(' + data.guests.length + ')</span></div>';
-    for (const p of data.guests) {
-      const active = !!data.pool[p];
-      h += `<div class="player-item"><button class="pool-toggle ${active?'active':''}" onclick="togglePool('${jsStr(p)}')"></button><span class="name">${escHtml(p)} <span class="guest-tag">แขก</span></span><button class="del-btn" onclick="removePlayer('${jsStr(p)}')">✕</button></div>`;
-    }
-  }
-  h += '<div style="margin-top:12px">';
-  h += '<div class="section-title">เพิ่มแขก</div>';
-  h += '<div class="input-row"><input type="text" id="guestInput" placeholder="ชื่อแขก..." onkeydown="if(event.key===\'Enter\')addGuest()"><button onclick="addGuest()">เพิ่ม</button></div></div>';
 
   el.innerHTML = h;
 }
@@ -859,19 +827,6 @@ function renderSchedule() {
   }
   h += '</div>';
   el.innerHTML = h;
-}
-
-function addGuest() {
-  const input = document.getElementById('guestInput');
-  const name = input.value.trim();
-  if (!name) return;
-  if (data.guests.includes(name) || data.mainPlayers.includes(name)) { toast('มีชื่อนี้อยู่แล้ว'); return; }
-  data.guests.push(name); data.pool[name] = true;
-  if (!data.queue.includes(name)) data.queue.push(name);
-  input.value = ''; saveData(); renderPlayers(); syncQueueCount();
-  const gi = document.getElementById('guestInput');
-  if (gi) { gi.focus(); gi.selectionStart = gi.selectionEnd = gi.value.length; }
-  toast('เพิ่มแขก "' + name + '"');
 }
 
 // ===== STATS =====
