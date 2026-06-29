@@ -100,10 +100,10 @@ header h1{font-size:20px;font-weight:800;letter-spacing:-.3px}
 .collapse-section:first-child{margin-top:8px}
 .collapse-header{padding:14px 16px;font-weight:600;font-size:15px;display:flex;align-items:center;justify-content:space-between;user-select:none;-webkit-tap-highlight-color:transparent;cursor:pointer}
 .collapse-header:active{opacity:.8}
-.collapse-header.head-players{background:linear-gradient(135deg,#eef2ff,#e0e7ff);color:var(--primary-dark)}
-.collapse-header.head-stats{background:linear-gradient(135deg,#ecfdf5,#d1fae5);color:#065f46}
-.collapse-header.head-settings{background:linear-gradient(135deg,#fffbeb,#fef3c7);color:#92400e}
-.collapse-header.head-queue{background:linear-gradient(135deg,#f0f0ff,#e8e8ff);color:var(--primary-dark)}
+.collapse-header.head-players{background:linear-gradient(135deg,#e0e7ff,#c7d2fe);color:#3730a3;border-bottom:3px solid #6366f1}
+.collapse-header.head-queue{background:linear-gradient(135deg,#fce7f3,#fbcfe8);color:#9d174d;border-bottom:3px solid #ec4899}
+.collapse-header.head-stats{background:linear-gradient(135deg,#d1fae5,#a7f3d0);color:#065f46;border-bottom:3px solid #10b981}
+.collapse-header.head-settings{background:linear-gradient(135deg,#fef3c7,#fde68a);color:#92400e;border-bottom:3px solid #f59e0b}
 .collapse-icon{font-size:12px;transition:transform .2s;color:var(--text2)}
 .collapse-icon.open{transform:rotate(90deg)}
 .collapse-body{display:none;padding:0 16px 16px;border-top:1px solid var(--border)}
@@ -224,7 +224,7 @@ select.setting-input{padding:6px 12px;border:2px solid var(--border);border-radi
 
 <header>
   <div class="header-top">
-    <h1>🏸 จับคู่แบด</h1>
+    <h1>🏸 สนาม</h1>
     <div class="court-ctrl">
       <button onclick="removeCourt()" title="ลดสนาม">−</button>
        <span id="courtCount">2</span>
@@ -244,7 +244,7 @@ select.setting-input{padding:6px 12px;border:2px solid var(--border);border-radi
 
   <div class="collapse-section">
     <div class="collapse-header head-queue" onclick="toggleCollapse('Queue')">
-      <span>👥 คิวรอเล่น</span>
+      <span>👥 ตาราง</span>
       <span style="display:flex;align-items:center;gap:6px;font-size:13px">
         <span class="badge badge-primary">รอบ <span id="roundNumber">1</span></span>
         <span id="queueCount" class="badge">0</span>
