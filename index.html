@@ -620,16 +620,57 @@ function renderRoundNumber() {
   if (el) el.textContent = data.currentRound || 1;
 }
 
+function getQueuePlayerStats() {
+  // Compute wins/losses/games for each player in queue from data.history
+  const stats = {};
+  for (const p of data.queue) stats[p] = { wins: 0, losses: 0, games: 0 };
+  for (const r of data.history) {
+    const winTeam = r.winner === 'A' ? r.teamA : r.teamB;
+    const loseTeam = r.winner === 'A' ? r.teamB : r.teamA;
+    for (const p of winTeam) if (stats[p]) { stats[p].wins++; stats[p].games++; }
+    for (const p of loseTeam) if (stats[p]) { stats[p].losses++; stats[p].games++; }
+  }
+  return stats;
+}
+
 function renderQueue() {
   const el = document.getElementById('queuePlayers');
   if (!el) return;
   if (data.queue.length === 0)
     el.innerHTML = '<div class="queue-empty">คิวว่าง — เพิ่มผู้เล่นจาก 👤</div>';
   else {
-    let h = data.queue.map(p =>
+    let h = '';
+    // === ตารางสถิติผู้เล่นในคิว (ชนะ/แพ้/เกม) — ด้านบน ===
+    const stats = getQueuePlayerStats();
+    const sorted = data.queue.map(p => ({ p, ...stats[p] })).sort((a, b) => b.wins - a.wins || b.games - a.games);
+    h += '<div style="background:#f8fafc;border-radius:8px;padding:8px 10px;margin-bottom:8px">';
+    h += '<div style="font-size:13px;font-weight:600;margin-bottom:6px">👥 ผู้เล่นในคิว (' + data.queue.length + ')</div>';
+    h += '<table style="width:100%;font-size:12px;border-collapse:collapse">';
+    h += '<tr style="color:var(--text2);border-bottom:1px solid var(--border)">';
+    h += '<th style="padding:3px 6px;text-align:left">ชื่อ</th>';
+    h += '<th style="padding:3px 6px;text-align:center;color:var(--success)">ชนะ</th>';
+    h += '<th style="padding:3px 6px;text-align:center;color:var(--danger)">แพ้</th>';
+    h += '<th style="padding:3px 6px;text-align:center">เกม</th>';
+    h += '</tr>';
+    for (const s of sorted) {
+      const winPct = s.games > 0 ? Math.round(s.wins / s.games * 100) : 0;
+      h += '<tr style="border-bottom:1px solid #e2e8f0">';
+      h += '<td style="padding:4px 6px;font-weight:600">' + escHtml(s.p) + '</td>';
+      h += '<td style="padding:4px 6px;text-align:center;font-weight:600;color:var(--success)">' + s.wins + '</td>';
+      h += '<td style="padding:4px 6px;text-align:center;font-weight:600;color:var(--danger)">' + s.losses + '</td>';
+      h += '<td style="padding:4px 6px;text-align:center">' + s.games + (s.games > 0 ? ' <span style="color:var(--text2);font-size:11px">(' + winPct + '%)</span>' : '') + '</td>';
+      h += '</tr>';
+    }
+    h += '</table></div>';
+
+    // === Player chips ===
+    h += '<div style="margin-bottom:6px">';
+    h += data.queue.map(p =>
       '<span class="queue-chip">' + escHtml(p) +
       '<button class="remove" onclick="removeFromQueue(\'' + jsStr(p) + '\')">✕</button></span>'
     ).join('');
+    h += '</div>';
+
     const ok = data.queue.length >= 4 && findValidTeams();
     if (ok) h += '<div style="font-size:12px;color:var(--success);margin-top:6px">🟢 พร้อมจัดคู่</div>';
     else if (allPairsExhausted()) {
