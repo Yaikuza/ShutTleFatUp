@@ -353,6 +353,9 @@ function canPair(p1, p2) {
 function findValidTeams() {
   const q = data.queue;
   if (q.length < 4) return null;
+  // Try first 4 first (queue order matters for "next match" suggestion)
+  if (canPair(q[0], q[1]) && canPair(q[2], q[3]))
+    return [[q[0], q[1]], [q[2], q[3]]];
   for (let i = 0; i < q.length - 3; i++)
     for (let j = i + 1; j < q.length; j++)
       if (canPair(q[i], q[j]))
@@ -574,21 +577,28 @@ function renderQueue() {
     if (ok) h += '<div style="font-size:12px;color:var(--success);margin-top:6px">🟢 พร้อมจัดคู่</div>';
     else if (data.queue.length >= 4) h += '<div style="font-size:12px;color:var(--warning);margin-top:6px">🔄 ทุกคู่เล่นครบแล้ว — กด 🔀 สับคิว</div>';
     const limit = data.settings.gamesPerMatch || 2;
-    const pairsInQueue = [];
     const qSet = new Set(data.queue);
-    for (const k of Object.keys(data.pairCount)) {
-      const [p1, p2] = k.split('_');
-      if (qSet.has(p1) && qSet.has(p2)) pairsInQueue.push({ p1, p2, games: data.pairCount[k] });
-    }
+    const pairsInQueue = Object.keys(data.pairCount)
+      .filter(k => { const [a,b]=k.split('_'); return qSet.has(a) && qSet.has(b); })
+      .map(k => { const [a,b]=k.split('_'); return { p1:a, p2:b, games:data.pairCount[k] }; })
+      .sort((a,b)=>b.games-a.games);
     if (pairsInQueue.length) {
-      h += '<div style="margin-top:8px;font-size:12px;color:var(--text2)"><strong>คู่ในรอบนี้:</strong></div>';
-      for (const pr of pairsInQueue.sort((a,b)=>b.games-a.games)) {
+      h += '<div style="margin-top:8px;font-size:12px"><strong>ตารางคู่</strong></div>';
+      h += '<table style="width:100%;font-size:12px;border-collapse:collapse;margin-top:4px">';
+      h += '<tr style="border-bottom:1px solid var(--border);color:var(--text2)"><th style="padding:4px 6px;text-align:left">คู่</th><th style="padding:4px 6px;text-align:center">เกม</th><th style="padding:4px 6px;text-align:center">สถานะ</th></tr>';
+      for (const pr of pairsInQueue) {
         const done = pr.games >= limit;
-        h += '<div style="font-size:12px;padding:1px 0">' +
-          escHtml(pr.p1) + '+' + escHtml(pr.p2) +
-          ' <span style="color:' + (done?'var(--danger)':'var(--text2)') + '">' + pr.games + '/' + limit + '</span>' +
-          (done ? ' ✅' : ' ⏳') + '</div>';
+        h += '<tr style="border-bottom:1px solid #f1f5f9">' +
+          '<td style="padding:3px 6px">' + escHtml(pr.p1) + '+' + escHtml(pr.p2) + '</td>' +
+          '<td style="padding:3px 6px;text-align:center;font-weight:600">' + pr.games + '/' + limit + '</td>' +
+          '<td style="padding:3px 6px;text-align:center;color:' + (done?'var(--danger)':'var(--success)') + '">' + (done?'✅ ครบ':'⏳ รอ') + '</td></tr>';
       }
+      h += '</table>';
+    }
+    const teams = data.queue.length >= 4 ? findValidTeams() : null;
+    if (teams) {
+      h += '<div style="margin-top:6px;font-size:12px;color:var(--primary);font-weight:600">📋 คู่ถัดไป: ' +
+        escHtml(teams[0].join('+')) + ' 🆚 ' + escHtml(teams[1].join('+')) + '</div>';
     }
     el.innerHTML = h;
   }
