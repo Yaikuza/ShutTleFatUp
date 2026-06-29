@@ -6,23 +6,30 @@
 <title>🏸 จับคู่แบด</title>
 <style>
 :root {
-  --primary: #1a56db;
-  --primary-light: #3b82f6;
-  --success: #059669;
-  --warning: #d97706;
-  --danger: #dc2626;
-  --bg: #f1f5f9;
+  --primary: #6366f1;
+  --primary-light: #818cf8;
+  --primary-dark: #4f46e5;
+  --success: #10b981;
+  --success-light: #d1fae5;
+  --warning: #f59e0b;
+  --warning-light: #fef3c7;
+  --danger: #ef4444;
+  --bg: #f8fafc;
   --card: #ffffff;
-  --text: #1e293b;
+  --text: #0f172a;
   --text2: #64748b;
   --border: #e2e8f0;
   --border-soft: #f1f5f9;
-  --shadow: 0 1px 4px rgba(0,0,0,.08);
-  --radius: 12px;
-  --radius-sm: 8px;
+  --shadow: 0 2px 8px rgba(0,0,0,.06);
+  --shadow-lg: 0 8px 30px rgba(0,0,0,.12);
+  --radius: 14px;
+  --radius-sm: 10px;
   --muted: #f8fafc;
   --chip-bg: #eef2ff;
   --line: #e2e8f0;
+  --gradient: linear-gradient(135deg, #6366f1, #8b5cf6);
+  --gradient-warm: linear-gradient(135deg, #f59e0b, #ef4444);
+  --avatar-size: 36px;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{font-size:16px;-webkit-text-size-adjust:100%}
@@ -31,66 +38,72 @@ button{touch-action:manipulation;cursor:pointer;-webkit-tap-highlight-color:tran
 input,button{font-size:inherit;font-family:inherit}
 
 /* Header */
-header{background:var(--primary);color:#fff;padding:12px 16px;position:sticky;top:0;z-index:10}
+header{background:var(--gradient);color:#fff;padding:14px 16px;position:sticky;top:0;z-index:10;box-shadow:0 2px 12px rgba(99,102,241,.3)}
 .header-top{display:flex;align-items:center;justify-content:space-between}
-header h1{font-size:20px;font-weight:700}
+header h1{font-size:20px;font-weight:800;letter-spacing:-.3px}
 .court-ctrl{display:flex;align-items:center;gap:8px}
-.court-ctrl button{background:rgba(255,255,255,.2);border:none;color:#fff;width:36px;height:36px;border-radius:50%;font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center}
+.court-ctrl button{background:rgba(255,255,255,.2);border:none;color:#fff;width:36px;height:36px;border-radius:50%;font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
 .court-ctrl button:active{background:rgba(255,255,255,.35)}
 .court-ctrl span{font-weight:700;font-size:18px;min-width:20px;text-align:center}
 .btn-icon{background:none;border:none;font-size:22px;padding:6px;border-radius:8px;line-height:1}
 .btn-icon:active{background:rgba(0,0,0,.08)}
 
-/* Queue bar */
-.queue-bar{background:var(--card);margin:8px 12px;padding:10px 12px;border-radius:var(--radius);box-shadow:var(--shadow)}
-.queue-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-.queue-header span:first-child{font-weight:600;font-size:15px}
-.badge{background:var(--primary);color:#fff;font-size:12px;padding:2px 8px;border-radius:10px;font-weight:600}
+/* Queue */
+.badge{background:var(--gradient);color:#fff;font-size:12px;padding:2px 10px;border-radius:10px;font-weight:600}
 .badge-primary{background:var(--primary-light)}
-.queue-players{display:flex;flex-wrap:wrap;gap:6px;min-height:32px}
-.queue-chip{display:inline-flex;align-items:center;gap:4px;background:var(--chip-bg);color:var(--primary);padding:4px 10px;border-radius:16px;font-size:13px;font-weight:500;white-space:nowrap}
+.queue-players{display:flex;flex-wrap:wrap;gap:8px;min-height:36px;padding:4px 0}
+.queue-chip{display:inline-flex;align-items:center;gap:6px;background:var(--chip-bg);color:var(--primary);padding:4px 10px;border-radius:18px;font-size:13px;font-weight:500;white-space:nowrap;cursor:grab;transition:box-shadow .2s,transform .2s;user-select:none}
+.queue-chip:active{cursor:grabbing;box-shadow:var(--shadow-lg);transform:scale(1.05)}
+.queue-chip.dragging{opacity:.5}
 .queue-chip .remove{background:none;border:none;color:#94a3b8;font-size:16px;padding:0 2px;line-height:1;cursor:pointer}
 .queue-chip .remove:active{color:var(--danger)}
 .queue-empty{color:var(--text2);font-size:13px;padding:4px 0}
+.queue-chip .avatar{width:var(--avatar-size);height:var(--avatar-size);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px;flex-shrink:0;margin:-4px 0 -4px -8px}
+.queue-chip .avatar-small{width:24px;height:24px;font-size:11px;margin:-2px 2px -2px 0}
 
 /* Courts */
 .courts{padding:0 12px 12px;display:flex;flex-direction:column;gap:10px}
-.court-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;animation:slideUp .25s ease}
+.court-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;animation:slideUp .25s ease;border-left:4px solid var(--border)}
+.court-card.status-playing{border-left-color:var(--warning)}
+.court-card.status-waiting.queue-full{border-left-color:var(--success)}
 .court-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px 8px}
 .court-title{font-weight:700;font-size:16px;display:flex;align-items:center;gap:8px}
 .court-body{padding:0 14px 14px}
 .court-empty{text-align:center;padding:16px 0;color:var(--text2)}
-.court-empty .big-btn{display:block;width:100%;max-width:260px;margin:10px auto 0;padding:14px;background:var(--primary);color:#fff;border:none;border-radius:var(--radius-sm);font-size:16px;font-weight:600}
-.court-empty .big-btn:disabled{background:#94a3b8;opacity:.6}
-.court-empty .big-btn:not(:disabled):active{background:var(--primary-light)}
-.match-display{display:flex;align-items:center;justify-content:center;gap:8px;padding:8px 0}
-.team-box{flex:1;max-width:38%;background:var(--muted);border-radius:var(--radius-sm);padding:12px 10px;text-align:center;cursor:pointer;border:2px solid transparent;transition:border-color .15s;user-select:none;-webkit-tap-highlight-color:transparent}
-.team-box:active{border-color:var(--primary);background:var(--chip-bg)}
-.team-box .names{font-weight:600;font-size:15px;line-height:1.4}
-.team-box .tap-hint{font-size:10px;color:var(--text2);margin-top:4px}
+.court-empty .big-btn{display:block;width:100%;max-width:260px;margin:10px auto 0;padding:14px;background:var(--gradient);color:#fff;border:none;border-radius:var(--radius-sm);font-size:16px;font-weight:600;box-shadow:0 2px 8px rgba(99,102,241,.25)}
+.court-empty .big-btn:disabled{background:#94a3b8;opacity:.6;box-shadow:none}
+.court-empty .big-btn:not(:disabled):active{opacity:.9}
+.match-display{display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 0}
+.team-box{flex:1;max-width:40%;background:var(--muted);border-radius:var(--radius-sm);padding:14px 10px;text-align:center;cursor:pointer;border:2px solid transparent;transition:all .2s;user-select:none;-webkit-tap-highlight-color:transparent;position:relative}
+.team-box.team-a{background:linear-gradient(135deg,#eef2ff,#e0e7ff);border-color:#c7d2fe}
+.team-box.team-a:active{background:linear-gradient(135deg,#c7d2fe,#a5b4fc);border-color:var(--primary)}
+.team-box.team-b{background:linear-gradient(135deg,#fdf2f8,#fce7f3);border-color:#fbcfe8}
+.team-box.team-b:active{background:linear-gradient(135deg,#fbcfe8,#f9a8d4);border-color:#ec4899}
+.team-box .names{font-weight:700;font-size:16px;line-height:1.4}
+.team-box .tap-hint{font-size:10px;color:var(--text2);margin-top:4px;opacity:.7}
 .team-box .consec{font-size:11px;color:var(--text2);margin-left:4px}
-.vs{font-size:14px;font-weight:700;color:var(--text2);padding:0 4px}
+.vs-badge{background:var(--gradient);color:#fff;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;box-shadow:0 2px 8px rgba(99,102,241,.3);flex-shrink:0;z-index:1}
 .waiting-actions{display:flex;gap:8px;margin-top:8px}
 .waiting-actions button{flex:1;padding:12px;border:none;border-radius:var(--radius-sm);font-weight:600;font-size:14px}
-.waiting-actions .btn-primary{background:var(--primary);color:#fff}
-.waiting-actions .btn-primary:disabled{background:#94a3b8}
-.waiting-actions .btn-primary:not(:disabled):active{background:var(--primary-light)}
+.waiting-actions .btn-primary{background:var(--gradient);color:#fff;box-shadow:0 2px 8px rgba(99,102,241,.25)}
+.waiting-actions .btn-primary:disabled{background:#94a3b8;box-shadow:none}
+.waiting-actions .btn-primary:not(:disabled):active{opacity:.9}
 .waiting-actions .btn-outline{background:#fff;color:var(--text2);border:2px solid var(--border)}
 .court-swap-row{margin-top:4px;text-align:center}
 .court-swap-btn{background:none;border:none;color:var(--text2);font-size:12px;padding:6px}
-.court-empty-msg{font-size:14px;margin-bottom:4px}
+.court-empty-msg{font-size:14px;margin-bottom:4px;font-weight:500}
 .court-empty-sub{font-size:12px;color:var(--text2);margin-bottom:10px}
-.court-waiting-msg{font-size:14px;margin-bottom:8px}
+.court-waiting-msg{font-size:14px;margin-bottom:8px;font-weight:500}
 
 /* Collapse sections */
 .collapse-section{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;margin:0 12px 10px}
 .collapse-section:first-child{margin-top:8px}
 .collapse-header{padding:14px 16px;font-weight:600;font-size:15px;display:flex;align-items:center;justify-content:space-between;user-select:none;-webkit-tap-highlight-color:transparent;cursor:pointer}
 .collapse-header:active{opacity:.8}
-.collapse-header.head-players{background:var(--chip-bg);color:#1e40af}
-.collapse-header.head-stats{background:#ecfdf5;color:#065f46}
-.collapse-header.head-settings{background:#fffbeb;color:#92400e}
-.collapse-header.head-queue{background:#f0f0ff;color:#4338ca}
+.collapse-header.head-players{background:linear-gradient(135deg,#eef2ff,#e0e7ff);color:var(--primary-dark)}
+.collapse-header.head-stats{background:linear-gradient(135deg,#ecfdf5,#d1fae5);color:#065f46}
+.collapse-header.head-settings{background:linear-gradient(135deg,#fffbeb,#fef3c7);color:#92400e}
+.collapse-header.head-queue{background:linear-gradient(135deg,#f0f0ff,#e8e8ff);color:var(--primary-dark)}
 .collapse-icon{font-size:12px;transition:transform .2s;color:var(--text2)}
 .collapse-icon.open{transform:rotate(90deg)}
 .collapse-body{display:none;padding:0 16px 16px;border-top:1px solid var(--border)}
@@ -191,6 +204,20 @@ select.setting-input{padding:6px 12px;border:2px solid var(--border);border-radi
 /* Scrollbar */
 .queue-players::-webkit-scrollbar{height:4px}
 .queue-players::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:2px}
+
+/* Bottom sheet */
+.sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;opacity:0;pointer-events:none;transition:opacity .3s}
+.sheet-overlay.open{opacity:1;pointer-events:auto}
+.sheet{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-radius:var(--radius) var(--radius) 0 0;z-index:101;transform:translateY(100%);transition:transform .35s cubic-bezier(.32,.72,0,1);max-height:85vh;overflow-y:auto;box-shadow:var(--shadow-lg)}
+.sheet.open{transform:translateY(0)}
+.sheet-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:10px auto}
+.sheet-header{padding:0 20px 12px;display:flex;align-items:center;justify-content:space-between;font-weight:700;font-size:17px}
+.sheet-close{background:none;border:none;font-size:20px;color:var(--text2);padding:4px}
+.sheet-body{padding:0 20px 20px}
+
+/* Toast */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;padding:10px 20px;border-radius:var(--radius-sm);font-size:14px;font-weight:500;z-index:200;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;box-shadow:var(--shadow-lg)}
+.toast.show{opacity:1}
 </style>
 </head>
 <body>
@@ -233,23 +260,21 @@ select.setting-input{padding:6px 12px;border:2px solid var(--border);border-radi
 
   <div id="courtsContainer" class="courts"></div>
 
-  <div class="collapse-section">
-    <div class="collapse-header head-stats" onclick="toggleCollapse('Stats')">
-      <span>📊 สถิติ</span>
-      <span class="collapse-icon">▶</span>
-    </div>
-    <div id="collapseStats" class="collapse-body"></div>
-  </div>
-
-  <div class="collapse-section">
-    <div class="collapse-header head-settings" onclick="toggleCollapse('Settings')">
-      <span>⚙️ ตั้งค่า</span>
-      <span class="collapse-icon">▶</span>
-    </div>
-    <div id="collapseSettings" class="collapse-body"></div>
+  <div style="display:flex;gap:10px;margin:0 12px 10px">
+    <button onclick="openSheet('Stats')" style="flex:1;padding:12px;background:linear-gradient(135deg,#ecfdf5,#d1fae5);border:none;border-radius:var(--radius-sm);font-weight:600;font-size:14px;color:#065f46;display:flex;align-items:center;justify-content:center;gap:6px">📊 สถิติ</button>
+    <button onclick="openSheet('Settings')" style="flex:1;padding:12px;background:linear-gradient(135deg,#fffbeb,#fef3c7);border:none;border-radius:var(--radius-sm);font-weight:600;font-size:14px;color:#92400e;display:flex;align-items:center;justify-content:center;gap:6px">⚙️ ตั้งค่า</button>
   </div>
 </main>
 
+<div class="sheet-overlay" id="sheetOverlay" onclick="closeSheet()"></div>
+<div class="sheet" id="sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <span id="sheetTitle">Title</span>
+    <button class="sheet-close" onclick="closeSheet()">✕</button>
+  </div>
+  <div class="sheet-body" id="sheetBody"></div>
+</div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -870,6 +895,56 @@ function getMatchSchedule() {
 }
 
 // ===== RENDER =====
+// ===== BOTTOM SHEET =====
+let sheetContent = null;
+
+function openSheet(name) {
+  const overlay = document.getElementById('sheetOverlay');
+  const sheet = document.getElementById('sheet');
+  const title = document.getElementById('sheetTitle');
+  const body = document.getElementById('sheetBody');
+  if (name === 'Stats') {
+    title.textContent = '📊 สถิติ';
+    body.innerHTML = renderStatsContent();
+  } else {
+    title.textContent = '⚙️ ตั้งค่า';
+    body.innerHTML = renderSettingsContent();
+  }
+  overlay.classList.add('open');
+  sheet.classList.add('open');
+  sheetContent = name;
+}
+
+function closeSheet() {
+  document.getElementById('sheetOverlay').classList.remove('open');
+  document.getElementById('sheet').classList.remove('open');
+  sheetContent = null;
+}
+
+// ===== DRAG-TO-REORDER QUEUE =====
+let dragIdx = -1;
+
+function dragStart(e, idx) {
+  dragIdx = idx;
+  e.dataTransfer.effectAllowed = 'move';
+  e.target.classList.add('dragging');
+}
+
+function dragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+}
+
+function dragDrop(e, toIdx) {
+  e.preventDefault();
+  document.querySelectorAll('.queue-chip.dragging').forEach(el => el.classList.remove('dragging'));
+  if (dragIdx < 0 || dragIdx === toIdx) { dragIdx = -1; return; }
+  const item = data.queue.splice(dragIdx, 1)[0];
+  data.queue.splice(toIdx, 0, item);
+  dragIdx = -1;
+  persist();
+}
+
 function render() {
   renderCourts();
   renderQueue();
@@ -882,11 +957,27 @@ function renderRoundNumber() {
   if (el) el.textContent = data.currentRound || 1;
 }
 
+const AVATAR_COLORS = ['#6366f1','#8b5cf6','#ec4899','#f43f5e','#f97316','#f59e0b','#10b981','#06b6d4','#3b82f6','#84cc16'];
+
+function avatarColor(name) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = ((h << 5) - h) + name.charCodeAt(i);
+  return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
+}
+
+function avatarHtml(name, small) {
+  const c = avatarColor(name);
+  const init = name.charAt(0).toUpperCase();
+  const cls = small ? 'avatar avatar-small' : 'avatar';
+  return `<span class="${cls}" style="background:${c}">${init}</span>`;
+}
+
 function renderQueueChips() {
-  return '<div style="width:100%;margin-bottom:6px">' +
-    data.queue.map(p =>
-      '<span class="queue-chip">' + escHtml(p) +
-      '<button class="remove" onclick="removeFromQueue(\'' + jsStr(p) + '\')">✕</button></span>'
+  return '<div style="width:100%;margin-bottom:6px;display:flex;flex-wrap:wrap;gap:6px">' +
+    data.queue.map((p, i) =>
+      '<span class="queue-chip" draggable="true" ondragstart="dragStart(event,' + i + ')" ondrop="dragDrop(event,' + i + ')" ondragover="dragOver(event)" data-idx="' + i + '">' +
+      avatarHtml(p) + escHtml(p) +
+      '<button class="remove" onclick="event.stopPropagation();removeFromQueue(\'' + jsStr(p) + '\')">✕</button></span>'
     ).join('') +
     '</div>';
 }
@@ -941,7 +1032,7 @@ function showTeam(court, team) {
   const limit = data.settings.gamesPerMatch || 2;
   return team.map(p => {
     const n = (court.consecutive || {})[p];
-    return escHtml(p) +
+    return avatarHtml(p, true) + escHtml(p) +
       (n !== undefined ? '<span class="consec">(' + n + '/' + limit + ')</span>' : '');
   }).join('<span style="color:var(--text2);margin:0 4px">+</span>');
 }
@@ -949,27 +1040,29 @@ function showTeam(court, team) {
 function renderCourtBody(c) {
   const isPlaying = c.status === 'playing' && c.teamA.length === 2 && c.teamB.length === 2;
   if (isPlaying) {
+    const teamAStr = c.teamA.map(p => avatarHtml(p, true) + escHtml(p)).join('<span style="color:var(--text2);margin:0 4px">+</span>');
+    const teamBStr = c.teamB.map(p => avatarHtml(p, true) + escHtml(p)).join('<span style="color:var(--text2);margin:0 4px">+</span>');
     return `
       <div class="match-display">
-        <div class="team-box" onclick="declareWinner(${c.id},'A')">
-          <div class="names">${showTeam(c, c.teamA)}</div>
+        <div class="team-box team-a" onclick="declareWinner(${c.id},'A')">
+          <div class="names">${teamAStr}</div>
           <div class="tap-hint">👆 ชนะ</div>
         </div>
-        <div class="vs">🆚</div>
-        <div class="team-box" onclick="declareWinner(${c.id},'B')">
-          <div class="names">${showTeam(c, c.teamB)}</div>
+        <div class="vs-badge">VS</div>
+        <div class="team-box team-b" onclick="declareWinner(${c.id},'B')">
+          <div class="names">${teamBStr}</div>
           <div class="tap-hint">👆 ชนะ</div>
         </div>
       </div>
       <div class="court-swap-row">
-        <button class="court-swap-btn" onclick="swapBoth(${c.id})">🔄 เปลี่ยนทั้งคู่</button>
+        <button class="court-swap-btn" onclick="swapBoth(${c.id})">🔄 เปลี่ยนคู่</button>
       </div>`;
   }
   const hasTeamA = c.teamA.length > 0;
   const empty = hasTeamA
     ? `<div class="court-waiting-msg">⏳ รอคู่: ${escHtml(c.teamA.join(' + '))}</div>`
-    : `<div class="court-empty-msg">⏳ สนามว่าง</div>
-       <div class="court-empty-sub">คิว ${data.queue.length} คน</div>`;
+    : `<div class="court-empty-msg">🏟️ สนามว่าง</div>
+       <div class="court-empty-sub">👥 คิว ${data.queue.length} คน</div>`;
   const disabled = data.queue.length < 4 || !scheduleHasPlayableMatch();
   return `<div class="court-empty">${empty}
     <button class="big-btn" onclick="fillCourt(${c.id})" ${disabled ? 'disabled' : ''}>👥 จัดผู้เล่น</button>
@@ -980,7 +1073,10 @@ function renderCourts() {
   const el = document.getElementById('courtsContainer');
   if (!el) return;
   el.innerHTML = data.courts.map(c => {
-    return `<div class="court-card">
+    let cls = 'court-card';
+    if (c.status === 'playing') cls += ' status-playing';
+    else if (data.queue.length >= 4 && scheduleHasPlayableMatch()) cls += ' status-waiting queue-full';
+    return `<div class="${cls}">
       <div class="court-header">
         <span class="court-title">🏟️ สนาม ${c.id}</span>
       </div>
@@ -1014,26 +1110,24 @@ function renderPlayers() {
 }
 
 // ===== STATS =====
-function renderStats() {
-  const el = document.getElementById('collapseStats');
-  if (!el) return;
-  el.innerHTML =
-    '<div class="stats-nav">' +
+function renderStatsContent() {
+  return '<div class="stats-nav">' +
     '<button class="active" onclick="switchStatsTab(this,\'pairs\')">คู่</button>' +
     '<button onclick="switchStatsTab(this,\'opps\')">คู่แข่ง</button>' +
     '<button onclick="switchStatsTab(this,\'games\')">เกม</button>' +
     '<button onclick="switchStatsTab(this,\'history\')">ประวัติ</button>' +
-    '</div><div id="statsContent"></div>';
-  renderStatsPairs();
+    '</div><div id="statsContent">' + renderStatsPairs() + '</div>';
 }
 
 function switchStatsTab(btn, tab) {
   btn.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  if (tab === 'pairs') renderStatsPairs();
-  else if (tab === 'opps') renderStatsOpps();
-  else if (tab === 'games') renderStatsGames();
-  else renderStatsHistory();
+  const el = document.getElementById('statsContent');
+  if (!el) return;
+  if (tab === 'pairs') el.innerHTML = renderStatsPairs();
+  else if (tab === 'opps') el.innerHTML = renderStatsOpps();
+  else if (tab === 'games') el.innerHTML = renderStatsGames();
+  else el.innerHTML = renderStatsHistory();
 }
 
 function renderStatTable(entries, formatter, emptyIcon, emptyText) {
@@ -1046,34 +1140,23 @@ function renderStatTable(entries, formatter, emptyIcon, emptyText) {
 }
 
 function renderStatsPairs() {
-  const el = document.getElementById('statsContent');
-  if (!el) return;
   const entries = Object.entries(data.pairCount).sort((a, b) => b[1] - a[1]);
-  el.innerHTML = renderStatTable(entries, k => k.replace(/_/g, ' + '), '🤝', 'ยังไม่มีสถิติ');
+  return renderStatTable(entries, k => k.replace(/_/g, ' + '), '🤝', 'ยังไม่มีสถิติ');
 }
 
 function renderStatsOpps() {
-  const el = document.getElementById('statsContent');
-  if (!el) return;
   const entries = Object.entries(data.oppCount).sort((a, b) => b[1] - a[1]);
-  el.innerHTML = renderStatTable(entries, k => k.replace(/_/g, ' 🆚 '), '⚔️', 'ยังไม่มีสถิติ');
+  return renderStatTable(entries, k => k.replace(/_/g, ' 🆚 '), '⚔️', 'ยังไม่มีสถิติ');
 }
 
 function renderStatsGames() {
-  const el = document.getElementById('statsContent');
-  if (!el) return;
   const entries = Object.entries(data.gameCount).sort((a, b) => b[1] - a[1]);
-  el.innerHTML = renderStatTable(entries, k => k, '🏸', 'ยังไม่มีสถิติ');
+  return renderStatTable(entries, k => k, '🏸', 'ยังไม่มีสถิติ');
 }
 
 function renderStatsHistory() {
-  const el = document.getElementById('statsContent');
-  if (!el) return;
   const h = data.history;
-  if (!h.length) {
-    el.innerHTML = '<div class="empty-state"><div class="icon">📜</div><p>ยังไม่มีประวัติ</p></div>';
-    return;
-  }
+  if (!h.length) return '<div class="empty-state"><div class="icon">📜</div><p>ยังไม่มีประวัติ</p></div>';
   let html = '<div class="history-list">';
   for (let i = h.length - 1; i >= 0; i--) {
     const r = h[i];
@@ -1086,19 +1169,16 @@ function renderStatsHistory() {
       '</div>';
   }
   html += '</div>';
-  el.innerHTML = html;
+  return html;
 }
 
 // ===== SETTINGS =====
-function renderSettings() {
-  const el = document.getElementById('collapseSettings');
-  if (!el) return;
+function renderSettingsContent() {
   const s = data.settings;
   const options = [1, 2, 3, 4, 5].map(n =>
     '<option value="' + n + '" ' + (s.gamesPerMatch === n ? 'selected' : '') + '>' + n + ' เกม</option>'
   ).join('');
-  el.innerHTML =
-    '<div class="settings-card">' +
+  return '<div class="settings-card">' +
       '<div class="setting-row">' +
         '<div><div class="setting-label">จำนวนเกม/คู่</div><div class="setting-desc">เล่นกี่เกมแล้วพัก</div></div>' +
         '<select class="setting-input" onchange="data.settings.gamesPerMatch=parseInt(this.value);saveData();render()">' +
