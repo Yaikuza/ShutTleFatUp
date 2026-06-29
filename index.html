@@ -478,14 +478,17 @@ function fillCourt(courtId) {
     const round = data.schedule.rounds[data.schedule.currentRound];
     if (round) {
       let pair1 = null, pair2 = null;
+      const busyPlayers = new Set();
+      for (const c of data.courts)
+        if (c.id !== courtId && c.status === 'playing')
+          for (const p of [...c.teamA, ...c.teamB]) busyPlayers.add(p);
       for (let i = 0; i < round.length; i++) {
         const p = round[i];
         if (!p.used && p.players.every(n => data.queue.includes(n))) {
           if (!pair1) { pair1 = p; }
           else if (!pair2) {
-            // Check if all 4 players are distinct
             const all4 = [...pair1.players, ...p.players];
-            if (new Set(all4).size === 4) { pair2 = p; break; }
+            if (new Set(all4).size === 4 && !all4.some(n => busyPlayers.has(n))) { pair2 = p; break; }
           }
         }
       }
@@ -562,8 +565,7 @@ function declareWinner(courtId, winner) {
     court.teamA = []; court.teamB = []; court.status = 'waiting';
     const completed = checkRoundComplete();
     if (!completed) fillCourt(courtId);
-  } else {
-    // Winner Stays for game 2
+  } else if (data.settings.mode === 'winnerstays') {
     const winTeam = winner === 'A' ? court.teamA : court.teamB;
     const loseTeam = winner === 'A' ? court.teamB : court.teamA;
     for (const p of loseTeam)
@@ -588,6 +590,8 @@ function declareWinner(courtId, winner) {
 function swapBoth(courtId) {
   const court = data.courts.find(c => c.id === courtId);
   if (!court || court.status !== 'playing') return;
+  if (court._pairA) court._pairA.used = true;
+  if (court._pairB) court._pairB.used = true;
   for (const p of [...court.teamA, ...court.teamB])
     if (!data.queue.includes(p)) data.queue.push(p);
   court.teamA = []; court.teamB = []; court.status = 'waiting'; court.consecutive = {};
