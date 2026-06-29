@@ -346,18 +346,45 @@ function removeCourt() {
 }
 function renderCourtCount() { document.getElementById('courtCount').textContent = data.courts.length; }
 
+function canPair(p1, p2) {
+  return (data.pairCount[key(p1, p2)] || 0) < (data.settings.gamesPerMatch || 2);
+}
+
+function findValidTeams() {
+  const q = data.queue;
+  if (q.length < 4) return null;
+  for (let i = 0; i < q.length - 3; i++)
+    for (let j = i + 1; j < q.length; j++)
+      if (canPair(q[i], q[j]))
+        for (let k = 0; k < q.length - 1; k++) {
+          if (k === i || k === j) continue;
+          for (let l = k + 1; l < q.length; l++) {
+            if (l === i || l === j) continue;
+            if (canPair(q[k], q[l])) return [[q[i], q[j]], [q[k], q[l]]];
+          }
+        }
+  return null;
+}
+
 function fillCourt(courtId) {
   const court = data.courts.find(c => c.id === courtId);
   if (!court) return;
   if (court.status === 'playing') { toast('สนามนี้กำลังเล่นอยู่'); return; }
   if (data.queue.length < 4) { toast('คิวต้องมีอย่างน้อย 4 คน'); return; }
 
-  court.teamA = [data.queue[0], data.queue[1]];
-  court.teamB = [data.queue[2], data.queue[3]];
+  const teams = findValidTeams();
+  if (teams) {
+    court.teamA = teams[0];
+    court.teamB = teams[1];
+    data.queue = data.queue.filter(p => !teams[0].includes(p) && !teams[1].includes(p));
+  } else {
+    court.teamA = [data.queue[0], data.queue[1]];
+    court.teamB = [data.queue[2], data.queue[3]];
+    data.queue = data.queue.slice(4);
+  }
   court.status = 'playing';
   court.games = 0;
   court.consecutive = {};
-  data.queue = data.queue.slice(4);
   saveData(); render(); syncQueueCount();
 }
 
@@ -538,11 +565,16 @@ function renderQueue() {
   if (!el) return;
   if (data.queue.length === 0)
     el.innerHTML = '<div class="queue-empty">คิวว่าง — เพิ่มผู้เล่นจาก 👤</div>';
-  else
-    el.innerHTML = data.queue.map(p =>
+  else {
+    let h = data.queue.map(p =>
       '<span class="queue-chip">' + escHtml(p) +
       '<button class="remove" onclick="removeFromQueue(\'' + jsStr(p) + '\')">✕</button></span>'
     ).join('');
+    const ok = data.queue.length >= 4 && findValidTeams();
+    if (ok) h += '<div style="font-size:12px;color:var(--success);margin-top:6px">🟢 พร้อมจัดคู่</div>';
+    else if (data.queue.length >= 4) h += '<div style="font-size:12px;color:var(--warning);margin-top:6px">🔄 ทุกคู่เล่นครบแล้ว — กด 🔀 สับคิว</div>';
+    el.innerHTML = h;
+  }
   syncQueueCount();
 }
 
@@ -580,7 +612,7 @@ function renderCourts() {
             ${hasTeamA ? `<div style="margin-bottom:8px;font-size:14px">⏳ รอคู่: ${escHtml(c.teamA.join(' + '))}</div>`
             : `<div style="font-size:14px;margin-bottom:4px">⏳ สนามว่าง</div>
                <div style="font-size:12px;color:var(--text2);margin-bottom:10px">คิว ${data.queue.length} คน</div>`}
-            <button class="big-btn" onclick="fillCourt(${c.id})" ${data.queue.length<4?'disabled':''}>👥 จัดผู้เล่น</button>
+            <button class="big-btn" onclick="fillCourt(${c.id})" ${data.queue.length<4||!findValidTeams()?'disabled':''}>👥 จัดผู้เล่น</button>
           </div>
         `}
       </div>
