@@ -90,6 +90,7 @@ header h1{font-size:20px;font-weight:700}
 .collapse-header.head-players{background:var(--chip-bg);color:#1e40af}
 .collapse-header.head-stats{background:#ecfdf5;color:#065f46}
 .collapse-header.head-settings{background:#fffbeb;color:#92400e}
+.collapse-header.head-queue{background:#f0f0ff;color:#4338ca}
 .collapse-icon{font-size:12px;transition:transform .2s;color:var(--text2)}
 .collapse-icon.open{transform:rotate(90deg)}
 .collapse-body{display:none;padding:0 16px 16px;border-top:1px solid var(--border)}
@@ -121,7 +122,7 @@ header h1{font-size:20px;font-weight:700}
 .action-bar .btn-danger:active{background:#fecaca}
 
 /* Queue inner panels */
-.q-panel{background:var(--muted);border-radius:8px;padding:8px 10px;margin-bottom:8px}
+.q-panel{background:var(--muted);border-radius:8px;padding:8px 10px;margin-bottom:20px}
 .q-panel-title{font-size:13px;font-weight:600;margin-bottom:6px}
 .q-table{width:100%;font-size:12px;border-collapse:collapse}
 .q-table th{padding:3px 6px;text-align:left;font-weight:600;font-size:12px;color:var(--text2);border-bottom:1px solid var(--border)}
@@ -214,15 +215,20 @@ select.setting-input{padding:6px 12px;border:2px solid var(--border);border-radi
     <div id="collapsePlayers" class="collapse-body"></div>
   </div>
 
-  <div class="queue-bar">
-    <div class="queue-header">
+  <div class="collapse-section">
+    <div class="collapse-header head-queue" onclick="toggleCollapse('Queue')">
       <span>👥 คิวรอเล่น</span>
-      <span class="badge badge-primary">รอบ <span id="roundNumber">1</span></span>
-      <span id="queueCount" class="badge">0</span>
-      <button onclick="shuffleQueue()" class="btn-icon" title="สับคิว">🔀</button>
-      <button onclick="resetSession()" class="btn-icon" title="รีเซตรอบ (เก็บชื่อ+สถิติ)">♻️</button>
+      <span style="display:flex;align-items:center;gap:6px;font-size:13px">
+        <span class="badge badge-primary">รอบ <span id="roundNumber">1</span></span>
+        <span id="queueCount" class="badge">0</span>
+        <button onclick="event.stopPropagation();shuffleQueue()" class="btn-icon" title="สับคิว">🔀</button>
+        <button onclick="event.stopPropagation();resetSession()" class="btn-icon" title="รีเซตรอบ (เก็บชื่อ+สถิติ)">♻️</button>
+      </span>
+      <span class="collapse-icon open">▶</span>
     </div>
-    <div id="queuePlayers" class="queue-players"></div>
+    <div id="collapseQueue" class="collapse-body open">
+      <div id="queuePlayers" class="queue-players"></div>
+    </div>
   </div>
 
   <div id="courtsContainer" class="courts"></div>
@@ -885,9 +891,6 @@ function renderQueueChips() {
 }
 
 function renderQueueStatus() {
-  if (data.queue.length >= 4 && scheduleHasPlayableMatch()) {
-    return '<div class="q-status-line ok">🟢 พร้อมจัดคู่</div>';
-  }
   if (!scheduleHasPlayableMatch() && data.roundSchedule.length >= 2) {
     return '<div class="q-status-line warn">🔄 Schedule หมดแล้ว</div>' +
       '<button class="q-next-btn" onclick="startNewRound()">🔄 เริ่มรอบใหม่ (รอบที่ ' + (data.currentRound + 1) + ')</button>';
