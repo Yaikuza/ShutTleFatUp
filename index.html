@@ -218,7 +218,6 @@ select.setting-input{padding:6px 12px;border:2px solid var(--border);border-radi
     <div id="queuePlayers" class="queue-players"></div>
   </div>
 
-  <div id="scheduleInfo" style="margin:0 12px 8px;font-size:13px;color:var(--text2)"></div>
   <div id="courtsContainer" class="courts"></div>
 
   <!-- Collapsible: สถิติ -->
@@ -339,6 +338,7 @@ function generateSchedule() {
     data.schedule.pairIdx = 0;
     data.schedule.enabled = true;
     saveData(); render();
+    openScheduleSection();
     toast('✅ รอบ 1 (' + next.length + ' คู่)');
   }
 }
@@ -360,6 +360,7 @@ function generateNextRound() {
     data.schedule.pairIdx = 0;
     data.schedule.enabled = true;
     saveData(); render();
+    openScheduleSection();
     toast('✅ รอบ ' + data.schedule.roundCount + ' (' + next.length + ' คู่)');
   }
 }
@@ -705,9 +706,16 @@ function toggleCollapse(name) {
     else if (name === 'Settings') renderSettings();
   }
 }
+function openScheduleSection() {
+  const body = document.getElementById('collapseSchedule');
+  if (!body || body.classList.contains('open')) return;
+  body.classList.add('open');
+  const icon = body.parentElement.querySelector('.collapse-icon');
+  if (icon) icon.classList.add('open');
+}
 
 // ===== RENDER =====
-function render() { renderCourts(); renderQueue(); renderCourtCount(); renderScheduleInfo(); }
+function render() { renderCourts(); renderQueue(); renderCourtCount(); renderSchedule(); }
 
 function renderQueue() {
   const el = document.getElementById('queuePlayers');
@@ -722,29 +730,20 @@ function renderQueue() {
   syncQueueCount();
 }
 
-function renderScheduleInfo() {
-  const el = document.getElementById('scheduleInfo');
-  if (!el) return;
-  const prog = scheduleProgress();
-  if (prog && data.settings.mode === 'roundrobin' && data.schedule.enabled) {
-    el.style.display = 'block';
-    const s = data.schedule;
-    const roundIdx = Math.min(s.currentRound, s.rounds.length - 1);
-    const round = s.rounds[roundIdx];
-    const allDone = round && round.every(p => p.used);
-    let h = '📋 <strong>รอบ ' + prog.round + '</strong> | ใช้ไป ' + prog.used + '/' + prog.total + ' คู่';
-    if (round) {
-      h += '<div style="font-size:12px;margin-top:4px;line-height:1.7">';
-      for (const p of round) {
-        const done = p.used ? '✅' : '⏳';
-        h += '<span style="margin-right:10px;white-space:nowrap">' + done + ' ' + escHtml(p.players.join('+')) + '</span>';
-      }
-      h += '</div>';
-    }
-    el.innerHTML = h;
-  } else {
-    el.innerHTML = data.settings.mode === 'winnerstays' ? '🏆 Winner Stays' : '';
+function pairGameCount(pair) {
+  const k = key(pair.players[0], pair.players[1]);
+  return data.pairCount[k] || 0;
+}
+
+function pairLiveGame(pair) {
+  const limit = data.settings.gamesPerMatch || 2;
+  for (const c of data.courts) {
+    if (c.status !== 'playing') continue;
+    const all = [...c.teamA, ...c.teamB];
+    if (pair.players.every(p => all.includes(p)))
+      return (c.games) + '/' + limit;
   }
+  return null;
 }
 
 function showTeam(court, team) {
@@ -829,6 +828,7 @@ function renderSchedule() {
     const roundIdx = Math.min(data.schedule.currentRound, data.schedule.rounds.length - 1);
     const curRound = data.schedule.rounds[roundIdx];
     const allDone = curRound && curRound.every(p => p.used);
+    const limit = data.settings.gamesPerMatch || 2;
     h += '<div style="font-size:13px;color:var(--text2);margin-bottom:8px">สร้างแล้ว ' + prog.rounds + ' รอบ | ใช้ไป ' + prog.used + '/' + prog.total + ' คู่</div>';
     for (let ri = 0; ri < data.schedule.rounds.length; ri++) {
       const round = data.schedule.rounds[ri];
@@ -836,7 +836,13 @@ function renderSchedule() {
       h += '<div style="font-size:13px;font-weight:' + (isActive?'700':'500') + ';margin-bottom:2px;margin-top:' + (ri>0?'8px':'0') + '">' + (isActive?'▶ ':'') + 'รอบ ' + (ri+1) + ':</div>';
       for (const p of round) {
         const done = p.used ? '✅' : '⏳';
-        h += '<div style="font-size:12px;color:var(--text2);padding:1px 0">' + done + ' ' + escHtml(p.players.join('+')) + '</div>';
+        const live = pairLiveGame(p);
+        const total = pairGameCount(p);
+        let gameInfo = '';
+        if (p.used) gameInfo = ' (' + (pairGameCount(p)) + '/' + limit + ' เกม)';
+        else if (live !== null) gameInfo = ' <span style="color:var(--primary);font-weight:600">🔄 ' + live + ' เกม</span>';
+        else gameInfo = ' (' + total + '/' + limit + ' เกม)';
+        h += '<div style="font-size:12px;color:var(--text2);padding:1px 0">' + done + ' ' + escHtml(p.players.join('+')) + gameInfo + '</div>';
       }
     }
     if (allDone) {
@@ -844,11 +850,12 @@ function renderSchedule() {
       h += '<span style="font-size:14px;color:#6d28d9;font-weight:600">✅ เล่นครบรอบนี้</span>';
       h += '<button onclick="generateNextRound()" style="padding:8px 16px;background:#6d28d9;color:#fff;border:none;border-radius:6px;font-weight:600;font-size:14px">➕ รอบถัดไป</button>';
       h += '</div>';
+    } else {
+      h += '<div class="action-bar" style="margin-top:10px">';
+      h += '<button class="btn-primary" onclick="generateNextRound()" style="padding:10px;border:none;border-radius:var(--radius-sm);font-weight:600;font-size:13px;background:var(--primary);color:#fff">➕ รอบถัดไป</button>';
+      h += '<button onclick="if(confirm(\'สร้างตารางใหม่? (เคลียร์สนาม)\'))generateSchedule()" style="padding:10px;border:none;border-radius:var(--radius-sm);font-weight:600;font-size:13px;background:#fee2e2;color:var(--danger)">🔄 สร้างใหม่</button>';
+      h += '</div>';
     }
-    h += '<div class="action-bar" style="margin-top:10px">';
-    h += '<button class="btn-primary" onclick="generateNextRound()" style="padding:10px;border:none;border-radius:var(--radius-sm);font-weight:600;font-size:13px;background:var(--primary);color:#fff">➕ รอบถัดไป</button>';
-    h += '<button onclick="if(confirm(\'สร้างตารางใหม่? (เคลียร์สนาม)\'))generateSchedule()" style="padding:10px;border:none;border-radius:var(--radius-sm);font-weight:600;font-size:13px;background:#fee2e2;color:var(--danger)">🔄 สร้างใหม่</button>';
-    h += '</div>';
   } else {
     h += '<div style="font-size:13px;color:var(--text2);margin-bottom:8px">สร้างรอบหมุนเพื่อจัดคู่แบบไม่ซ้ำ (ระบบจะเคลียร์สนามแล้วจัดคู่ให้)</div>';
     h += '<button onclick="generateSchedule()" style="width:100%;padding:12px;border:none;border-radius:var(--radius-sm);font-weight:600;font-size:14px;background:var(--primary);color:#fff">📋 สร้างรอบ 1</button>';
