@@ -82,7 +82,7 @@ header h1{font-size:20px;font-weight:700}
 .collapse-header.head-players{background:#eef2ff;color:#1e40af}
 .collapse-header.head-stats{background:#ecfdf5;color:#065f46}
 .collapse-header.head-settings{background:#fffbeb;color:#92400e}
-.collapse-header.head-schedule{background:#f5f3ff;color:#6d28d9}
+
 .collapse-icon{font-size:12px;transition:transform .2s;color:var(--text2)}
 .collapse-icon.open{transform:rotate(90deg)}
 .collapse-body{display:none;padding:0 16px 16px;border-top:1px solid var(--border)}
@@ -198,15 +198,6 @@ select.setting-input{padding:6px 12px;border:2px solid var(--border);border-radi
     <div id="collapsePlayers" class="collapse-body"></div>
   </div>
 
-  <!-- Collapsible: รอบหมุน -->
-  <div class="collapse-section">
-    <div class="collapse-header head-schedule" onclick="toggleCollapse('Schedule')">
-      <span>📋 รอบหมุน</span>
-      <span class="collapse-icon">▶</span>
-    </div>
-    <div id="collapseSchedule" class="collapse-body"></div>
-  </div>
-
   <div class="queue-bar">
     <div class="queue-header">
       <span>👥 คิวรอเล่น</span>
@@ -260,8 +251,7 @@ function getDef() {
     nextCourtId: 3,
     history: [],
     pairCount: {}, oppCount: {}, gameCount: {},
-    schedule: { enabled: false, rounds: [], currentRound: 0, pairIdx: 0, used: [] },
-    settings: { mode: 'roundrobin', gamesPerMatch: 2 }
+    settings: { gamesPerMatch: 2 }
   };
 }
 function loadData() {
@@ -273,24 +263,7 @@ function loadData() {
         d.courts = [{id:1,status:'waiting',teamA:[],teamB:[],games:0,consecutive:{}},{id:2,status:'waiting',teamA:[],teamB:[],games:0,consecutive:{}}];
       for (const c of d.courts) { if (c.games===undefined) c.games=0; if (!c.consecutive) c.consecutive={}; }
       if (!d.settings) d.settings = getDef().settings;
-      if (!d.schedule) d.schedule = { enabled: false, rounds: [], currentRound: 0, pairIdx: 0, used: [] };
-      // Migrate old schedule format
-      if (d.schedule.rounds && d.schedule.rounds.length) {
-        let needsReset = false;
-        for (const round of d.schedule.rounds) {
-          for (const item of round) {
-            if (item.teamA) { needsReset = true; break; }
-          }
-          if (needsReset) break;
-        }
-        if (needsReset) d.schedule = { enabled: false, rounds: [], currentRound: 0, pairIdx: 0, used: [] };
-        else if (d.schedule.rounds.length > 5) {
-          d.schedule.rounds = d.schedule.rounds.slice(0, d.schedule.currentRound + 1);
-        }
-      }
-      if (d.schedule.pairIdx === undefined) d.schedule.pairIdx = 0;
       if (!d.settings.gamesPerMatch) d.settings.gamesPerMatch = 2;
-      if (!d.settings.mode) d.settings.mode = 'roundrobin';
       return d;
     }
   } catch(e) {}
@@ -308,106 +281,6 @@ function toast(msg) {
 }
 function jsStr(s) { return s.replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
 function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-
-// ===== SCHEDULE GENERATOR (Pairs only) =====
-function generateSchedule() {
-  for (const c of data.courts) {
-    if (c.status === 'playing')
-      for (const p of [...c.teamA, ...c.teamB])
-        if (!data.queue.includes(p)) data.queue.push(p);
-    c.teamA = []; c.teamB = []; c.status = 'waiting'; c.games = 0;
-    c.consecutive = {}; c._pairA = null; c._pairB = null;
-  }
-  const pool = [...new Set([...data.queue])];
-  if (pool.length < 4) { toast('ต้องการอย่างน้อย 4 คน'); return; }
-  if (pool.length % 2 !== 0) { toast('จำนวนคนต้องเป็นเลขคู่'); return; }
-
-  data.schedule.baseOrder = [...pool];
-  data.schedule.rounds = [];
-  data.schedule.roundCount = 0;
-  const next = generateOneRound();
-  if (next) {
-    data.schedule.rounds.push(next);
-    data.schedule.roundCount = 1;
-    data.schedule.currentRound = 0;
-    data.schedule.pairIdx = 0;
-    data.schedule.enabled = true;
-    saveData(); render();
-    openScheduleSection();
-    toast('✅ รอบ 1 (' + next.length + ' คู่)');
-  }
-}
-
-function generateNextRound() {
-  if (!data.schedule.baseOrder) { generateSchedule(); return; }
-  let base = data.schedule.baseOrder.filter(p => data.queue.includes(p));
-  for (const p of data.queue)
-    if (!base.includes(p)) base.push(p);
-  if (base.length < 4) { toast('ต้องการอย่างน้อย 4 คน'); return; }
-  if (base.length % 2 !== 0) base.pop();
-
-  data.schedule.baseOrder = base;
-  const next = generateOneRound();
-  if (next) {
-    data.schedule.rounds.push(next);
-    data.schedule.roundCount++;
-    data.schedule.currentRound = data.schedule.rounds.length - 1;
-    data.schedule.pairIdx = 0;
-    data.schedule.enabled = true;
-    saveData(); render();
-    openScheduleSection();
-    toast('✅ รอบ ' + data.schedule.roundCount + ' (' + next.length + ' คู่)');
-  }
-}
-
-function generateOneRound() {
-  const base = data.schedule.baseOrder;
-  const n = base.length;
-  const roundNum = data.schedule.rounds ? data.schedule.rounds.length : 0;
-  const fixed = base[n-1];
-  let rotating = base.slice(0, n-1);
-  for (let r = 0; r < roundNum; r++) rotating.unshift(rotating.pop());
-  const players = [...rotating, fixed];
-  const pairs = [[players[n-1], players[0]]];
-  for (let i = 1; i < n/2; i++)
-    pairs.push([players[i], players[n-1-i]]);
-  // Return array of pair objects
-  return pairs.map(p => ({ players: p, used: false }));
-}
-
-function pairIsDone(player) {
-  if (!data.schedule.enabled || !data.schedule.rounds.length) return false;
-  const round = data.schedule.rounds[data.schedule.currentRound];
-  if (!round) return false;
-  return round.some(p => p.players.includes(player) && p.used);
-}
-
-function checkRoundComplete() {
-  if (!data.schedule.enabled || !data.schedule.rounds.length) return false;
-  const round = data.schedule.rounds[data.schedule.currentRound];
-  if (!round) return false;
-  const allDone = round.every(p => p.used);
-  if (allDone && data.schedule.rounds.length > 0) {
-    // Show popup
-    setTimeout(() => {
-      if (confirm('✅ เล่นครบทุกคู่ในรอบนี้แล้ว!\nสร้างรอบถัดไปเลยหรือเปล่า?')) {
-        generateNextRound();
-      }
-    }, 100);
-    return true;
-  }
-  return false;
-}
-
-function scheduleProgress() {
-  const s = data.schedule;
-  if (!s || !s.enabled || !s.rounds.length) return null;
-  let total = 0, used = 0;
-  for (const round of s.rounds)
-    for (const m of round) { total++; if (m.used) used++; }
-  return { total, used, pct: total ? Math.round(used/total*100) : 0,
-    round: s.currentRound + 1, rounds: s.rounds.length };
-}
 
 // ===== QUEUE (FIFO) =====
 function syncQueueCount() {
@@ -479,49 +352,11 @@ function fillCourt(courtId) {
   if (court.status === 'playing') { toast('สนามนี้กำลังเล่นอยู่'); return; }
   if (data.queue.length < 4) { toast('คิวต้องมีอย่างน้อย 4 คน'); return; }
 
-  // Round-robin mode: find 2 unused pairs from schedule
-  if (data.settings.mode === 'roundrobin' && data.schedule.enabled && data.schedule.rounds.length) {
-    const round = data.schedule.rounds[data.schedule.currentRound];
-    if (round) {
-      let pair1 = null, pair2 = null;
-      const busyPlayers = new Set();
-      for (const c of data.courts)
-        if (c.id !== courtId && c.status === 'playing')
-          for (const p of [...c.teamA, ...c.teamB]) busyPlayers.add(p);
-      for (let i = 0; i < round.length; i++) {
-        const p = round[i];
-        if (!p.used && p.players.every(n => data.queue.includes(n))) {
-          if (!pair1) { pair1 = p; }
-          else if (!pair2) {
-            const all4 = [...pair1.players, ...p.players];
-            if (new Set(all4).size === 4 && !all4.some(n => busyPlayers.has(n))) { pair2 = p; break; }
-          }
-        }
-      }
-      if (pair1 && pair2) {
-        court.teamA = [...pair1.players];
-        court.teamB = [...pair2.players];
-        court.status = 'playing';
-        court.games = 0;
-        court.consecutive = {};
-        court._pairA = pair1;
-        court._pairB = pair2;
-        data.queue = data.queue.filter(n => !court.teamA.includes(n) && !court.teamB.includes(n));
-        saveData(); render(); syncQueueCount();
-        return;
-      }
-    }
-    toast('หมดคู่ในตาราง — กด "➕ รอบถัดไป"');
-  }
-
-  // Fallback / Winner Stays: first 4 from queue
-  if (data.queue.length < 4) { toast('คิวต้องมีอย่างน้อย 4 คน'); return; }
   court.teamA = [data.queue[0], data.queue[1]];
   court.teamB = [data.queue[2], data.queue[3]];
   court.status = 'playing';
   court.games = 0;
   court.consecutive = {};
-  court._pairA = null; court._pairB = null;
   data.queue = data.queue.slice(4);
   saveData(); render(); syncQueueCount();
 }
@@ -561,33 +396,47 @@ function declareWinner(courtId, winner) {
   court.games++;
   const limit = data.settings.gamesPerMatch || 2;
 
-  if (court.games >= limit) {
-    // 2 games done → both teams rest, mark pairs used
-    if (court._pairA) court._pairA.used = true;
-    if (court._pairB) court._pairB.used = true;
-    toast('✅ จบ! ทั้ง 4 คนไปพัก');
-    for (const p of [...court.teamA, ...court.teamB])
+  // Track consecutive games per player
+  for (const p of [...court.teamA, ...court.teamB])
+    court.consecutive[p] = (court.consecutive[p] || 0) + 1;
+
+  const winTeam = winner === 'A' ? court.teamA : court.teamB;
+  const loseTeam = winner === 'A' ? court.teamB : court.teamA;
+
+  // Loser always goes to queue
+  for (const p of loseTeam)
+    if (!data.queue.includes(p)) data.queue.push(p);
+
+  // Check if winner reached limit → must rest
+  const winnerRest = winTeam.every(p => (court.consecutive[p] || 0) >= limit);
+
+  if (winnerRest) {
+    for (const p of winTeam)
       if (!data.queue.includes(p)) data.queue.push(p);
     court.teamA = []; court.teamB = []; court.status = 'waiting';
-    const completed = checkRoundComplete();
-    if (!completed) fillCourt(courtId);
-  } else if (data.settings.mode === 'winnerstays') {
-    const winTeam = winner === 'A' ? court.teamA : court.teamB;
-    const loseTeam = winner === 'A' ? court.teamB : court.teamA;
-    for (const p of loseTeam)
-      if (!data.queue.includes(p)) data.queue.push(p);
-    // Filter out players whose schedule pair is already done
-    const avail = data.queue.filter(p => !winTeam.includes(p) && !pairIsDone(p));
-    if (avail.length >= 2) {
-      const newP = [avail[0], avail[1]];
-      court.teamA = winTeam;
-      court.teamB = newP;
-      data.queue = data.queue.filter(p => !newP.includes(p));
-      toast('⏳ เกม 2/' + limit + ' — ' + winTeam.join('+') + ' อยู่ vs ' + newP.join('+'));
-    } else {
-      court.teamA = [...winTeam]; court.teamB = []; court.status = 'waiting';
-      toast('รอผู้เล่นเพิ่มเติม');
+    saveData(); render(); syncQueueCount();
+    if (data.queue.length >= 4) {
+      setTimeout(() => {
+        if (confirm('🔄 ' + winTeam.join('+') + ' ครบ ' + limit + ' เกมแล้ว\nจัดคู่ใหม่?')) {
+          shuffleQueue();
+          fillCourt(courtId);
+        }
+      }, 200);
     }
+    return;
+  }
+
+  // Winner stays – find new opponents
+  const avail = data.queue.filter(p => !winTeam.includes(p));
+  if (avail.length >= 2) {
+    const newP = [avail[0], avail[1]];
+    court.teamA = winTeam;
+    court.teamB = newP;
+    data.queue = data.queue.filter(p => !newP.includes(p));
+    toast('⏳ ' + winTeam.join('+') + ' อยู่ vs ' + newP.join('+'));
+  } else {
+    court.teamA = [...winTeam]; court.teamB = []; court.status = 'waiting';
+    toast('รอผู้เล่นเพิ่มเติม');
   }
 
   saveData(); render(); syncQueueCount();
@@ -596,12 +445,9 @@ function declareWinner(courtId, winner) {
 function swapBoth(courtId) {
   const court = data.courts.find(c => c.id === courtId);
   if (!court || court.status !== 'playing') return;
-  if (court._pairA) court._pairA.used = true;
-  if (court._pairB) court._pairB.used = true;
   for (const p of [...court.teamA, ...court.teamB])
     if (!data.queue.includes(p)) data.queue.push(p);
   court.teamA = []; court.teamB = []; court.status = 'waiting'; court.consecutive = {};
-  court._pairA = null; court._pairB = null;
   fillCourt(courtId);
   saveData(); render(); syncQueueCount();
 }
@@ -679,21 +525,13 @@ function toggleCollapse(name) {
   if (icon) icon.classList.toggle('open', isOpen);
   if (isOpen) {
     if (name === 'Players') renderPlayers();
-    else if (name === 'Schedule') renderSchedule();
     else if (name === 'Stats') renderStats();
     else if (name === 'Settings') renderSettings();
   }
 }
-function openScheduleSection() {
-  const body = document.getElementById('collapseSchedule');
-  if (!body || body.classList.contains('open')) return;
-  body.classList.add('open');
-  const icon = body.parentElement.querySelector('.collapse-icon');
-  if (icon) icon.classList.add('open');
-}
 
 // ===== RENDER =====
-function render() { renderCourts(); renderQueue(); renderCourtCount(); renderSchedule(); }
+function render() { renderCourts(); renderQueue(); renderCourtCount(); }
 
 function renderQueue() {
   const el = document.getElementById('queuePlayers');
@@ -706,22 +544,6 @@ function renderQueue() {
       '<button class="remove" onclick="removeFromQueue(\'' + jsStr(p) + '\')">✕</button></span>'
     ).join('');
   syncQueueCount();
-}
-
-function pairGameCount(pair) {
-  const k = key(pair.players[0], pair.players[1]);
-  return data.pairCount[k] || 0;
-}
-
-function pairLiveGame(pair) {
-  const limit = data.settings.gamesPerMatch || 2;
-  for (const c of data.courts) {
-    if (c.status !== 'playing') continue;
-    const all = [...c.teamA, ...c.teamB];
-    if (pair.players.every(p => all.includes(p)))
-      return (c.games) + '/' + limit;
-  }
-  return null;
 }
 
 function showTeam(court, team) {
@@ -780,52 +602,6 @@ function renderPlayers() {
       h += `<div class="player-item"><button class="pool-toggle ${active?'active':''}" onclick="togglePool('${jsStr(p)}')"></button><span class="name">${escHtml(p)} <span style="font-size:12px;color:var(--text2)">(${(data.gameCount[p]||0)} เกม)</span></span><button class="del-btn" onclick="removePlayer('${jsStr(p)}')">✕</button></div>`;
   }
 
-  el.innerHTML = h;
-}
-
-// ===== SCHEDULE =====
-function renderSchedule() {
-  const el = document.getElementById('collapseSchedule');
-  if (!el) return;
-  let h = '<div style="padding:4px 0 12px">';
-  if (data.schedule.enabled && data.schedule.rounds.length) {
-    const prog = scheduleProgress();
-    const roundIdx = Math.min(data.schedule.currentRound, data.schedule.rounds.length - 1);
-    const curRound = data.schedule.rounds[roundIdx];
-    const allDone = curRound && curRound.every(p => p.used);
-    const limit = data.settings.gamesPerMatch || 2;
-    h += '<div style="font-size:13px;color:var(--text2);margin-bottom:8px">สร้างแล้ว ' + prog.rounds + ' รอบ | ใช้ไป ' + prog.used + '/' + prog.total + ' คู่</div>';
-    for (let ri = 0; ri < data.schedule.rounds.length; ri++) {
-      const round = data.schedule.rounds[ri];
-      const isActive = ri === data.schedule.currentRound;
-      h += '<div style="font-size:13px;font-weight:' + (isActive?'700':'500') + ';margin-bottom:2px;margin-top:' + (ri>0?'8px':'0') + '">' + (isActive?'▶ ':'') + 'รอบ ' + (ri+1) + ':</div>';
-      for (const p of round) {
-        const done = p.used ? '✅' : '⏳';
-        const live = pairLiveGame(p);
-        const total = pairGameCount(p);
-        let gameInfo = '';
-        if (p.used) gameInfo = ' (' + (pairGameCount(p)) + '/' + limit + ' เกม)';
-        else if (live !== null) gameInfo = ' <span style="color:var(--primary);font-weight:600">🔄 ' + live + ' เกม</span>';
-        else gameInfo = ' (' + total + '/' + limit + ' เกม)';
-        h += '<div style="font-size:12px;color:var(--text2);padding:1px 0">' + done + ' ' + escHtml(p.players.join('+')) + gameInfo + '</div>';
-      }
-    }
-    if (allDone) {
-      h += '<div style="margin-top:8px;padding:10px 14px;background:#f5f3ff;border-radius:8px;display:flex;align-items:center;justify-content:space-between">';
-      h += '<span style="font-size:14px;color:#6d28d9;font-weight:600">✅ เล่นครบรอบนี้</span>';
-      h += '<button onclick="generateNextRound()" style="padding:8px 16px;background:#6d28d9;color:#fff;border:none;border-radius:6px;font-weight:600;font-size:14px">➕ รอบถัดไป</button>';
-      h += '</div>';
-    } else {
-      h += '<div class="action-bar" style="margin-top:10px">';
-      h += '<button class="btn-primary" onclick="generateNextRound()" style="padding:10px;border:none;border-radius:var(--radius-sm);font-weight:600;font-size:13px;background:var(--primary);color:#fff">➕ รอบถัดไป</button>';
-      h += '<button onclick="if(confirm(\'สร้างตารางใหม่? (เคลียร์สนาม)\'))generateSchedule()" style="padding:10px;border:none;border-radius:var(--radius-sm);font-weight:600;font-size:13px;background:#fee2e2;color:var(--danger)">🔄 สร้างใหม่</button>';
-      h += '</div>';
-    }
-  } else {
-    h += '<div style="font-size:13px;color:var(--text2);margin-bottom:8px">สร้างรอบหมุนเพื่อจัดคู่แบบไม่ซ้ำ (ระบบจะเคลียร์สนามแล้วจัดคู่ให้)</div>';
-    h += '<button onclick="generateSchedule()" style="width:100%;padding:12px;border:none;border-radius:var(--radius-sm);font-weight:600;font-size:14px;background:var(--primary);color:#fff">📋 สร้างรอบ 1</button>';
-  }
-  h += '</div>';
   el.innerHTML = h;
 }
 
@@ -891,13 +667,6 @@ function renderSettings() {
   const s = data.settings;
   el.innerHTML = `
     <div style="background:var(--card);border-radius:var(--radius-sm);box-shadow:var(--shadow);padding:4px 16px 12px">
-      <div class="setting-row">
-        <div><div class="setting-label">ระบบการเล่น</div><div class="setting-desc">รอบหมุน = ทุกคู่ไม่ซ้ำ, WS = ชนะอยู่ต่อ</div></div>
-        <select class="setting-input" onchange="data.settings.mode=this.value;saveData();render()">
-          <option value="roundrobin" ${s.mode==='roundrobin'?'selected':''}>🌀 รอบหมุน</option>
-          <option value="winnerstays" ${s.mode==='winnerstays'?'selected':''}>🏆 Winner Stays</option>
-        </select>
-      </div>
       <div class="setting-row">
         <div><div class="setting-label">จำนวนเกม/คู่</div><div class="setting-desc">เล่นกี่เกมแล้วพัก</div></div>
         <select class="setting-input" onchange="data.settings.gamesPerMatch=parseInt(this.value);saveData();render()">
