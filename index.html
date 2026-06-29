@@ -82,6 +82,7 @@ header h1{font-size:20px;font-weight:700}
 .collapse-header.head-players{background:#eef2ff;color:#1e40af}
 .collapse-header.head-stats{background:#ecfdf5;color:#065f46}
 .collapse-header.head-settings{background:#fffbeb;color:#92400e}
+.collapse-header.head-schedule{background:#f5f3ff;color:#6d28d9}
 .collapse-icon{font-size:12px;transition:transform .2s;color:var(--text2)}
 .collapse-icon.open{transform:rotate(90deg)}
 .collapse-body{display:none;padding:0 16px 16px;border-top:1px solid var(--border)}
@@ -210,6 +211,15 @@ select.setting-input{padding:6px 12px;border:2px solid var(--border);border-radi
 
   <div id="scheduleInfo" style="margin:0 12px 8px;font-size:13px;color:var(--text2)"></div>
   <div id="courtsContainer" class="courts"></div>
+
+  <!-- Collapsible: รอบหมุน -->
+  <div class="collapse-section">
+    <div class="collapse-header head-schedule" onclick="toggleCollapse('Schedule')">
+      <span>📋 รอบหมุน</span>
+      <span class="collapse-icon">▶</span>
+    </div>
+    <div id="collapseSchedule" class="collapse-body"></div>
+  </div>
 
   <!-- Collapsible: สถิติ -->
   <div class="collapse-section">
@@ -690,6 +700,7 @@ function toggleCollapse(name) {
   if (icon) icon.classList.toggle('open', isOpen);
   if (isOpen) {
     if (name === 'Players') renderPlayers();
+    else if (name === 'Schedule') renderSchedule();
     else if (name === 'Stats') renderStats();
     else if (name === 'Settings') renderSettings();
   }
@@ -807,6 +818,45 @@ function renderPlayers() {
 
   el.innerHTML = h;
 }
+
+// ===== SCHEDULE =====
+function renderSchedule() {
+  const el = document.getElementById('collapseSchedule');
+  if (!el) return;
+  let h = '<div style="padding:4px 0 12px">';
+  if (data.schedule.enabled && data.schedule.rounds.length) {
+    const prog = scheduleProgress();
+    const roundIdx = Math.min(data.schedule.currentRound, data.schedule.rounds.length - 1);
+    const curRound = data.schedule.rounds[roundIdx];
+    const allDone = curRound && curRound.every(p => p.used);
+    h += '<div style="font-size:13px;color:var(--text2);margin-bottom:8px">สร้างแล้ว ' + prog.rounds + ' รอบ | ใช้ไป ' + prog.used + '/' + prog.total + ' คู่</div>';
+    for (let ri = 0; ri < data.schedule.rounds.length; ri++) {
+      const round = data.schedule.rounds[ri];
+      const isActive = ri === data.schedule.currentRound;
+      h += '<div style="font-size:13px;font-weight:' + (isActive?'700':'500') + ';margin-bottom:2px;margin-top:' + (ri>0?'8px':'0') + '">' + (isActive?'▶ ':'') + 'รอบ ' + (ri+1) + ':</div>';
+      for (const p of round) {
+        const done = p.used ? '✅' : '⏳';
+        h += '<div style="font-size:12px;color:var(--text2);padding:1px 0">' + done + ' ' + escHtml(p.players.join('+')) + '</div>';
+      }
+    }
+    if (allDone) {
+      h += '<div style="margin-top:8px;padding:10px 14px;background:#f5f3ff;border-radius:8px;display:flex;align-items:center;justify-content:space-between">';
+      h += '<span style="font-size:14px;color:#6d28d9;font-weight:600">✅ เล่นครบรอบนี้</span>';
+      h += '<button onclick="generateNextRound()" style="padding:8px 16px;background:#6d28d9;color:#fff;border:none;border-radius:6px;font-weight:600;font-size:14px">➕ รอบถัดไป</button>';
+      h += '</div>';
+    }
+    h += '<div class="action-bar" style="margin-top:10px">';
+    h += '<button class="btn-primary" onclick="generateNextRound()" style="padding:10px;border:none;border-radius:var(--radius-sm);font-weight:600;font-size:13px;background:var(--primary);color:#fff">➕ รอบถัดไป</button>';
+    h += '<button onclick="if(confirm(\'สร้างตารางใหม่? (เคลียร์สนาม)\'))generateSchedule()" style="padding:10px;border:none;border-radius:var(--radius-sm);font-weight:600;font-size:13px;background:#fee2e2;color:var(--danger)">🔄 สร้างใหม่</button>';
+    h += '</div>';
+  } else {
+    h += '<div style="font-size:13px;color:var(--text2);margin-bottom:8px">สร้างรอบหมุนเพื่อจัดคู่แบบไม่ซ้ำ (ระบบจะเคลียร์สนามแล้วจัดคู่ให้)</div>';
+    h += '<button onclick="generateSchedule()" style="width:100%;padding:12px;border:none;border-radius:var(--radius-sm);font-weight:600;font-size:14px;background:var(--primary);color:#fff">📋 สร้างรอบ 1</button>';
+  }
+  h += '</div>';
+  el.innerHTML = h;
+}
+
 function addGuest() {
   const input = document.getElementById('guestInput');
   const name = input.value.trim();
