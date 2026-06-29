@@ -199,6 +199,15 @@ select.setting-input{padding:6px 12px;border:2px solid var(--border);border-radi
     <div id="collapsePlayers" class="collapse-body"></div>
   </div>
 
+  <!-- Collapsible: รอบหมุน -->
+  <div class="collapse-section">
+    <div class="collapse-header head-schedule" onclick="toggleCollapse('Schedule')">
+      <span>📋 รอบหมุน</span>
+      <span class="collapse-icon">▶</span>
+    </div>
+    <div id="collapseSchedule" class="collapse-body"></div>
+  </div>
+
   <div class="queue-bar">
     <div class="queue-header">
       <span>👥 คิวรอเล่น</span>
@@ -211,15 +220,6 @@ select.setting-input{padding:6px 12px;border:2px solid var(--border);border-radi
 
   <div id="scheduleInfo" style="margin:0 12px 8px;font-size:13px;color:var(--text2)"></div>
   <div id="courtsContainer" class="courts"></div>
-
-  <!-- Collapsible: รอบหมุน -->
-  <div class="collapse-section">
-    <div class="collapse-header head-schedule" onclick="toggleCollapse('Schedule')">
-      <span>📋 รอบหมุน</span>
-      <span class="collapse-icon">▶</span>
-    </div>
-    <div id="collapseSchedule" class="collapse-body"></div>
-  </div>
 
   <!-- Collapsible: สถิติ -->
   <div class="collapse-section">
