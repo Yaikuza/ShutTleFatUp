@@ -767,7 +767,7 @@ function clearQueue() {
 }
 
 function resetSession() {
-  if (!confirm('รีเซตรอบเล่น?\n\n• ล้างคิว + สนาม + ประวัติ\n• ตั้ง pool ทุกคนเป็น "อยู่นอกคิว"\n• เริ่มรอบใหม่\n\nชื่อผู้เล่นและสถิติรวมยังอยู่ครบ')) return;
+  if (!confirm('รีเซตรอบเล่น?\n\n• ล้างคิว + สนาม + ประวัติ\n• ทุกคนกลับเข้าสู่ระบบ (pool on)\n• เริ่มรอบใหม่\n\nชื่อผู้เล่นและสถิติรวมยังอยู่ครบ')) return;
 
   data.queue = [];
   data.courts = data.courts.map(c => freshCourt(c.id));
@@ -776,7 +776,7 @@ function resetSession() {
   data.roundPairs = {};
   data.roundSchedule = [];
   data.currentRound = 1;
-  for (const p of data.mainPlayers) data.pool[p] = false;
+  for (const p of data.mainPlayers) { data.pool[p] = true; data.queue.push(p); }
 
   saveData();
   render();
