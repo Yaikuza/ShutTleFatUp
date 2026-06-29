@@ -577,28 +577,40 @@ function renderQueue() {
     if (ok) h += '<div style="font-size:12px;color:var(--success);margin-top:6px">🟢 พร้อมจัดคู่</div>';
     else if (data.queue.length >= 4) h += '<div style="font-size:12px;color:var(--warning);margin-top:6px">🔄 ทุกคู่เล่นครบแล้ว — กด 🔀 สับคิว</div>';
     const limit = data.settings.gamesPerMatch || 2;
+    const teams = data.queue.length >= 4 ? findValidTeams() : null;
+    if (teams) {
+      h += '<div style="margin-top:8px;background:#f8fafc;border-radius:8px;padding:8px 10px">';
+      h += '<div style="font-size:13px;font-weight:600;margin-bottom:4px">📋 คู่ถัดไป</div>';
+      h += '<table style="width:100%;font-size:12px;border-collapse:collapse">';
+      h += '<tr style="color:var(--text2)"><th style="padding:3px 6px;text-align:left">ทีม</th><th style="padding:3px 6px;text-align:center">เกม</th><th style="padding:3px 6px;text-align:center">สถานะ</th></tr>';
+      for (const t of [teams[0], teams[1]]) {
+        const g = data.pairCount[key(t[0], t[1])] || 0;
+        const done = g >= limit;
+        h += '<tr>' +
+          '<td style="padding:3px 6px;font-weight:600">' + escHtml(t.join('+')) + '</td>' +
+          '<td style="padding:3px 6px;text-align:center">' + g + '/' + limit + '</td>' +
+          '<td style="padding:3px 6px;text-align:center;color:' + (done?'var(--danger)':'var(--success)') + '">' + (done?'✅ ครบ':'⏳ ยังเล่น') + '</td></tr>';
+      }
+      h += '</table></div>';
+    }
     const qSet = new Set(data.queue);
-    const pairsInQueue = Object.keys(data.pairCount)
+    const histPairs = Object.keys(data.pairCount)
       .filter(k => { const [a,b]=k.split('_'); return qSet.has(a) && qSet.has(b); })
       .map(k => { const [a,b]=k.split('_'); return { p1:a, p2:b, games:data.pairCount[k] }; })
       .sort((a,b)=>b.games-a.games);
-    if (pairsInQueue.length) {
-      h += '<div style="margin-top:8px;font-size:12px"><strong>ตารางคู่</strong></div>';
+    if (histPairs.length) {
+      h += '<details style="margin-top:6px;font-size:12px">';
+      h += '<summary style="cursor:pointer;color:var(--text2);padding:4px 0">📜 ประวัติคู่ในคิว (' + histPairs.length + ')</summary>';
       h += '<table style="width:100%;font-size:12px;border-collapse:collapse;margin-top:4px">';
-      h += '<tr style="border-bottom:1px solid var(--border);color:var(--text2)"><th style="padding:4px 6px;text-align:left">คู่</th><th style="padding:4px 6px;text-align:center">เกม</th><th style="padding:4px 6px;text-align:center">สถานะ</th></tr>';
-      for (const pr of pairsInQueue) {
+      h += '<tr style="color:var(--text2);border-bottom:1px solid var(--border)"><th style="padding:3px 6px;text-align:left">คู่</th><th style="padding:3px 6px;text-align:center">เกม</th><th style="padding:3px 6px;text-align:center">สถานะ</th></tr>';
+      for (const pr of histPairs) {
         const done = pr.games >= limit;
         h += '<tr style="border-bottom:1px solid #f1f5f9">' +
           '<td style="padding:3px 6px">' + escHtml(pr.p1) + '+' + escHtml(pr.p2) + '</td>' +
-          '<td style="padding:3px 6px;text-align:center;font-weight:600">' + pr.games + '/' + limit + '</td>' +
+          '<td style="padding:3px 6px;text-align:center">' + pr.games + '/' + limit + '</td>' +
           '<td style="padding:3px 6px;text-align:center;color:' + (done?'var(--danger)':'var(--success)') + '">' + (done?'✅ ครบ':'⏳ รอ') + '</td></tr>';
       }
-      h += '</table>';
-    }
-    const teams = data.queue.length >= 4 ? findValidTeams() : null;
-    if (teams) {
-      h += '<div style="margin-top:6px;font-size:12px;color:var(--primary);font-weight:600">📋 คู่ถัดไป: ' +
-        escHtml(teams[0].join('+')) + ' 🆚 ' + escHtml(teams[1].join('+')) + '</div>';
+      h += '</table></details>';
     }
     el.innerHTML = h;
   }
