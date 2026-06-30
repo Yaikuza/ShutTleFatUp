@@ -142,8 +142,8 @@ header h1{font-size:20px;font-weight:800;letter-spacing:-.3px}
 .q-table td.col-center{text-align:center}
 .q-table tr:last-child td{border-bottom:none}
 .q-table .td-name{font-weight:600;text-align:center}
-.q-table .win{color:var(--success);font-weight:600}
-.q-table .lose{color:var(--danger);font-weight:600}
+.q-table .win{color:#059669;font-weight:700}
+.q-table .lose{color:#dc2626;font-weight:700}
 .q-table .win-pct{color:var(--text2);font-size:11px;margin-left:2px}
 .q-table tr:nth-child(even) td{background:var(--muted)}
 .stat-table tr:nth-child(even) td{background:var(--border-soft)}
@@ -982,7 +982,7 @@ function renderPairScoreTable() {
     const played = p.games > 0;
     return '<tr>' +
       '<td class="td-name">' + escHtml(p.p1) + ' + ' + escHtml(p.p2) + '</td>' +
-      '<td class="col-center ' + (played ? '' : 'q-pending') + '">' + p.wins + ':' + p.losses + '</td>' +
+      '<td class="col-center ' + (played ? '' : 'q-pending') + '"><span class="win">' + p.wins + '</span>:<span class="lose">' + p.losses + '</span></td>' +
       '</tr>';
   }).join('');
 
