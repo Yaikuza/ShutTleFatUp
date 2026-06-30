@@ -146,7 +146,6 @@ header h1{font-size:20px;font-weight:800;letter-spacing:-.3px}
 .q-table .lose{color:#dc2626;font-weight:700}
 .q-table .win-pct{color:var(--text2);font-size:11px;margin-left:2px}
 .q-table tr:nth-child(even) td{background:var(--muted)}
-.stat-table tr:nth-child(even) td{background:var(--border-soft)}
 .q-table .status-done{color:var(--danger)}
 .q-table .status-ok{color:var(--success)}
 .q-status-line{font-size:12px;margin-top:6px}
@@ -154,13 +153,41 @@ header h1{font-size:20px;font-weight:800;letter-spacing:-.3px}
 .q-status-line.warn{color:var(--warning);padding:6px 0}
 .q-next-btn{margin-top:6px;width:100%;padding:10px;border:none;border-radius:var(--radius-sm);font-weight:600;font-size:14px;background:var(--primary);color:#fff}
 /* Stats panel */
-.stats-nav{display:flex;gap:4px;margin-bottom:12px;background:var(--card);border-radius:var(--radius-sm);padding:4px;box-shadow:var(--shadow)}
-.stats-nav button{flex:1;padding:8px;border:none;border-radius:6px;background:none;font-weight:500;font-size:13px;color:var(--text2)}
-.stats-nav button.active{background:var(--primary);color:#fff}
-.stat-table{width:100%;border-collapse:collapse;font-size:13px;background:var(--card);border-radius:var(--radius-sm);overflow:hidden;box-shadow:var(--shadow)}
-.stat-table th{background:var(--muted);padding:8px 6px;text-align:left;font-weight:600;font-size:12px;color:var(--text2);border-bottom:2px solid var(--border)}
-.stat-table td{padding:6px;border-bottom:1px solid var(--border-soft)}
-.stat-table tr:last-child td{border-bottom:none}
+/* Stats scroll-snap */
+.stats-layout{display:flex;flex-direction:column;height:calc(85vh - 70px)}
+.stats-tabs{display:flex;gap:6px;padding:12px 16px;flex-shrink:0}
+.stats-tabs button{flex:1;padding:8px 6px;border:none;border-radius:8px;background:var(--muted);font-weight:600;font-size:13px;color:var(--text2);transition:all .2s}
+.stats-tabs button.active{background:var(--primary);color:#fff}
+.stats-scroll{flex:1;min-height:0;display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.stats-scroll::-webkit-scrollbar{display:none}
+.stats-panel{flex:0 0 100%;scroll-snap-align:start;overflow-y:auto;padding:0 16px 20px}
+
+/* Leaderboard */
+.rank-card{display:flex;align-items:center;gap:12px;padding:12px;background:var(--card);border-radius:var(--radius-sm);box-shadow:var(--shadow);margin-bottom:8px}
+.rank-card .rank{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0}
+.rank-card .rank.gold{background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#fff}
+.rank-card .rank.silver{background:linear-gradient(135deg,#e2e8f0,#94a3b8);color:#fff}
+.rank-card .rank.bronze{background:linear-gradient(135deg,#fcd34d,#b45309);color:#fff}
+.rank-card .rank.plain{background:var(--muted);color:var(--text2)}
+.rank-card .info{flex:1;min-width:0}
+.rank-card .name{font-weight:700;font-size:15px}
+.rank-card .wl{font-size:12px;color:var(--text2)}
+.rank-card .wl .w{color:var(--success);font-weight:600}
+.rank-card .wl .l{color:var(--danger);font-weight:600}
+.rank-card .bar-wrap{height:4px;background:var(--border);border-radius:2px;margin-top:4px;overflow:hidden}
+.rank-card .bar-fill{height:100%;border-radius:2px;transition:width .5s}
+.rank-card .streak{font-size:12px;padding:2px 8px;border-radius:4px;font-weight:600;flex-shrink:0}
+.rank-card .streak.win{background:var(--success-light);color:var(--success)}
+.rank-card .streak.lose{background:#fee2e2;color:var(--danger)}
+
+/* Head to head */
+.h2h-card{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--card);border-radius:var(--radius-sm);box-shadow:var(--shadow);margin-bottom:6px}
+.h2h-card .player-name{font-weight:600;font-size:14px;flex:1;min-width:0}
+.h2h-card .h2h-score{font-size:13px;color:var(--text2);white-space:nowrap}
+.h2h-card .h2h-score .w{color:var(--success);font-weight:600}
+.h2h-card .h2h-score .l{color:var(--danger);font-weight:600}
+
+/* History keep */
 .history-list{background:var(--card);border-radius:var(--radius-sm);box-shadow:var(--shadow);padding:8px 12px}
 .history-item{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border-soft);font-size:13px}
 .history-item:last-child{border-bottom:none}
@@ -290,12 +317,15 @@ function freshCourt(id) {
 }
 
 function getDef() {
+  const defaultPlayers = ['ใหญ่','เฟิร์น','อุ้ม','สแตมป์','รุจ','นก','ไปป์','พิม','เกรท','พี่ป่าน','เก้ง','เขือ'];
+  const pool = {};
+  for (const p of defaultPlayers) pool[p] = true;
   const courts = [];
   for (let i = 1; i <= DEFAULT_COURTS; i++) courts.push(freshCourt(i));
   return {
-    mainPlayers: [],
-    pool: {},
-    queue: [],
+    mainPlayers: [...defaultPlayers],
+    pool,
+    queue: [...defaultPlayers],
     courts,
     nextCourtId: DEFAULT_COURTS + 1,
     history: [],
@@ -825,8 +855,6 @@ function toggleCollapse(name) {
   if (icon) icon.classList.toggle('open', isOpen);
   if (!isOpen) return;
   if (name === 'Players') renderPlayers();
-  else if (name === 'Stats') renderStats();
-  else if (name === 'Settings') renderSettings();
 }
 
 // ===== STATS COMPUTATION =====
@@ -904,9 +932,11 @@ function openSheet(name) {
   const body = document.getElementById('sheetBody');
   if (name === 'Stats') {
     title.textContent = '📊 สถิติ';
+    body.style.padding = '0';
     body.innerHTML = renderStatsContent();
   } else {
     title.textContent = '⚙️ ตั้งค่า';
+    body.style.padding = '';
     body.innerHTML = renderSettingsContent();
   }
   overlay.classList.add('open');
@@ -915,6 +945,8 @@ function openSheet(name) {
 }
 
 function closeSheet() {
+  const body = document.getElementById('sheetBody');
+  body.style.padding = '';
   document.getElementById('sheetOverlay').classList.remove('open');
   document.getElementById('sheet').classList.remove('open');
   sheetContent = null;
@@ -1093,49 +1125,164 @@ function renderPlayers() {
   el.innerHTML = h;
 }
 
-// ===== STATS =====
+// ===== STATS DERIVATION =====
+function getPlayerStats() {
+  const stats = {};
+  for (const r of data.history) {
+    const winTeam = r.winner === 'A' ? r.teamA : r.teamB;
+    const loseTeam = r.winner === 'A' ? r.teamB : r.teamA;
+    for (const p of winTeam) {
+      if (!stats[p]) stats[p] = { name: p, wins: 0, losses: 0, streak: 0, streakChar: '' };
+      stats[p].wins++;
+    }
+    for (const p of loseTeam) {
+      if (!stats[p]) stats[p] = { name: p, wins: 0, losses: 0, streak: 0, streakChar: '' };
+      stats[p].losses++;
+    }
+  }
+  for (const p of Object.keys(stats)) {
+    let streak = 0;
+    for (let i = data.history.length - 1; i >= 0; i--) {
+      const r = data.history[i];
+      const winTeam = r.winner === 'A' ? r.teamA : r.teamB;
+      const loseTeam = r.winner === 'A' ? r.teamB : r.teamA;
+      const won = winTeam.includes(p);
+      const lost = loseTeam.includes(p);
+      if (!won && !lost) continue;
+      if (won) streak = streak >= 0 ? streak + 1 : 1;
+      else streak = streak <= 0 ? streak - 1 : -1;
+    }
+    stats[p].streak = Math.abs(streak);
+    stats[p].streakChar = streak > 0 ? 'W' : streak < 0 ? 'L' : '';
+  }
+  return Object.values(stats)
+    .filter(s => s.wins + s.losses > 0)
+    .sort((a, b) => {
+      const aPct = a.wins / (a.wins + a.losses);
+      const bPct = b.wins / (b.wins + b.losses);
+      return bPct - aPct || (b.wins + b.losses) - (a.wins + a.losses);
+    });
+}
+
+function getPairStats() {
+  const stats = {};
+  for (const r of data.history) {
+    for (const [team, won] of [[r.teamA, r.winner === 'A'], [r.teamB, r.winner === 'B']]) {
+      if (team.length < 2) continue;
+      const k = key(team[0], team[1]);
+      if (!stats[k]) stats[k] = { p1: team[0], p2: team[1], wins: 0, losses: 0 };
+      if (won) stats[k].wins++; else stats[k].losses++;
+    }
+  }
+  return Object.values(stats)
+    .sort((a, b) => {
+      const aPct = a.wins / (a.wins + a.losses);
+      const bPct = b.wins / (b.wins + b.losses);
+      return bPct - aPct || (b.wins + b.losses) - (a.wins + a.losses);
+    });
+}
+
+function getHeadToHead() {
+  const stats = {};
+  for (const r of data.history) {
+    const winTeam = r.winner === 'A' ? r.teamA : r.teamB;
+    const loseTeam = r.winner === 'A' ? r.teamB : r.teamA;
+    for (const winner of winTeam) {
+      for (const loser of loseTeam) {
+        const k = key(winner, loser);
+        if (!stats[k]) {
+          stats[k] = { p1: winner < loser ? winner : loser, p2: winner < loser ? loser : winner, p1Wins: 0, p2Wins: 0 };
+        }
+        if (winner === stats[k].p1) stats[k].p1Wins++;
+        else stats[k].p2Wins++;
+      }
+    }
+  }
+  return Object.values(stats)
+    .sort((a, b) => (b.p1Wins + b.p2Wins) - (a.p1Wins + a.p2Wins));
+}
+
+// ===== STATS RENDER =====
 function renderStatsContent() {
-  return '<div class="stats-nav">' +
-    '<button class="active" onclick="switchStatsTab(this,\'pairs\')">คู่</button>' +
-    '<button onclick="switchStatsTab(this,\'opps\')">คู่แข่ง</button>' +
-    '<button onclick="switchStatsTab(this,\'games\')">เกม</button>' +
-    '<button onclick="switchStatsTab(this,\'history\')">ประวัติ</button>' +
-    '</div><div id="statsContent">' + renderStatsPairs() + '</div>';
+  return '<div class="stats-layout">' +
+    '<div class="stats-tabs">' +
+      '<button class="active" onclick="scrollToStatsTab(0)">🏆 อันดับ</button>' +
+      '<button onclick="scrollToStatsTab(1)">🤝 คู่</button>' +
+      '<button onclick="scrollToStatsTab(2)">⚔️ คู่แข่ง</button>' +
+      '<button onclick="scrollToStatsTab(3)">📜 ประวัติ</button>' +
+    '</div>' +
+    '<div class="stats-scroll" id="statsScroll" onscroll="syncStatsTab()">' +
+      '<div class="stats-panel">' + renderStatsLeaderboard() + '</div>' +
+      '<div class="stats-panel">' + renderStatsPairs() + '</div>' +
+      '<div class="stats-panel">' + renderStatsOpps() + '</div>' +
+      '<div class="stats-panel">' + renderStatsHistory() + '</div>' +
+    '</div></div>';
 }
 
-function switchStatsTab(btn, tab) {
-  btn.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  const el = document.getElementById('statsContent');
-  if (!el) return;
-  if (tab === 'pairs') el.innerHTML = renderStatsPairs();
-  else if (tab === 'opps') el.innerHTML = renderStatsOpps();
-  else if (tab === 'games') el.innerHTML = renderStatsGames();
-  else el.innerHTML = renderStatsHistory();
+function syncStatsTab() {
+  const scroll = document.getElementById('statsScroll');
+  if (!scroll) return;
+  const idx = Math.round(scroll.scrollLeft / scroll.clientWidth);
+  scroll.parentElement.querySelectorAll('.stats-tabs button').forEach((btn, i) => {
+    btn.classList.toggle('active', i === idx);
+  });
 }
 
-function renderStatTable(entries, formatter, emptyIcon, emptyText) {
-  if (!entries.length)
-    return '<div class="empty-state"><div class="icon">' + emptyIcon + '</div><p>' + emptyText + '</p></div>';
-  const rows = entries.slice(0, 50)
-    .map(([k, v]) => '<tr><td>' + escHtml(formatter(k)) + '</td><td><strong>' + v + '</strong></td></tr>')
-    .join('');
-  return '<table class="stat-table">' + rows + '</table>';
+function scrollToStatsTab(idx) {
+  const scroll = document.getElementById('statsScroll');
+  if (!scroll) return;
+  scroll.scrollTo({ left: scroll.clientWidth * idx, behavior: 'smooth' });
+}
+
+function renderStatsLeaderboard() {
+  const entries = getPlayerStats();
+  if (!entries.length) return '<div class="empty-state"><div class="icon">🏆</div><p>ยังไม่มีสถิติผู้เล่น</p></div>';
+  return entries.map((p, i) => {
+    const total = p.wins + p.losses;
+    const winPct = Math.round(p.wins / total * 100);
+    const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : 'plain';
+    const rankLabel = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : String(i + 1);
+    const barColor = winPct >= 60 ? 'var(--success)' : winPct >= 40 ? 'var(--warning)' : 'var(--danger)';
+    const streakHtml = p.streak >= 2
+      ? '<span class="streak ' + (p.streakChar === 'W' ? 'win' : 'lose') + '">' + (p.streakChar === 'W' ? '🔥' : '💧') + ' ' + p.streak + p.streakChar + '</span>'
+      : '';
+    return '<div class="rank-card">' +
+      '<div class="rank ' + rankClass + '">' + rankLabel + '</div>' +
+      '<div class="info">' +
+      '<div class="name">' + escHtml(p.name) + '</div>' +
+      '<div class="wl"><span class="w">' + p.wins + 'W</span> : <span class="l">' + p.losses + 'L</span> · ' + winPct + '% · ' + total + ' เกม</div>' +
+      '<div class="bar-wrap"><div class="bar-fill" style="width:' + winPct + '%;background:' + barColor + '"></div></div>' +
+      '</div>' + streakHtml + '</div>';
+  }).join('');
 }
 
 function renderStatsPairs() {
-  const entries = Object.entries(data.pairCount).sort((a, b) => b[1] - a[1]);
-  return renderStatTable(entries, k => k.replace(/_/g, ' + '), '🤝', 'ยังไม่มีสถิติ');
+  const entries = getPairStats();
+  if (!entries.length) return '<div class="empty-state"><div class="icon">🤝</div><p>ยังไม่มีสถิติคู่</p></div>';
+  return entries.map(p => {
+    const total = p.wins + p.losses;
+    const winPct = Math.round(p.wins / total * 100);
+    const barColor = winPct >= 60 ? 'var(--success)' : winPct >= 40 ? 'var(--warning)' : 'var(--danger)';
+    return '<div class="rank-card">' +
+      '<div class="rank plain">' + total + '</div>' +
+      '<div class="info">' +
+      '<div class="name">' + escHtml(p.p1) + ' + ' + escHtml(p.p2) + '</div>' +
+      '<div class="wl"><span class="w">' + p.wins + 'W</span> : <span class="l">' + p.losses + 'L</span> · ' + winPct + '%</div>' +
+      '<div class="bar-wrap"><div class="bar-fill" style="width:' + winPct + '%;background:' + barColor + '"></div></div>' +
+      '</div></div>';
+  }).join('');
 }
 
 function renderStatsOpps() {
-  const entries = Object.entries(data.oppCount).sort((a, b) => b[1] - a[1]);
-  return renderStatTable(entries, k => k.replace(/_/g, ' 🆚 '), '⚔️', 'ยังไม่มีสถิติ');
-}
-
-function renderStatsGames() {
-  const entries = Object.entries(data.gameCount).sort((a, b) => b[1] - a[1]);
-  return renderStatTable(entries, k => k, '🏸', 'ยังไม่มีสถิติ');
+  const entries = getHeadToHead();
+  if (!entries.length) return '<div class="empty-state"><div class="icon">⚔️</div><p>ยังไม่มีสถิติคู่แข่ง</p></div>';
+  return entries.map(h => {
+    return '<div class="h2h-card">' +
+      '<span class="player-name">' + escHtml(h.p1) + '</span>' +
+      '<span class="h2h-score"><span class="w">' + h.p1Wins + '</span> : <span class="l">' + h.p2Wins + '</span></span>' +
+      '<span class="player-name" style="text-align:right">' + escHtml(h.p2) + '</span>' +
+      '</div>';
+  }).join('');
 }
 
 function renderStatsHistory() {
@@ -1148,7 +1295,7 @@ function renderStatsHistory() {
     const lose = r.winner === 'A' ? r.teamB : r.teamA;
     html += '<div class="history-item">' +
       '<span class="time">' + r.time + '</span>' +
-      '<span class="court-label">สนาม' + r.court + '</span>' +
+      '<span class="court-label">R' + r.round + '·สนาม' + r.court + '</span>' +
       '<span class="teams">' + escHtml(win.join(' + ')) + ' <span class="trophy">🏆</span> ' + escHtml(lose.join(' + ')) + '</span>' +
       '</div>';
   }
