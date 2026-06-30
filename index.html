@@ -998,7 +998,7 @@ function renderPairScoreTable() {
   const rows = schedule.map(p => {
     const played = p.games > 0;
     return '<tr>' +
-      '<td class="td-name">' + escHtml(p.p1) + '+' + escHtml(p.p2) + '</td>' +
+      '<td class="td-name">' + escHtml(p.p1) + ' + ' + escHtml(p.p2) + '</td>' +
       '<td class="col-center ' + (played ? '' : 'q-pending') + '">' + p.wins + ':' + p.losses + '</td>' +
       '</tr>';
   }).join('');
@@ -1166,7 +1166,7 @@ function renderStatsHistory() {
     html += '<div class="history-item">' +
       '<span class="time">' + r.time + '</span>' +
       '<span class="court-label">สนาม' + r.court + '</span>' +
-      '<span class="teams">' + escHtml(win.join('+')) + ' <span class="trophy">🏆</span> ' + escHtml(lose.join('+')) + '</span>' +
+      '<span class="teams">' + escHtml(win.join(' + ')) + ' <span class="trophy">🏆</span> ' + escHtml(lose.join(' + ')) + '</span>' +
       '</div>';
   }
   html += '</div>';
