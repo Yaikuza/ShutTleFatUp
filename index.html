@@ -29,7 +29,6 @@
   --line: #e2e8f0;
   --gradient: linear-gradient(135deg, #6366f1, #8b5cf6);
   --gradient-warm: linear-gradient(135deg, #f59e0b, #ef4444);
-  --avatar-size: 36px;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{font-size:16px;-webkit-text-size-adjust:100%}
@@ -58,8 +57,7 @@ header h1{font-size:20px;font-weight:800;letter-spacing:-.3px}
 .queue-chip .remove{background:none;border:none;color:#94a3b8;font-size:16px;padding:0 2px;line-height:1;cursor:pointer}
 .queue-chip .remove:active{color:var(--danger)}
 .queue-empty{color:var(--text2);font-size:13px;padding:4px 0}
-.queue-chip .avatar{width:var(--avatar-size);height:var(--avatar-size);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px;flex-shrink:0;margin:-4px 0 -4px -8px}
-.queue-chip .avatar-small{width:24px;height:24px;font-size:11px;margin:-2px 2px -2px 0}
+
 
 /* Courts */
 .courts{padding:0 12px 12px;display:flex;flex-direction:column;gap:10px}
@@ -958,26 +956,11 @@ function renderRoundNumber() {
   if (el) el.textContent = data.currentRound || 1;
 }
 
-const AVATAR_COLORS = ['#6366f1','#8b5cf6','#ec4899','#f43f5e','#f97316','#f59e0b','#10b981','#06b6d4','#3b82f6','#84cc16'];
-
-function avatarColor(name) {
-  let h = 0;
-  for (let i = 0; i < name.length; i++) h = ((h << 5) - h) + name.charCodeAt(i);
-  return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
-}
-
-function avatarHtml(name, small) {
-  const c = avatarColor(name);
-  const init = name.charAt(0).toUpperCase();
-  const cls = small ? 'avatar avatar-small' : 'avatar';
-  return `<span class="${cls}" style="background:${c}">${init}</span>`;
-}
-
 function renderQueueChips() {
   return '<div style="width:100%;margin-bottom:6px;display:flex;flex-wrap:wrap;gap:6px">' +
     data.queue.map((p, i) =>
       '<span class="queue-chip" draggable="true" ondragstart="dragStart(event,' + i + ')" ondrop="dragDrop(event,' + i + ')" ondragover="dragOver(event)" data-idx="' + i + '">' +
-      avatarHtml(p) + escHtml(p) +
+      escHtml(p) +
       '<button class="remove" onclick="event.stopPropagation();removeFromQueue(\'' + jsStr(p) + '\')">✕</button></span>'
     ).join('') +
     '</div>';
@@ -1033,7 +1016,7 @@ function showTeam(court, team) {
   const limit = data.settings.gamesPerMatch || 2;
   return team.map(p => {
     const n = (court.consecutive || {})[p];
-    return avatarHtml(p, true) + escHtml(p) +
+    return escHtml(p) +
       (n !== undefined ? '<span class="consec">(' + n + '/' + limit + ')</span>' : '');
   }).join('<span style="color:var(--text2);margin:0 4px">+</span>');
 }
@@ -1041,8 +1024,8 @@ function showTeam(court, team) {
 function renderCourtBody(c) {
   const isPlaying = c.status === 'playing' && c.teamA.length === 2 && c.teamB.length === 2;
   if (isPlaying) {
-    const teamAStr = c.teamA.map(p => avatarHtml(p, true) + escHtml(p)).join('<span style="color:var(--text2);margin:0 4px">+</span>');
-    const teamBStr = c.teamB.map(p => avatarHtml(p, true) + escHtml(p)).join('<span style="color:var(--text2);margin:0 4px">+</span>');
+    const teamAStr = c.teamA.map(p => escHtml(p)).join('<span style="color:var(--text2);margin:0 4px">+</span>');
+    const teamBStr = c.teamB.map(p => escHtml(p)).join('<span style="color:var(--text2);margin:0 4px">+</span>');
     return `
       <div class="match-display">
         <div class="team-box team-a" onclick="declareWinner(${c.id},'A')">
