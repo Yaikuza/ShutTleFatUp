@@ -375,6 +375,8 @@ function saveData() { localStorage.setItem(SK, JSON.stringify(data)); }
 
 let data = loadData();
 
+const LIBERO = 'Libero';
+
 // ===== UTILITY =====
 function key(a, b) {
   return a < b ? a + '_' + b : b + '_' + a;
@@ -432,7 +434,7 @@ function ejectFromCourts(name) {
     c.teamB = c.teamB.filter(p => p !== name);
     if (c.teamA.length < 2 || c.teamB.length < 2) {
       for (const p of [...c.teamA, ...c.teamB])
-        if (!data.queue.includes(p)) data.queue.push(p);
+        if (p !== LIBERO && !data.queue.includes(p)) data.queue.push(p);
       c.teamA = []; c.teamB = [];
       c.status = 'waiting'; c.games = 0; c.consecutive = {};
     }
@@ -448,29 +450,82 @@ function removeFromQueue(name) {
 function shuffleQueue() {
   if (data.queue.length < 2) { toast('คิวมีคนน้อยเกินไป'); return; }
   data.queue = shuffle(data.queue.slice());
-  snapshotSchedule();
   persist();
-  toast('🔀 สับคิว — ' + data.roundSchedule.length + ' คู่');
+  toast('🔀 สับคิว');
 }
 
 function startNewRound() {
+  const noRepeat = getPlayedPairKeys();
+  data.currentRound++;
+  data.roundPairs = {};
+
+  // Add Libero if odd queue count
+  const hadOdd = data.queue.length % 2 === 1;
+  if (hadOdd) data.queue.push(LIBERO);
+
+  // Step A: First 2 pairs from queue (rest time priority, no repeat)
+  const firstPairs = [];
+  const used = new Set();
+  for (let i = 0; i < data.queue.length && firstPairs.length < 2; i++) {
+    const a = data.queue[i];
+    if (used.has(a)) continue;
+    for (let j = i + 1; j < data.queue.length && firstPairs.length < 2; j++) {
+      const b = data.queue[j];
+      if (used.has(b)) continue;
+      if (noRepeat.has(key(a, b))) continue;
+      firstPairs.push({ p1: a, p2: b });
+      used.add(a); used.add(b);
+      break;
+    }
+  }
+
+  // Step B: Remaining queue (exclude Step A pairs) + court players → complete schedule
   const courtPlayers = [];
   for (const c of data.courts) {
     if (c.status === 'playing') {
-      courtPlayers.push(...c.teamA, ...c.teamB);
+      for (const p of [...c.teamA, ...c.teamB]) {
+        if (!used.has(p)) courtPlayers.push(p);
+      }
     }
   }
-  const allPlayers = [...new Set([...data.queue, ...courtPlayers])];
-  const shuffled = shuffle(allPlayers);
-  data.roundPairs = {};
-  data.currentRound++;
-  for (const c of data.courts) c.startedRound = data.currentRound;
-  data.roundSchedule = buildScheduleFromQueue(shuffled);
-  data.queue = shuffle(data.queue.slice()).filter(p => !isInAnyCourt(p));
+  const remaining = shuffle([...data.queue.filter(p => !used.has(p))]).concat(shuffle(courtPlayers));
+  let schedulePairs = [...firstPairs];
+  for (let i = 0; i + 1 < remaining.length; i += 2) {
+    schedulePairs.push({ p1: remaining[i], p2: remaining[i + 1] });
+  }
+  if (remaining.length % 2 === 1) {
+    remaining.push(LIBERO);
+    schedulePairs.push({ p1: remaining[remaining.length - 2], p2: LIBERO });
+  }
+
+  // Re-pair ALL Step B players if any pair is in noRepeat
+  let hasDuplicate = false;
+  for (let i = firstPairs.length; i < schedulePairs.length; i++) {
+    const p = schedulePairs[i];
+    if (p.p2 !== null && p.p2 !== LIBERO && noRepeat.has(key(p.p1, p.p2))) { hasDuplicate = true; break; }
+  }
+  if (hasDuplicate) {
+    const allPlayers = [];
+    for (let i = firstPairs.length; i < schedulePairs.length; i++) {
+      const p = schedulePairs[i];
+      if (p.p2 !== null && p.p2 !== LIBERO) { allPlayers.push(p.p1, p.p2); }
+    }
+    const shuffled = shuffle(allPlayers);
+    const newStepB = [];
+    for (let i = 0; i + 1 < shuffled.length; i += 2)
+      newStepB.push({ p1: shuffled[i], p2: shuffled[i + 1] });
+    if (shuffled.length % 2 === 1)
+      newStepB.push({ p1: shuffled[shuffled.length - 1], p2: null });
+    schedulePairs = [...firstPairs, ...newStepB];
+  }
+
+  data.roundSchedule = schedulePairs;
+
+  // Remove Libero from queue
+  if (hadOdd) data.queue = data.queue.filter(p => p !== LIBERO);
+
   persist();
-  for (const c of data.courts)
-    if (c.status === 'waiting' && data.queue.length >= 4) fillCourt(c.id);
-  toast('🔄 รอบที่ ' + data.currentRound + ' — เริ่มใหม่');
+  toast('🔄 รอบที่ ' + data.currentRound);
 }
 
 // ===== COURTS =====
@@ -494,7 +549,7 @@ function removeCourt() {
   const c = data.courts.pop();
   if (c.status === 'playing')
     for (const p of [...c.teamA, ...c.teamB])
-      if (!data.queue.includes(p)) data.queue.push(p);
+      if (p !== LIBERO && !data.queue.includes(p)) data.queue.push(p);
   renumberCourts();
   saveData();
   renderCourtCount();
@@ -517,6 +572,7 @@ function findScheduledMatch() {
   const schedule = data.roundSchedule;
   if (!schedule || schedule.length < 2) return null;
   const qSet = new Set(data.queue);
+  qSet.add(LIBERO);  // Libero always available as placeholder
   const limit = data.settings.gamesPerMatch || 2;
   const eligible = schedule
     .filter(p => {
@@ -525,8 +581,14 @@ function findScheduledMatch() {
       return played < limit && qSet.has(p.p1) && qSet.has(p.p2);
     })
     .sort((a, b) => {
-      const aIdx = Math.min(data.queue.indexOf(a.p1), data.queue.indexOf(a.p2));
-      const bIdx = Math.min(data.queue.indexOf(b.p1), data.queue.indexOf(b.p2));
+      const aIdx = Math.min(
+        a.p1 === LIBERO ? Infinity : data.queue.indexOf(a.p1),
+        a.p2 === LIBERO ? Infinity : data.queue.indexOf(a.p2)
+      );
+      const bIdx = Math.min(
+        b.p1 === LIBERO ? Infinity : data.queue.indexOf(b.p1),
+        b.p2 === LIBERO ? Infinity : data.queue.indexOf(b.p2)
+      );
       return aIdx - bIdx;
     });
   for (let i = 0; i < eligible.length - 1; i++) {
@@ -539,40 +601,17 @@ function findScheduledMatch() {
   return null;
 }
 
-function scheduleHasPlayableMatch() {
-  // True if any 2-pair match from roundSchedule has all 4 players in queue
-  // and neither pair has hit the games limit.
-  const schedule = data.roundSchedule;
-  if (!schedule || schedule.length < 2) return false;
-  const qSet = new Set(data.queue);
-  const limit = data.settings.gamesPerMatch || 2;
-  for (let i = 0; i < schedule.length - 1; i++) {
-    for (let j = i + 1; j < schedule.length; j++) {
-      const a = schedule[i], b = schedule[j];
-      if (a.p2 === null || b.p2 === null) continue;
-      const players = new Set([a.p1, a.p2, b.p1, b.p2]);
-      if (players.size !== 4) continue;
-      const aOk = qSet.has(a.p1) && qSet.has(a.p2) && (data.roundPairs[key(a.p1, a.p2)] || 0) < limit;
-      const bOk = qSet.has(b.p1) && qSet.has(b.p2) && (data.roundPairs[key(b.p1, b.p2)] || 0) < limit;
-      if (aOk && bOk) return true;
-    }
-  }
-  return false;
-}
-
 function isAnyCourtPlaying() {
   return data.courts.some(c => c.status === 'playing');
 }
 
-function promptNewRoundIfExhausted() {
-  if (scheduleHasPlayableMatch()) return false;
-  if (isAnyCourtPlaying()) return false;
-  setTimeout(() => {
-    if (confirm('🔄 ทุกคู่ใน schedule เล่นครบแล้ว\nเริ่มรอบใหม่?')) {
-      startNewRound();
-    }
-  }, 200);
-  return true;
+function checkAndAutoRound() {
+  if (data.queue.length < 4) return;
+  if (!data.courts.some(c => c.status !== 'playing')) return;
+  if (findScheduledMatch()) return;
+  if (confirm('🏸 ตารางจัดคู่ต่อไม่ได้แล้ว\n🔄 จัดตารางรอบใหม่?')) {
+    startNewRound();
+  }
 }
 
 function findScheduledOpponents(winTeam, exclude) {
@@ -582,6 +621,7 @@ function findScheduledOpponents(winTeam, exclude) {
   // Prefers the pair with earliest queue position (FIFO).
   const limit = data.settings.gamesPerMatch || 2;
   const qSet = new Set(data.queue);
+  qSet.add(LIBERO);  // Libero always available as placeholder
   const excludeKey = exclude ? key(exclude[0], exclude[1]) : null;
   let best = null;
   let bestIdx = Infinity;
@@ -592,7 +632,10 @@ function findScheduledOpponents(winTeam, exclude) {
     if (excludeKey && key(p.p1, p.p2) === excludeKey) continue;
     if (!qSet.has(p.p1) || !qSet.has(p.p2)) continue;
     if ((data.roundPairs[key(p.p1, p.p2)] || 0) >= limit) continue;
-    const idx = Math.min(data.queue.indexOf(p.p1), data.queue.indexOf(p.p2));
+    const idx = Math.min(
+      p.p1 === LIBERO ? Infinity : data.queue.indexOf(p.p1),
+      p.p2 === LIBERO ? Infinity : data.queue.indexOf(p.p2)
+    );
     if (idx < bestIdx) { bestIdx = idx; best = [p.p1, p.p2]; }
   }
   return best;
@@ -603,15 +646,18 @@ function fillCourt(courtId) {
   if (!court) return;
   if (court.status === 'playing') { toast('สนามนี้กำลังเล่นอยู่'); return; }
   if (data.queue.length < 4) { toast('คิวต้องมีอย่างน้อย 4 คน'); return; }
-  if (!scheduleHasPlayableMatch()) {
-    toast('🔄 Schedule หมดแล้ว — เริ่มรอบใหม่');
-    promptNewRoundIfExhausted();
-    return;
+
+  // Auto-create initial schedule if empty (first round / after reset)
+  if (!data.roundSchedule || data.roundSchedule.length === 0) {
+    const remaining = shuffle([...data.queue]);
+    if (remaining.length % 2 === 1) remaining.push(LIBERO);
+    for (let i = 0; i + 1 < remaining.length; i += 2)
+      data.roundSchedule.push({ p1: remaining[i], p2: remaining[i + 1] });
   }
 
   const teams = findScheduledMatch();
   if (!teams) {
-    toast('ไม่พบคู่ที่จัดได้');
+    checkAndAutoRound();
     return;
   }
   court.teamA = teams[0];
@@ -625,22 +671,23 @@ function fillCourt(courtId) {
 }
 
 function recordStats(court) {
-  // Pair counts: A & B
   for (let i = 0; i < court.teamA.length; i++) {
+    if (court.teamA[i] === LIBERO) continue;
     for (let j = i + 1; j < court.teamA.length; j++) {
-      const k = key(court.teamA[i], court.teamA[j]);
-      data.pairCount[k] = (data.pairCount[k] || 0) + 1;
+      if (court.teamA[j] === LIBERO) continue;
+      data.pairCount[key(court.teamA[i], court.teamA[j])] = (data.pairCount[key(court.teamA[i], court.teamA[j])] || 0) + 1;
     }
     for (let j = 0; j < court.teamB.length; j++) {
-      const k = key(court.teamA[i], court.teamB[j]);
-      data.oppCount[k] = (data.oppCount[k] || 0) + 1;
+      if (court.teamB[j] === LIBERO) continue;
+      data.oppCount[key(court.teamA[i], court.teamB[j])] = (data.oppCount[key(court.teamA[i], court.teamB[j])] || 0) + 1;
     }
     data.gameCount[court.teamA[i]] = (data.gameCount[court.teamA[i]] || 0) + 1;
   }
   for (let i = 0; i < court.teamB.length; i++) {
+    if (court.teamB[i] === LIBERO) continue;
     for (let j = i + 1; j < court.teamB.length; j++) {
-      const k = key(court.teamB[i], court.teamB[j]);
-      data.pairCount[k] = (data.pairCount[k] || 0) + 1;
+      if (court.teamB[j] === LIBERO) continue;
+      data.pairCount[key(court.teamB[i], court.teamB[j])] = (data.pairCount[key(court.teamB[i], court.teamB[j])] || 0) + 1;
     }
     data.gameCount[court.teamB[i]] = (data.gameCount[court.teamB[i]] || 0) + 1;
   }
@@ -654,7 +701,7 @@ function declareWinner(courtId, winner) {
   data.history.push({
     time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
     court: courtId,
-    round: data.currentRound,
+    round: court.startedRound,
     teamA: [...court.teamA],
     teamB: [...court.teamB],
     winner
@@ -666,36 +713,43 @@ function declareWinner(courtId, winner) {
   for (const p of [...court.teamA, ...court.teamB])
     court.consecutive[p] = (court.consecutive[p] || 0) + 1;
 
-  // Per-round pair tracking — only if the game started in the current round
-  if (court.startedRound === data.currentRound) {
-    const kA = key(court.teamA[0], court.teamA[1]);
-    const kB = key(court.teamB[0], court.teamB[1]);
-    data.roundPairs[kA] = (data.roundPairs[kA] || 0) + 1;
-    data.roundPairs[kB] = (data.roundPairs[kB] || 0) + 1;
+  // Cross-round: court started in previous round → all queue, fill later
+  if (court.startedRound < data.currentRound) {
+    for (const p of [...court.teamA, ...court.teamB])
+      if (p !== LIBERO && !data.queue.includes(p)) data.queue.push(p);
+    court.teamA = []; court.teamB = []; court.status = 'waiting'; court.consecutive = {};
+    saveData(); render(); syncQueueCount();
+    fillCourt(courtId);
+    return;
   }
+
+  // Per-round pair tracking
+  const kA = key(court.teamA[0], court.teamA[1]);
+  const kB = key(court.teamB[0], court.teamB[1]);
+  data.roundPairs[kA] = (data.roundPairs[kA] || 0) + 1;
+  data.roundPairs[kB] = (data.roundPairs[kB] || 0) + 1;
 
   const winTeam = winner === 'A' ? court.teamA : court.teamB;
   const loseTeam = winner === 'A' ? court.teamB : court.teamA;
   const limit = data.settings.gamesPerMatch || 2;
 
-  // Each pair independently: if at limit → exit (queue), if not → stay
   const winAtLimit = (data.roundPairs[key(winTeam[0], winTeam[1])] || 0) >= limit;
   const loseAtLimit = (data.roundPairs[key(loseTeam[0], loseTeam[1])] || 0) >= limit;
 
   if (winAtLimit)
-    for (const p of winTeam) if (!data.queue.includes(p)) data.queue.push(p);
+    for (const p of winTeam) if (p !== LIBERO && !data.queue.includes(p)) data.queue.push(p);
   if (loseAtLimit)
-    for (const p of loseTeam) if (!data.queue.includes(p)) data.queue.push(p);
+    for (const p of loseTeam) if (p !== LIBERO && !data.queue.includes(p)) data.queue.push(p);
 
   // Both at limit → court vacant
   if (winAtLimit && loseAtLimit) {
     court.teamA = []; court.teamB = []; court.status = 'waiting'; court.consecutive = {};
     saveData(); render(); syncQueueCount();
-    promptNewRoundIfExhausted();
+    checkAndAutoRound();
     return;
   }
 
-  // Winners at limit, losers not → losers stay as the next team, find opponents
+  // Winners at limit, losers not → losers stay
   if (winAtLimit) {
     court.teamA = [...loseTeam]; court.teamB = []; court.status = 'waiting'; court.consecutive = {};
     const next = findScheduledOpponents(loseTeam, null);
@@ -713,43 +767,32 @@ function declareWinner(courtId, winner) {
   }
 
   // Winners not at limit → normal winner-stays
-  // Losers exit (whether at limit or not — at-limit already pushed above)
   if (!loseAtLimit)
-    for (const p of loseTeam) if (!data.queue.includes(p)) data.queue.push(p);
+    for (const p of loseTeam) if (p !== LIBERO && !data.queue.includes(p)) data.queue.push(p);
 
   const scheduled = findScheduledOpponents(winTeam, loseTeam);
-  let newP;
   if (scheduled) {
-    newP = scheduled;
-  } else {
-    if (promptNewRoundIfExhausted()) {
-      for (const p of winTeam) if (!data.queue.includes(p)) data.queue.push(p);
-      court.teamA = []; court.teamB = []; court.status = 'waiting'; court.consecutive = {};
-      persist();
-      return;
-    }
-    const avail = data.queue.filter(p => !winTeam.includes(p));
-    if (avail.length < 2) {
-      court.teamA = [...winTeam]; court.teamB = []; court.status = 'waiting';
-      toast('รอผู้เล่นเพิ่มเติม');
-      persist();
-      return;
-    }
-    newP = [avail[0], avail[1]];
+    court.teamA = winTeam;
+    court.teamB = scheduled;
+    court.startedRound = data.currentRound;
+    data.queue = data.queue.filter(p => !scheduled.includes(p));
+    toast('⏳ ' + winTeam.join('+') + ' vs ' + scheduled.join('+'));
+    persist();
+    return;
   }
-  court.teamA = winTeam;
-  court.teamB = newP;
-  court.startedRound = data.currentRound;
-  data.queue = data.queue.filter(p => !newP.includes(p));
-  toast('⏳ ' + winTeam.join('+') + ' vs ' + newP.join('+'));
+
+  // No opponents available
+  for (const p of winTeam) if (p !== LIBERO && !data.queue.includes(p)) data.queue.push(p);
+  court.teamA = []; court.teamB = []; court.status = 'waiting'; court.consecutive = {};
   persist();
+  checkAndAutoRound();
 }
 
 function swapBoth(courtId) {
   const court = data.courts.find(c => c.id === courtId);
   if (!court || court.status !== 'playing') return;
   for (const p of [...court.teamA, ...court.teamB])
-    if (!data.queue.includes(p)) data.queue.push(p);
+    if (p !== LIBERO && !data.queue.includes(p)) data.queue.push(p);
   court.teamA = []; court.teamB = []; court.status = 'waiting'; court.consecutive = {};
   court.startedRound = data.currentRound;
   saveData();
@@ -886,20 +929,13 @@ function getRoundPairScores() {
     .sort((a, b) => b.games - a.games || b.wins - a.wins);
 }
 
-function buildScheduleFromQueue(players) {
-  // Generate a perfect matching from current queue: one disjoint pair set per shuffle.
-  // Each player appears in exactly one pair. If odd count, last player sits out.
-  const q = players || data.queue;
-  if (q.length < 2) return [];
-  const schedule = [];
-  for (let i = 0; i + 1 < q.length; i += 2) {
-    schedule.push({ p1: q[i], p2: q[i + 1] });
+function getPlayedPairKeys() {
+  const keys = new Set();
+  for (const r of data.history) {
+    if (r.teamA.length === 2 && !r.teamA.includes(LIBERO)) keys.add(key(r.teamA[0], r.teamA[1]));
+    if (r.teamB.length === 2 && !r.teamB.includes(LIBERO)) keys.add(key(r.teamB[0], r.teamB[1]));
   }
-  return schedule;
-}
-
-function snapshotSchedule(players) {
-  data.roundSchedule = buildScheduleFromQueue(players);
+  return keys;
 }
 
 function getMatchSchedule() {
@@ -999,11 +1035,11 @@ function renderQueueChips() {
 }
 
 function renderQueueStatus() {
-  if (!scheduleHasPlayableMatch() && data.roundSchedule.length >= 2) {
-    return '<div style="width:100%"><div class="q-status-line warn">🔄 Schedule หมดแล้ว</div>' +
-      '<button class="q-next-btn" onclick="startNewRound()">🔄 เริ่มรอบใหม่ (รอบที่ ' + (data.currentRound + 1) + ')</button></div>';
-  }
-  return '';
+  if (data.queue.length < 4) return '';
+  if (!data.courts.some(c => c.status !== 'playing')) return '';
+  if (findScheduledMatch()) return '';
+  return '<div style="width:100%"><div class="q-status-line warn">🔄 ตารางจัดคู่ต่อไม่ได้</div>' +
+    '<button class="q-next-btn" onclick="startNewRound()">🔄 เริ่มรอบใหม่ (รอบที่ ' + (data.currentRound + 1) + ')</button></div>';
 }
 
 function renderPairScoreTable() {
@@ -1053,7 +1089,7 @@ function showTeam(court, team) {
   }).join('<span style="color:var(--text2);margin:0 4px">+</span>');
 }
 
-function renderCourtBody(c) {
+function renderCourtBody(c, hasMatch) {
   const isPlaying = c.status === 'playing' && c.teamA.length === 2 && c.teamB.length === 2;
   if (isPlaying) {
     const teamAStr = c.teamA.map(p => escHtml(p)).join('<span style="color:var(--text2);margin:0 4px">+</span>');
@@ -1079,7 +1115,7 @@ function renderCourtBody(c) {
     ? `<div class="court-waiting-msg">⏳ รอคู่: ${escHtml(c.teamA.join(' + '))}</div>`
     : `<div class="court-empty-msg">🏟️ สนามว่าง</div>
        <div class="court-empty-sub">👥 คิว ${data.queue.length} คน</div>`;
-  const disabled = data.queue.length < 4 || !scheduleHasPlayableMatch();
+  const disabled = data.queue.length < 4 || !hasMatch;
   return `<div class="court-empty">${empty}
     <button class="big-btn" onclick="fillCourt(${c.id})" ${disabled ? 'disabled' : ''}>👥 จัดผู้เล่น</button>
   </div>`;
@@ -1088,15 +1124,17 @@ function renderCourtBody(c) {
 function renderCourts() {
   const el = document.getElementById('courtsContainer');
   if (!el) return;
+  const noSchedule = !data.roundSchedule || data.roundSchedule.length === 0;
+  const hasMatch = noSchedule || !!findScheduledMatch();
   el.innerHTML = data.courts.map(c => {
     let cls = 'court-card';
     if (c.status === 'playing') cls += ' status-playing';
-    else if (data.queue.length >= 4 && scheduleHasPlayableMatch()) cls += ' status-waiting queue-full';
+    else if (data.queue.length >= 4 && hasMatch) cls += ' status-waiting queue-full';
     return `<div class="${cls}">
       <div class="court-header">
         <span class="court-title">🏟️ สนาม ${c.id}</span>
       </div>
-      <div class="court-body">${renderCourtBody(c)}</div>
+      <div class="court-body">${renderCourtBody(c, hasMatch)}</div>
     </div>`;
   }).join('');
   syncQueueCount();
@@ -1156,7 +1194,7 @@ function getPlayerStats() {
     stats[p].streakChar = streak > 0 ? 'W' : streak < 0 ? 'L' : '';
   }
   return Object.values(stats)
-    .filter(s => s.wins + s.losses > 0)
+    .filter(s => s.name !== LIBERO && s.wins + s.losses > 0)
     .sort((a, b) => {
       const aPct = a.wins / (a.wins + a.losses);
       const bPct = b.wins / (b.wins + b.losses);
@@ -1168,7 +1206,7 @@ function getPairStats() {
   const stats = {};
   for (const r of data.history) {
     for (const [team, won] of [[r.teamA, r.winner === 'A'], [r.teamB, r.winner === 'B']]) {
-      if (team.length < 2) continue;
+      if (team.length < 2 || team.includes(LIBERO)) continue;
       const k = key(team[0], team[1]);
       if (!stats[k]) stats[k] = { p1: team[0], p2: team[1], wins: 0, losses: 0 };
       if (won) stats[k].wins++; else stats[k].losses++;
@@ -1188,7 +1226,9 @@ function getHeadToHead() {
     const winTeam = r.winner === 'A' ? r.teamA : r.teamB;
     const loseTeam = r.winner === 'A' ? r.teamB : r.teamA;
     for (const winner of winTeam) {
+      if (winner === LIBERO) continue;
       for (const loser of loseTeam) {
+        if (loser === LIBERO) continue;
         const k = key(winner, loser);
         if (!stats[k]) {
           stats[k] = { p1: winner < loser ? winner : loser, p2: winner < loser ? loser : winner, p1Wins: 0, p2Wins: 0 };
