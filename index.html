@@ -458,8 +458,13 @@ function startNewRound() {
   data.currentRound++;
   data.roundPairs = {};
 
-  // Add Libero if odd queue count
-  const hadOdd = data.queue.length % 2 === 1;
+  // Count all active players (queue + schedule) to determine odd/even
+  const allActive = new Set(data.queue);
+  for (const p of data.roundSchedule) {
+    if (p.p1 !== null && p.p1 !== LIBERO) allActive.add(p.p1);
+    if (p.p2 !== null && p.p2 !== LIBERO) allActive.add(p.p2);
+  }
+  const hadOdd = allActive.size % 2 === 1;
   if (hadOdd) data.queue.push(LIBERO);
 
   // Step A: First 2 pairs from queue (rest time priority, no repeat)
