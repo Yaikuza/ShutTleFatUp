@@ -97,19 +97,13 @@ header h1{font-size:20px;font-weight:800;letter-spacing:-.3px}
 .court-empty-sub{font-size:12px;color:var(--text2);margin-bottom:10px}
 .court-waiting-msg{font-size:14px;margin-bottom:8px;font-weight:500}
 
-/* Collapse sections */
-.collapse-section{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;margin:0 12px 10px}
-.collapse-section:first-child{margin-top:8px}
-.collapse-header{padding:14px 16px;font-weight:600;font-size:15px;display:flex;align-items:center;justify-content:space-between;user-select:none;-webkit-tap-highlight-color:transparent;cursor:pointer}
-.collapse-header:active{opacity:.8}
-.collapse-header.head-players{background:linear-gradient(135deg,#e0e7ff,#c7d2fe);color:#3730a3;border-bottom:3px solid #6366f1}
-.collapse-header.head-queue{background:linear-gradient(135deg,#fce7f3,#fbcfe8);color:#9d174d;border-bottom:3px solid #ec4899}
-.collapse-header.head-stats{background:linear-gradient(135deg,#d1fae5,#a7f3d0);color:#065f46;border-bottom:3px solid #10b981}
-.collapse-header.head-settings{background:linear-gradient(135deg,#fef3c7,#fde68a);color:#92400e;border-bottom:3px solid #f59e0b}
-.collapse-icon{font-size:12px;transition:transform .2s;color:var(--text2)}
-.collapse-icon.open{transform:rotate(90deg)}
-.collapse-body{display:none;padding:0 16px 16px;border-top:1px solid var(--border)}
-.collapse-body.open{display:block}
+/* Bottom bar */
+.bottom-bar{display:flex;gap:6px;padding:8px 12px;position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--border);z-index:20}
+.bottom-bar button{flex:1;padding:10px 4px;border:none;border-radius:var(--radius-sm);font-weight:600;font-size:12px;display:flex;align-items:center;justify-content:center;gap:4px;color:var(--text2);background:var(--muted);transition:background .2s}
+.bottom-bar button:active{background:var(--border)}
+.bottom-bar button .bcount{font-size:11px;padding:1px 6px;border-radius:8px;background:var(--primary);color:#fff;font-weight:700}
+.bottom-bar button .bcount.zero{background:#cbd5e1}
+main{padding-bottom:64px}
 
 /* Players panel */
 .section-title{font-size:16px;font-weight:700;margin:16px 0 8px;display:flex;align-items:center;justify-content:space-between}
@@ -254,47 +248,26 @@ select.setting-input{padding:6px 12px;border:2px solid var(--border);border-radi
 
 <header>
   <div class="header-top">
-    <h1>🏸 สนาม</h1>
+    <h1>🏸 สนาม <span class="badge">รอบ <span id="roundNumber">1</span></span></h1>
     <div class="court-ctrl">
       <button onclick="removeCourt()" title="ลดสนาม">−</button>
        <span id="courtCount">2</span>
       <button onclick="addCourt()" title="เพิ่มสนาม">+</button>
+      <button onclick="resetSession()" class="btn-icon" title="รีเซตรอบ (เก็บชื่อ+สถิติ)" style="margin-left:4px">♻️</button>
     </div>
   </div>
 </header>
 
 <main id="mainView">
-  <div class="collapse-section">
-    <div class="collapse-header head-players" onclick="toggleCollapse('Players')">
-      <span>👤 ผู้เล่น</span>
-      <span class="collapse-icon">▶</span>
-    </div>
-    <div id="collapsePlayers" class="collapse-body"></div>
-  </div>
-
-  <div class="collapse-section">
-    <div class="collapse-header head-queue" onclick="toggleCollapse('Queue')">
-      <span>👥 ตาราง</span>
-      <span style="display:flex;align-items:center;gap:6px;font-size:13px">
-        <span class="badge badge-primary">รอบ <span id="roundNumber">1</span></span>
-        <span id="queueCount" class="badge">0</span>
-        <button onclick="event.stopPropagation();shuffleQueue()" class="btn-icon" title="สับคิว">🔀</button>
-        <button onclick="event.stopPropagation();resetSession()" class="btn-icon" title="รีเซตรอบ (เก็บชื่อ+สถิติ)">♻️</button>
-      </span>
-      <span class="collapse-icon open">▶</span>
-    </div>
-    <div id="collapseQueue" class="collapse-body open">
-      <div id="queuePlayers" class="queue-players"></div>
-    </div>
-  </div>
-
   <div id="courtsContainer" class="courts"></div>
-
-  <div style="display:flex;gap:10px;margin:0 12px 10px">
-    <button onclick="openSheet('Stats')" style="flex:1;padding:12px;background:linear-gradient(135deg,#ecfdf5,#d1fae5);border:none;border-radius:var(--radius-sm);font-weight:600;font-size:14px;color:#065f46;display:flex;align-items:center;justify-content:center;gap:6px">📊 สถิติ</button>
-    <button onclick="openSheet('Settings')" style="flex:1;padding:12px;background:linear-gradient(135deg,#fffbeb,#fef3c7);border:none;border-radius:var(--radius-sm);font-weight:600;font-size:14px;color:#92400e;display:flex;align-items:center;justify-content:center;gap:6px">⚙️ ตั้งค่า</button>
-  </div>
 </main>
+
+<div class="bottom-bar">
+  <button onclick="openSheet('Players')">👤 ผู้เล่น</button>
+  <button onclick="openSheet('Queue')">👥 ตาราง <span id="queueCount" class="bcount zero">0</span></button>
+  <button onclick="openSheet('Stats')">📊 สถิติ</button>
+  <button onclick="openSheet('Settings')">⚙️ ตั้งค่า</button>
+</div>
 
 <div class="sheet-overlay" id="sheetOverlay" onclick="closeSheet()"></div>
 <div class="sheet" id="sheet">
@@ -424,7 +397,10 @@ function shuffle(arr) {
 // ===== QUEUE =====
 function syncQueueCount() {
   const el = document.getElementById('queueCount');
-  if (el) el.textContent = data.queue.length;
+  if (el) {
+    el.textContent = data.queue.length;
+    el.classList.toggle('zero', data.queue.length === 0);
+  }
 }
 
 function ejectFromCourts(name) {
@@ -806,7 +782,8 @@ function swapBoth(courtId) {
 
 // ===== PLAYERS =====
 function addMainPlayer() {
-  const input = document.getElementById('newPlayerInput');
+  const input = document.getElementById('newPlayerInputSheet') || document.getElementById('newPlayerInput');
+  if (!input) return;
   const name = (input.value || '').trim();
   if (!name) return;
   if (data.mainPlayers.includes(name)) { toast('มีชื่อนี้อยู่แล้ว'); return; }
@@ -819,7 +796,6 @@ function addMainPlayer() {
   renderPlayers();
   syncQueueCount();
   input.focus();
-  input.selectionStart = input.selectionEnd = input.value.length;
 }
 
 function removePlayer(name) {
@@ -893,17 +869,6 @@ function resetSession() {
   toast('🔄 รีเซตรอบเรียบร้อย');
 }
 
-// ===== COLLAPSE =====
-function toggleCollapse(name) {
-  const body = document.getElementById('collapse' + name);
-  if (!body) return;
-  const icon = body.parentElement.querySelector('.collapse-icon');
-  const isOpen = body.classList.toggle('open');
-  if (icon) icon.classList.toggle('open', isOpen);
-  if (!isOpen) return;
-  if (name === 'Players') renderPlayers();
-}
-
 // ===== STATS COMPUTATION =====
 function getRoundPairScores() {
   // For each unique pair in this round, count W:L from data.history
@@ -970,15 +935,16 @@ function openSheet(name) {
   const sheet = document.getElementById('sheet');
   const title = document.getElementById('sheetTitle');
   const body = document.getElementById('sheetBody');
-  if (name === 'Stats') {
-    title.textContent = '📊 สถิติ';
-    body.style.padding = '0';
-    body.innerHTML = renderStatsContent();
-  } else {
-    title.textContent = '⚙️ ตั้งค่า';
-    body.style.padding = '';
-    body.innerHTML = renderSettingsContent();
-  }
+  const titles = { Players: '👤 ผู้เล่น', Queue: '👥 ตาราง', Stats: '📊 สถิติ', Settings: '⚙️ ตั้งค่า' };
+  const renderers = {
+    Players: renderPlayersSheetContent,
+    Queue: renderQueueSheetContent,
+    Stats: renderStatsContent,
+    Settings: renderSettingsContent
+  };
+  title.textContent = titles[name] || name;
+  body.style.padding = name === 'Settings' ? '' : '0';
+  body.innerHTML = (renderers[name] || (() => ''))();
   overlay.classList.add('open');
   sheet.classList.add('open');
   sheetContent = name;
@@ -1084,20 +1050,10 @@ function renderPairScoreTable() {
 }
 
 function renderQueue() {
-  const el = document.getElementById('queuePlayers');
-  if (!el) return;
-  if (data.queue.length === 0) {
-    el.innerHTML = '<div class="queue-empty">คิวว่าง — เพิ่มผู้เล่นจาก 👤</div>';
-    syncQueueCount();
-    return;
-  }
-
-  el.innerHTML =
-    renderQueueChips() +
-    renderQueueStatus() +
-    renderPairScoreTable();
-
   syncQueueCount();
+  if (sheetContent !== 'Queue') return;
+  const body = document.getElementById('sheetBody');
+  if (body) body.innerHTML = renderQueueSheetContent();
 }
 
 function showTeam(court, team) {
@@ -1168,10 +1124,15 @@ function renderCourts() {
 
 // ===== PLAYERS TAB =====
 function renderPlayers() {
-  const el = document.getElementById('collapsePlayers');
-  if (!el) return;
-  let h = '<div class="input-row">' +
-    '<input type="text" id="newPlayerInput" placeholder="ชื่อ..." onkeydown="if(event.key===\'Enter\')addMainPlayer()">' +
+  if (sheetContent !== 'Players') return;
+  const body = document.getElementById('sheetBody');
+  if (body) body.innerHTML = renderPlayersSheetContent();
+}
+
+function renderPlayersSheetContent() {
+  let h = '<div style="padding:0 0 12px">' +
+    '<div class="input-row">' +
+    '<input type="text" id="newPlayerInputSheet" placeholder="ชื่อ..." onkeydown="if(event.key===\'Enter\')addMainPlayer()">' +
     '<button onclick="addMainPlayer()">เพิ่ม</button></div>';
   h += '<div class="section-title">ผู้เล่นหลัก <span style="font-size:13px;font-weight:400;color:var(--text2)">(' + data.mainPlayers.length + ')</span></div>';
   if (data.mainPlayers.length === 0) {
@@ -1186,7 +1147,27 @@ function renderPlayers() {
       </div>`;
     }
   }
-  el.innerHTML = h;
+  h += '<div class="action-bar">' +
+    '<button class="btn-primary" onclick="addPoolToQueue()">➕ เพิ่ม pool</button>' +
+    '<button class="btn-primary" onclick="clearQueue()">🧹 ล้างคิว</button>' +
+    '</div></div>';
+  return h;
+}
+
+function renderQueueSheetContent() {
+  const sitOut = data.roundSchedule && data.roundSchedule.some(p => p.p2 === null) ? ' · 1 คนพัก' : '';
+  let h = '<div style="padding:0 0 12px">' +
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">' +
+    '<span class="badge badge-primary">รอบ ' + data.currentRound + sitOut + '</span>' +
+    '<button onclick="shuffleQueue()" class="btn-icon" title="สับคิว">🔀</button>' +
+    '</div>';
+  if (data.queue.length === 0) {
+    h += '<div class="queue-empty">คิวว่าง</div>';
+  } else {
+    h += renderQueueChips() + renderQueueStatus() + renderPairScoreTable();
+  }
+  h += '</div>';
+  return h;
 }
 
 // ===== STATS DERIVATION =====
