@@ -82,7 +82,6 @@ header h1{font-size:20px;font-weight:800;letter-spacing:-.3px}
 .badge-empty{background:#94a3b8;font-size:11px;padding:1px 8px}
 .badge-waiting{background:var(--warning);font-size:11px;padding:1px 8px}
 .badge-primary{background:var(--primary-light)}
-.queue-players{display:flex;flex-wrap:wrap;gap:8px;min-height:36px;padding:4px 0}
 .queue-chip{display:inline-flex;align-items:center;gap:6px;background:var(--chip-bg);color:var(--primary);padding:4px 10px;border-radius:18px;font-size:13px;font-weight:500;white-space:nowrap;cursor:grab;transition:box-shadow .2s,transform .2s;user-select:none}
 .queue-chip:active{cursor:grabbing;box-shadow:var(--shadow-lg);transform:scale(1.05)}
 .queue-chip.dragging{opacity:.4}
@@ -120,7 +119,6 @@ header h1{font-size:20px;font-weight:800;letter-spacing:-.3px}
 .court-floor .team-zone.team-b:active{background:rgba(255,255,255,.15)}
 .court-floor .team-zone .p-entry{text-align:center}
 .court-floor .team-zone .p-name{font-weight:700;font-size:18px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.35)}
-.court-floor .team-zone .consec{font-size:11px;color:rgba(255,255,255,.7);margin-left:4px}
 .court-floor .mid-col{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2px 4px;flex-shrink:0;gap:10px}
 .court-floor .vs-badge{background:rgba(255,255,255,.9);color:var(--court-color,#2d8a4e);width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;box-shadow:0 2px 4px rgba(0,0,0,.2);border:none;cursor:pointer;transition:transform .15s,box-shadow .15s}
 .court-floor .vs-badge:hover{transform:scale(1.08);box-shadow:0 4px 8px rgba(0,0,0,.25)}
@@ -177,12 +175,9 @@ main{padding-bottom:130px}
 .q-table .td-name{font-weight:600;text-align:center}
 .q-table .win{color:#059669;font-weight:700}
 .q-table .lose{color:#dc2626;font-weight:700}
-.q-table .win-pct{color:var(--text2);font-size:11px;margin-left:2px}
+.q-table .q-pending{color:var(--text2);font-style:italic}
 .q-table tr:nth-child(even) td{background:var(--muted)}
-.q-table .status-done{color:var(--danger)}
-.q-table .status-ok{color:var(--success)}
 .q-status-line{font-size:12px;margin-top:6px}
-.q-status-line.ok{color:var(--success)}
 .q-status-line.warn{color:var(--warning);padding:6px 0}
 .q-next-btn{margin-top:6px;width:100%;padding:10px;border:none;border-radius:var(--radius-sm);font-weight:600;font-size:14px;background:var(--primary);color:#fff}
 /* Stats panel */
@@ -235,10 +230,6 @@ main{padding-bottom:130px}
 .setting-label{font-size:15px}
 .setting-desc{font-size:12px;color:var(--text2);margin-top:2px}
 select.setting-input{padding:6px 12px;border:2px solid var(--border);border-radius:var(--radius-sm);font-size:14px;background:#fff}
-.toggle-switch{width:48px;height:28px;background:#cbd5e1;border-radius:14px;border:none;position:relative;flex-shrink:0}
-.toggle-switch::after{content:'';position:absolute;top:3px;left:3px;width:22px;height:22px;background:#fff;border-radius:50%;transition:transform .2s}
-.toggle-switch.active{background:var(--primary)}
-.toggle-switch.active::after{transform:translateX(20px)}
 .danger-btn{width:100%;padding:14px;border:none;border-radius:var(--radius-sm);font-weight:600;font-size:15px;margin-top:8px}
 .danger-btn.danger{background:#fee2e2;color:var(--danger)}
 .danger-btn.danger:active{background:#fecaca}
@@ -247,22 +238,13 @@ select.setting-input{padding:6px 12px;border:2px solid var(--border);border-radi
 .settings-card + .settings-card{margin-top:16px}
 .settings-info{font-size:14px;color:var(--text2);margin-bottom:8px}
 
-/* Toast */
-.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:10px 20px;border-radius:8px;font-size:14px;z-index:40;opacity:0;transition:opacity .3s;pointer-events:none}
-.toast.show{opacity:1}
-
 /* Empty state */
 .empty-state{text-align:center;padding:40px 20px;color:var(--text2)}
 .empty-state .icon{font-size:48px;margin-bottom:12px}
 .empty-state p{font-size:15px;margin-bottom:4px}
-.empty-state .sub{font-size:13px}
 
 /* Animation */
 @keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
-
-/* Scrollbar */
-.queue-players::-webkit-scrollbar{height:4px}
-.queue-players::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:2px}
 
 /* Bottom sheet */
 .sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;opacity:0;pointer-events:none;transition:opacity .3s}
@@ -306,7 +288,6 @@ select.setting-input{padding:6px 12px;border:2px solid var(--border);border-radi
 .picker-pair:active{transform:scale(.98)}
 .picker-pair.in-a{border-color:var(--primary);background:var(--chip-bg)}
 .picker-pair.in-b{border-color:var(--danger);background:#fee2e2}
-.picker-pair.used{opacity:.4;cursor:not-allowed;background:var(--muted)}
 .picker-pair .pair-names{font-weight:600;font-size:14px}
 .picker-pair .pair-actions{display:flex;gap:4px}
 .picker-pair .pair-actions button{background:var(--muted);border:1px solid var(--border);font-size:11px;padding:4px 8px;border-radius:6px;cursor:pointer;font-weight:600;color:var(--text2)}
@@ -339,7 +320,7 @@ select.setting-input{padding:6px 12px;border:2px solid var(--border);border-radi
   </div>
 </header>
 
-<main id="mainView">
+<main>
   <div id="courtsContainer" class="courts"></div>
 </main>
 
@@ -517,13 +498,6 @@ function ejectFromCourts(name) {
   }
 }
 
-function removeFromQueue(name) {
-  data.queue = data.queue.filter(p => p !== name);
-  data.pool[name] = false;
-  ejectFromCourts(name);
-  persist();
-}
-
 function shuffleQueue() {
   if (data.queue.length < 2) { toast('คิวมีคนน้อยเกินไป'); return; }
   data.queue = shuffle(data.queue.slice());
@@ -646,10 +620,6 @@ function renderCourtCount() {
   document.getElementById('courtCount').textContent = data.courts.length;
 }
 
-function canPair(p1, p2) {
-  return (data.roundPairs[key(p1, p2)] || 0) < (data.settings.gamesPerMatch || 2);
-}
-
 function findScheduledMatch() {
   // Find 2 pairs from roundSchedule where all 4 players are in queue
   // and neither pair has hit the games limit.
@@ -684,10 +654,6 @@ function findScheduledMatch() {
     }
   }
   return null;
-}
-
-function isAnyCourtPlaying() {
-  return data.courts.some(c => c.status === 'playing');
 }
 
 function checkAndAutoRound() {
@@ -1198,7 +1164,7 @@ function confirmCustomMatch() {
 
 // ===== PLAYERS =====
 function addMainPlayer() {
-  const input = document.getElementById('newPlayerInputSheet') || document.getElementById('newPlayerInput');
+  const input = document.getElementById('newPlayerInputSheet');
   if (!input) return;
   const name = (input.value || '').trim();
   if (!name) return;
@@ -1525,15 +1491,6 @@ function renderQueue() {
     const body = document.getElementById('sheetBody');
     if (body) body.innerHTML = renderQueueSheetContent();
   }
-}
-
-function showTeam(court, team) {
-  const limit = data.settings.gamesPerMatch || 2;
-  return team.map(p => {
-    const n = (court.consecutive || {})[p];
-    return escHtml(p) +
-      (n !== undefined ? '<span class="consec">(' + n + '/' + limit + ')</span>' : '');
-  }).join('<span style="color:var(--text2);margin:0 4px">+</span>');
 }
 
 function renderCourtBody(c) {
