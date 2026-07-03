@@ -304,6 +304,8 @@ select.setting-input{padding:6px 12px;border:2px solid var(--border);border-radi
 /* Toast & Confirm */
 .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;padding:10px 20px;border-radius:var(--radius-sm);font-size:14px;font-weight:500;z-index:200;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;box-shadow:var(--shadow-lg)}
 .toast.show{opacity:1}
+.toast-top{position:fixed;top:70px;left:50%;z-index:200;background:var(--gradient);color:#fff;padding:10px 20px;border-radius:var(--radius-sm);font-size:14px;font-weight:600;opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;white-space:nowrap;box-shadow:var(--shadow-lg);transform:translateX(-50%) translateY(-20px)}
+.toast-top.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:flex;align-items:center;justify-content:center;animation:overlayIn .15s ease}
 @keyframes overlayIn{from{opacity:0}to{opacity:1}}
 .confirm-dialog{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow-lg);padding:24px;max-width:320px;width:90%;text-align:center}
@@ -354,6 +356,7 @@ select.setting-input{padding:6px 12px;border:2px solid var(--border);border-radi
   <div class="sheet-body" id="sheetBody"></div>
 </div>
 <div class="toast" id="toast"></div>
+<div class="toast-top" id="toastTop"></div>
 
 <div class="confirm-overlay" id="confirmOverlay" style="display:none" onclick="closeConfirm(false)">
   <div class="confirm-dialog" onclick="event.stopPropagation()">
@@ -477,6 +480,14 @@ function toast(msg) {
   t.classList.add('show');
   clearTimeout(t._timer);
   t._timer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function toastTop(msg) {
+  const t = document.getElementById('toastTop');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 3000);
 }
 
 let _confirmResolve = null;
@@ -693,15 +704,22 @@ function findScheduledMatch() {
   return null;
 }
 
+let _autoRounding = false;
 async function checkAndAutoRound() {
+  if (_autoRounding) return;
   if (data.queue.length < 4) return;
   if (!data.courts.some(c => c.status !== 'playing')) return;
   if (findScheduledMatch()) return;
-  // ลองเพิ่มคู่จาก queue ที่เหลือก่อน ถ้ายังพอจัดได้
   if (pairRemainingQueueIntoSchedule() > 0 && findScheduledMatch()) return;
-  if (await confirmDialog('🏸 ตารางจัดคู่ต่อไม่ได้แล้ว\n🔄 จัดตารางรอบใหม่?')) {
-    startNewRound();
+  _autoRounding = true;
+  startNewRound();
+  for (const c of data.courts) {
+    if (c.status !== 'playing') await fillCourt(c.id);
   }
+  _autoRounding = false;
+  saveData();
+  render();
+  toastTop('🔄 รอบที่ ' + data.currentRound + ' เริ่มแล้ว');
 }
 
 function findScheduledOpponents(winTeam, exclude) {
