@@ -72,23 +72,26 @@ header h1{font-size:20px;font-weight:800;letter-spacing:-.3px}
 .court-empty .big-btn{display:block;width:100%;max-width:260px;margin:10px auto 0;padding:14px;background:var(--gradient);color:#fff;border:none;border-radius:var(--radius-sm);font-size:16px;font-weight:600;box-shadow:0 2px 8px rgba(99,102,241,.25)}
 .court-empty .big-btn:disabled{background:#94a3b8;opacity:.6;box-shadow:none}
 .court-empty .big-btn:not(:disabled):active{opacity:.9}
-.match-display{display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 0}
-.team-box{flex:1;max-width:40%;background:var(--muted);border-radius:var(--radius-sm);padding:14px 10px;text-align:center;cursor:pointer;border:2px solid transparent;transition:all .2s;user-select:none;-webkit-tap-highlight-color:transparent;position:relative}
-.team-box.team-a{background:linear-gradient(135deg,#eef2ff,#e0e7ff);border-color:#c7d2fe}
-.team-box.team-a:active{background:linear-gradient(135deg,#c7d2fe,#a5b4fc);border-color:var(--primary)}
-.team-box.team-b{background:linear-gradient(135deg,#fdf2f8,#fce7f3);border-color:#fbcfe8}
-.team-box.team-b:active{background:linear-gradient(135deg,#fbcfe8,#f9a8d4);border-color:#ec4899}
-.team-box .names{font-weight:700;font-size:16px;line-height:1.4}
-.team-box .tap-hint{font-size:10px;color:var(--text2);margin-top:4px;opacity:.7}
-.team-box .consec{font-size:11px;color:var(--text2);margin-left:4px}
-.vs-badge{background:var(--gradient);color:#fff;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;box-shadow:0 2px 8px rgba(99,102,241,.3);flex-shrink:0;z-index:1}
+.match-display{display:flex;gap:4px;padding:8px 0;align-items:stretch}
+.team-zone{flex:1;display:flex;flex-direction:column;gap:6px;padding:10px 8px;border-radius:var(--radius-sm);cursor:pointer;border:2px solid transparent;user-select:none;-webkit-tap-highlight-color:transparent;position:relative}
+.team-zone.team-a{background:linear-gradient(135deg,#eef2ff,#e0e7ff);border-color:#c7d2fe}
+.team-zone.team-a:active{background:linear-gradient(135deg,#c7d2fe,#a5b4fc);border-color:var(--primary)}
+.team-zone.team-b{background:linear-gradient(135deg,#fdf2f8,#fce7f3);border-color:#fbcfe8}
+.team-zone.team-b:active{background:linear-gradient(135deg,#fbcfe8,#f9a8d4);border-color:#ec4899}
+.team-zone .p-entry{text-align:center}
+.team-zone .p-name{font-weight:700;font-size:16px}
+.team-zone .consec{font-size:11px;color:var(--text2);margin-left:4px}
+.team-zone .tap-hint{font-size:10px;color:var(--text2);text-align:center;opacity:.7;margin-top:2px}
+.mid-col{display:flex;flex-direction:column;align-items:center;justify-content:space-around;padding:2px 6px;flex-shrink:0}
+.mid-col .swap-btn{background:none;border:none;font-size:18px;color:var(--text2);cursor:pointer;padding:4px;border-radius:6px;line-height:1}
+.mid-col .swap-btn:active{background:rgba(0,0,0,.06)}
+.vs-badge{background:var(--gradient);color:#fff;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;box-shadow:0 2px 8px rgba(99,102,241,.3)}
 .waiting-actions{display:flex;gap:8px;margin-top:8px}
 .waiting-actions button{flex:1;padding:12px;border:none;border-radius:var(--radius-sm);font-weight:600;font-size:14px}
 .waiting-actions .btn-primary{background:var(--gradient);color:#fff;box-shadow:0 2px 8px rgba(99,102,241,.25)}
 .waiting-actions .btn-primary:disabled{background:#94a3b8;box-shadow:none}
 .waiting-actions .btn-primary:not(:disabled):active{opacity:.9}
 .waiting-actions .btn-outline{background:#fff;color:var(--text2);border:2px solid var(--border)}
-.court-swap-row{margin-top:4px;text-align:center}
 .court-swap-btn{background:none;border:none;color:var(--text2);font-size:12px;padding:6px}
 .court-empty-msg{font-size:14px;margin-bottom:4px;font-weight:500}
 .court-empty-sub{font-size:12px;color:var(--text2);margin-bottom:10px}
@@ -1109,22 +1112,30 @@ function showTeam(court, team) {
 function renderCourtBody(c, hasMatch) {
   const isPlaying = c.status === 'playing' && c.teamA.length === 2 && c.teamB.length === 2;
   if (isPlaying) {
-    const teamAStr = c.teamA.map(p => escHtml(p)).join('<span style="color:var(--text2);margin:0 4px">+</span>');
-    const teamBStr = c.teamB.map(p => escHtml(p)).join('<span style="color:var(--text2);margin:0 4px">+</span>');
+    const limit = data.settings.gamesPerMatch || 2;
+    const pEntry = (p, side) => {
+      const n = (c.consecutive || {})[p];
+      return '<div class="p-entry ' + side + '">' +
+        '<span class="p-name">' + escHtml(p) + '</span>' +
+        (n !== undefined ? '<span class="consec">(' + n + '/' + limit + ')</span>' : '') +
+        '</div>';
+    };
     return `
       <div class="match-display">
-        <div class="team-box team-a" onclick="declareWinner(${c.id},'A')">
-          <div class="names">${teamAStr}</div>
-          <div class="tap-hint">👆 ชนะ</div>
+        <div class="team-zone team-a" onclick="declareWinner(${c.id},'A')">
+          ${pEntry(c.teamA[0], '')}
+          ${pEntry(c.teamA[1], '')}
+          <div class="tap-hint">👆 แตะ = ชนะ</div>
         </div>
-        <div class="vs-badge">VS</div>
-        <div class="team-box team-b" onclick="declareWinner(${c.id},'B')">
-          <div class="names">${teamBStr}</div>
-          <div class="tap-hint">👆 ชนะ</div>
+        <div class="mid-col">
+          <div class="vs-badge">VS</div>
+          <button class="swap-btn" onclick="event.stopPropagation();swapBoth(${c.id})">🔄</button>
         </div>
-      </div>
-      <div class="court-swap-row">
-        <button class="court-swap-btn" onclick="swapBoth(${c.id})">🔄 เปลี่ยนคู่</button>
+        <div class="team-zone team-b" onclick="declareWinner(${c.id},'B')">
+          ${pEntry(c.teamB[0], '')}
+          ${pEntry(c.teamB[1], '')}
+          <div class="tap-hint">👆 แตะ = ชนะ</div>
+        </div>
       </div>`;
   }
   const hasTeamA = c.teamA.length > 0;
