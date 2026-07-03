@@ -1428,7 +1428,7 @@ function showTeam(court, team) {
   }).join('<span style="color:var(--text2);margin:0 4px">+</span>');
 }
 
-function renderCourtBody(c, hasMatch) {
+function renderCourtBody(c) {
   const isPlaying = c.status === 'playing' && c.teamA.length === 2 && c.teamB.length === 2;
   if (isPlaying) {
     const limit = data.settings.gamesPerMatch || 2;
@@ -1458,7 +1458,9 @@ function renderCourtBody(c, hasMatch) {
     ? `<div class="court-waiting-msg" style="color:rgba(255,255,255,.9);font-weight:600">⏳ รอคู่: ${escHtml(c.teamA.join(' + '))}</div>`
     : `<div class="court-empty-msg">🏟️ สนามว่าง</div>
        <div class="court-empty-sub">👥 คิว ${data.queue.length} คน</div>`;
-  const disabled = data.queue.length < 4 || !hasMatch;
+  // Auto-fill is only blocked when queue has < 4 players. Otherwise, fillCourt
+  // can either find a scheduled match OR ad-hoc pair the remaining queue.
+  const disabled = data.queue.length < 4;
   return `<div class="court-floor"><div class="court-empty">${empty}
     <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px">
       <button class="big-btn" onclick="fillCourt(${c.id})" ${disabled ? 'disabled' : ''} style="max-width:160px;margin:0">👥 จัดอัตโนมัติ</button>
@@ -1483,7 +1485,7 @@ function renderCourts() {
       <div class="court-header">
         <span class="court-title">🏟️ สนาม ${c.id}</span>
       </div>
-      <div class="court-body">${renderCourtBody(c, hasMatch)}</div>
+      <div class="court-body">${renderCourtBody(c)}</div>
     </div>`;
   }).join('');
   syncQueueCount();
