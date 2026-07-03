@@ -1533,7 +1533,7 @@ function renderCourtBody(c) {
   return `<div class="court-floor"><div class="court-empty">${empty}
     <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px">
       <button class="big-btn" onclick="fillCourt(${c.id})" ${disabled ? 'disabled' : ''} style="max-width:160px;margin:0;font-weight:700">👥 จัดอัตโนมัติ</button>
-      <button class="big-btn" onclick="openCustomMatchPicker(${c.id})" style="max-width:160px;margin:0;background:transparent!important;box-shadow:none!important;border:2px solid rgba(255,255,255,.5)!important;color:rgba(255,255,255,.8)!important">🎯 เลือกคู่เอง</button>
+      <button class="big-btn" onclick="openCustomMatchPicker(${c.id})" style="max-width:140px;margin:0;padding:8px 10px!important;font-size:13px!important;background:transparent!important;box-shadow:none!important;border:2px solid rgba(255,255,255,.5)!important;color:rgba(255,255,255,.7)!important">🎯 เลือกคู่เอง</button>
     </div>
   </div></div>`;
 }
