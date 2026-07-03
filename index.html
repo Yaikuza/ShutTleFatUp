@@ -841,7 +841,7 @@ async function declareWinner(courtId, winner) {
   if (winAtLimit && loseAtLimit) {
     court.teamA = []; court.teamB = []; court.status = 'waiting'; court.consecutive = {};
     saveData(); render(); syncQueueCount();
-    await checkAndAutoRound();
+    await fillCourt(courtId);
     return;
   }
 
@@ -877,7 +877,26 @@ async function declareWinner(courtId, winner) {
     return;
   }
 
-  // No opponents available
+  // No opponents available from schedule
+  // Winner-stays: keep winners on court, create ad-hoc opponents from queue
+  const avail = data.queue.filter(p => p !== LIBERO);
+  if (avail.length >= 2) {
+    const shuffled = shuffle(avail);
+    const newOpp = [shuffled[0], shuffled[1]];
+    if (winner === 'A') {
+      court.teamB = newOpp;
+    } else {
+      court.teamA = newOpp;
+    }
+    court.status = 'playing';
+    court.startedRound = data.currentRound;
+    data.queue = data.queue.filter(p => !newOpp.includes(p));
+    data.roundSchedule.push({ p1: newOpp[0], p2: newOpp[1] });
+    persist();
+    toast('⏳ ' + winTeam.join('+') + ' vs ' + newOpp.join('+'));
+    return;
+  }
+  // Not enough players — both teams to queue
   for (const p of winTeam) if (p !== LIBERO && !data.queue.includes(p)) data.queue.push(p);
   court.teamA = []; court.teamB = []; court.status = 'waiting'; court.consecutive = {};
   persist();
