@@ -53,7 +53,8 @@ header h1{font-size:20px;font-weight:800;letter-spacing:-.3px}
 .queue-players{display:flex;flex-wrap:wrap;gap:8px;min-height:36px;padding:4px 0}
 .queue-chip{display:inline-flex;align-items:center;gap:6px;background:var(--chip-bg);color:var(--primary);padding:4px 10px;border-radius:18px;font-size:13px;font-weight:500;white-space:nowrap;cursor:grab;transition:box-shadow .2s,transform .2s;user-select:none}
 .queue-chip:active{cursor:grabbing;box-shadow:var(--shadow-lg);transform:scale(1.05)}
-.queue-chip.dragging{opacity:.5}
+.queue-chip.dragging{opacity:.4}
+.queue-chip.drag-over{box-shadow:0 0 0 2px var(--primary);transform:translateY(-2px)}
 .queue-chip .remove{background:none;border:none;color:#94a3b8;font-size:16px;padding:0 2px;line-height:1;cursor:pointer}
 .queue-chip .remove:active{color:var(--danger)}
 .queue-empty{color:var(--text2);font-size:13px;padding:4px 0}
@@ -1002,14 +1003,30 @@ function dragOver(e) {
   e.dataTransfer.dropEffect = 'move';
 }
 
+function dragEnter(e, idx) {
+  e.preventDefault();
+  if (dragIdx >= 0 && dragIdx !== idx) e.target.classList.add('drag-over');
+}
+
+function dragLeave(e) {
+  e.target.classList.remove('drag-over');
+}
+
 function dragDrop(e, toIdx) {
   e.preventDefault();
+  e.target.classList.remove('drag-over');
   document.querySelectorAll('.queue-chip.dragging').forEach(el => el.classList.remove('dragging'));
   if (dragIdx < 0 || dragIdx === toIdx) { dragIdx = -1; return; }
   const item = data.queue.splice(dragIdx, 1)[0];
   data.queue.splice(toIdx, 0, item);
   dragIdx = -1;
   persist();
+}
+
+function dragEnd(e) {
+  e.target.classList.remove('dragging');
+  document.querySelectorAll('.queue-chip.drag-over').forEach(el => el.classList.remove('drag-over'));
+  dragIdx = -1;
 }
 
 function render() {
@@ -1027,7 +1044,7 @@ function renderRoundNumber() {
 function renderQueueChips() {
   return '<div style="width:100%;margin-bottom:6px;display:flex;flex-wrap:wrap;gap:6px">' +
     data.queue.map((p, i) =>
-      '<span class="queue-chip" draggable="true" ondragstart="dragStart(event,' + i + ')" ondrop="dragDrop(event,' + i + ')" ondragover="dragOver(event)" data-idx="' + i + '">' +
+      '<span class="queue-chip" draggable="true" ondragstart="dragStart(event,' + i + ')" ondragenter="dragEnter(event,' + i + ')" ondragleave="dragLeave(event)" ondrop="dragDrop(event,' + i + ')" ondragover="dragOver(event)" ondragend="dragEnd(event)">' +
       escHtml(p) +
       '<button class="remove" onclick="event.stopPropagation();removeFromQueue(\'' + jsStr(p) + '\')">✕</button></span>'
     ).join('') +
