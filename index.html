@@ -911,9 +911,9 @@ function openCustomMatchPicker(courtId) {
     if (court.teamA.length > 0) picker.teamA = [...court.teamA];
     if (court.teamB.length > 0) picker.teamB = [...court.teamB];
   }
-  // Auto-switch to page 1 (chip pool) if schedule is empty
+  // Auto-switch to manual pick (page 1) if schedule is empty
   if (!data.roundSchedule || data.roundSchedule.length === 0) {
-    picker.page = 0;
+    picker.page = 1;
   }
   document.getElementById('pickerCourtId').textContent = courtId;
   renderPicker();
@@ -1085,19 +1085,19 @@ function renderPicker() {
       </div>
     </div>
     <div class="picker-tabs">
-      <button class="picker-tab ${page === 0 ? 'active' : ''}" onclick="switchPickerPage(0)">👤 เลือกเอง</button>
-      <button class="picker-tab ${page === 1 ? 'active' : ''} ${hasSchedule ? '' : 'disabled'}" ${hasSchedule ? '' : 'disabled'} onclick="${hasSchedule ? `switchPickerPage(1)` : ''}">📋 จากตาราง${hasSchedule ? '' : ' (ยังไม่มี)'}</button>
+      <button class="picker-tab ${page === 0 ? 'active' : ''} ${hasSchedule ? '' : 'disabled'}" ${hasSchedule ? '' : 'disabled'} onclick="${hasSchedule ? `switchPickerPage(0)` : ''}">📋 จากตาราง${hasSchedule ? '' : ' (ยังไม่มี)'}</button>
+      <button class="picker-tab ${page === 1 ? 'active' : ''}" onclick="switchPickerPage(1)">👤 เลือกเอง</button>
     </div>
     <div class="picker-pages">
       <div class="picker-page ${page === 0 ? 'active' : ''}">
-        <div class="picker-pool-title">👤 เลือกผู้เล่น (${totalCount} คน)</div>
-        <div class="picker-pool">${chips || '<div class="queue-empty">ไม่มีผู้เล่น</div>'}</div>
-      </div>
-      <div class="picker-page ${page === 1 ? 'active' : ''}">
         ${hasSchedule
           ? `<div class="picker-pool-title">📋 เลือก 2 คู่จากตารางรอบนี้</div>
              <div class="picker-pair-list">${schedulePairsHtml || '<div class="picker-empty-msg">ไม่มีคู่ในตาราง</div>'}</div>`
-          : `<div class="picker-empty-msg">⚠️ ตารางรอบนี้ยังไม่ได้สร้าง<br><br>กรุณาใช้ "👥 จัดอัตโนมัติ" ก่อน หรือเลือกผู้เล่นจากหน้าแรก</div>`}
+          : `<div class="picker-empty-msg">⚠️ ตารางรอบนี้ยังไม่ได้สร้าง<br><br>กรุณาใช้ "👥 จัดอัตโนมัติ" ก่อน หรือเลือกผู้เล่นจากหน้า "👤 เลือกเอง"</div>`}
+      </div>
+      <div class="picker-page ${page === 1 ? 'active' : ''}">
+        <div class="picker-pool-title">👤 เลือกผู้เล่น (${totalCount} คน)</div>
+        <div class="picker-pool">${chips || '<div class="queue-empty">ไม่มีผู้เล่น</div>'}</div>
       </div>
     </div>
     <div class="picker-footer">
