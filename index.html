@@ -890,8 +890,7 @@ async function declareWinner(courtId, winner) {
 
   const scheduled = findScheduledOpponents(winTeam, loseTeam);
   if (scheduled) {
-    court.teamA = winTeam;
-    court.teamB = scheduled;
+    if (winner === 'A') { court.teamB = scheduled; } else { court.teamA = scheduled; }
     court.startedRound = data.currentRound;
     data.queue = data.queue.filter(p => !scheduled.includes(p));
     toast('⏳ ' + winTeam.join('+') + ' vs ' + scheduled.join('+'));
