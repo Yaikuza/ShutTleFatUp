@@ -1174,6 +1174,14 @@ function confirmCustomMatch() {
   // Busy players are OK — they will be pulled out of their current court below
   // (override is allowed for custom picks, including from schedule page)
 
+  // Return current court's old players to queue (they're being replaced)
+  const pickCourt = data.courts.find(c => c.id === picker.courtId);
+  if (pickCourt) {
+    for (const p of [...pickCourt.teamA, ...pickCourt.teamB]) {
+      if (p !== LIBERO && !data.queue.includes(p)) data.queue.push(p);
+    }
+  }
+
   // Remove from queue and other courts
   data.queue = data.queue.filter(p => !all.includes(p));
   for (const c of data.courts) {
