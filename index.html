@@ -735,7 +735,17 @@ async function fillCourt(courtId) {
   const court = data.courts.find(c => c.id === courtId);
   if (!court) return;
   if (court.status === 'playing') { toast('สนามนี้กำลังเล่นอยู่'); return; }
-  if (data.queue.length < 4) { toast('คิวต้องมีอย่างน้อย 4 คน'); return; }
+
+  const hasTeamA = court.teamA.length === 2;
+  const hasTeamB = court.teamB.length === 2;
+
+  // Partial court (one team waiting) only needs 2 more players
+  if (hasTeamA !== hasTeamB) {
+    if (data.queue.length < 2) { toast('คิวต้องมีอย่างน้อย 2 คน'); return; }
+  } else {
+    // Empty or full court
+    if (data.queue.length < 4) { toast('คิวต้องมีอย่างน้อย 4 คน'); return; }
+  }
 
   // Auto-create initial schedule if empty (first round / after reset)
   if (!data.roundSchedule || data.roundSchedule.length === 0) {
@@ -745,13 +755,23 @@ async function fillCourt(courtId) {
       data.roundSchedule.push({ p1: remaining[i], p2: remaining[i + 1] });
   }
 
-  let teams = findScheduledMatch();
+  let teams = null;
 
-  // Fallback: if no scheduled match (e.g. after custom pick, schedule is empty
-  // for remaining queue), ad-hoc pair the remaining queue so auto-fill still works
-  if (!teams) {
-    const added = pairRemainingQueueIntoSchedule();
-    if (added >= 2) teams = findScheduledMatch();
+  if (hasTeamA && !hasTeamB) {
+    let opp = findScheduledOpponents(court.teamA, null);
+    if (!opp && pairRemainingQueueIntoSchedule() > 0) opp = findScheduledOpponents(court.teamA, null);
+    if (opp) teams = [court.teamA, opp];
+  } else if (!hasTeamA && hasTeamB) {
+    let opp = findScheduledOpponents(court.teamB, null);
+    if (!opp && pairRemainingQueueIntoSchedule() > 0) opp = findScheduledOpponents(court.teamB, null);
+    if (opp) teams = [opp, court.teamB];
+  } else {
+    // Empty court — find full match
+    teams = findScheduledMatch();
+    if (!teams) {
+      const added = pairRemainingQueueIntoSchedule();
+      if (added >= 2) teams = findScheduledMatch();
+    }
   }
 
   if (!teams) {
@@ -879,12 +899,13 @@ async function declareWinner(courtId, winner) {
     return;
   }
 
-  // No opponents available — fill schedule gaps, then send winners to queue too
+  // No opponents available — fill schedule gaps, keep winners on court
   if (data.queue.length >= 2) pairRemainingQueueIntoSchedule();
-  for (const p of winTeam) if (p !== LIBERO && !data.queue.includes(p)) data.queue.push(p);
-  court.teamA = []; court.teamB = []; court.status = 'waiting'; court.consecutive = {};
+  court.status = 'waiting'; court.consecutive = {};
+  court.games = 0;
+  // Keep winners, clear the empty side so fillCourt knows which team needs opponents
+  if (winner === 'A') { court.teamB = []; } else { court.teamA = []; }
   persist();
-  await checkAndAutoRound();
 }
 
 async function swapBoth(courtId) {
