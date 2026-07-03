@@ -33,6 +33,7 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{font-size:16px;-webkit-text-size-adjust:100%}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+main{max-width:960px;margin:0 auto}
 button{touch-action:manipulation;cursor:pointer;-webkit-tap-highlight-color:transparent}
 input,button{font-size:inherit;font-family:inherit}
 
@@ -61,7 +62,8 @@ header h1{font-size:20px;font-weight:800;letter-spacing:-.3px}
 
 
 /* Courts */
-.courts{padding:0 12px 12px;display:flex;flex-direction:column;gap:10px}
+.courts{padding:0 12px 12px;display:grid;grid-template-columns:1fr;gap:10px}
+@media(min-width:640px){.courts{grid-template-columns:1fr 1fr}}
 .court-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;animation:slideUp .25s ease;border-left:4px solid var(--border)}
 .court-card.status-playing{border-left-color:var(--warning)}
 .court-card.status-waiting.queue-full{border-left-color:var(--success)}
