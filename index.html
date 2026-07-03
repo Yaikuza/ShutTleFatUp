@@ -842,6 +842,42 @@ function swapBoth(courtId) {
   syncQueueCount();
 }
 
+// ===== PAIR REMAINING QUEUE INTO SCHEDULE =====
+// Pair up players still in queue (not already in schedule), append pairs to roundSchedule.
+// Does NOT change currentRound / roundPairs. Libero is used as placeholder if odd.
+function pairRemainingQueueIntoSchedule() {
+  if (!data.roundSchedule) data.roundSchedule = [];
+  const scheduled = new Set();
+  for (const p of data.roundSchedule) {
+    if (p.p1) scheduled.add(p.p1);
+    if (p.p2) scheduled.add(p.p2);
+  }
+  // Queue players not yet scheduled
+  const remaining = data.queue.filter(n => n !== LIBERO && !scheduled.has(n));
+  if (remaining.length < 2) return 0;
+  const shuffled = shuffle(remaining);
+  const matchKey = (a, b) => [a, b].sort().join('|');
+  const existing = new Set(
+    data.roundSchedule
+      .filter(p => p.p1 && p.p2)
+      .map(p => matchKey(p.p1, p.p2))
+  );
+  let added = 0;
+  for (let i = 0; i + 1 < shuffled.length; i += 2) {
+    const k = matchKey(shuffled[i], shuffled[i + 1]);
+    if (existing.has(k)) continue;
+    data.roundSchedule.push({ p1: shuffled[i], p2: shuffled[i + 1] });
+    existing.add(k);
+    added++;
+  }
+  if (shuffled.length % 2 === 1) {
+    const last = shuffled[shuffled.length - 1];
+    data.roundSchedule.push({ p1: last, p2: LIBERO });
+    added++;
+  }
+  return added;
+}
+
 // ===== VS CUSTOM MATCH PICKER =====
 let picker = { courtId: null, teamA: [], teamB: [] };
 
@@ -1021,11 +1057,15 @@ function confirmCustomMatch() {
   court.consecutive = {};
   court.startedRound = data.currentRound;
 
+  // Pair remaining queue players into roundSchedule so auto-fill still works
+  const added = pairRemainingQueueIntoSchedule();
+
   closeCustomMatchPicker();
   saveData();
   render();
   syncQueueCount();
-  toast('🎯 ' + court.teamA.join('+') + ' vs ' + court.teamB.join('+'));
+  toast('🎯 ' + court.teamA.join('+') + ' vs ' + court.teamB.join('+') +
+        (added > 0 ? ` · +${added} คู่` : ''));
 }
 
 // ===== PLAYERS =====
