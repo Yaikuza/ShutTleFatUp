@@ -813,9 +813,8 @@ function addMainPlayer() {
   if (data.mainPlayers.includes(name)) { toast('มีชื่อนี้อยู่แล้ว'); return; }
   data.mainPlayers.push(name);
   data.pool[name] = true;
-  if (!isInSchedule(name) && !tryMatchLibero(name)) {
-    if (!data.queue.includes(name)) data.queue.push(name);
-  }
+  tryMatchLibero(name);
+  if (!data.queue.includes(name)) data.queue.push(name);
   input.value = '';
   saveData();
   render();
@@ -859,11 +858,10 @@ function removePlayer(name) {
 function togglePool(name) {
   data.pool[name] = !data.pool[name];
   if (data.pool[name]) {
-    // Turn ON: try to match with Libero in schedule
+    // Turn ON: put in schedule + queue so they can be matched and appear next round
     if (!isInAnyCourt(name) && !isInSchedule(name)) {
-      if (!tryMatchLibero(name)) {
-        if (!data.queue.includes(name)) data.queue.push(name);
-      }
+      tryMatchLibero(name);
+      if (!data.queue.includes(name)) data.queue.push(name);
     }
   } else {
     // Turn OFF: remove from queue, eject from courts, Libero replacement in schedule
@@ -920,7 +918,8 @@ function addPoolToQueue() {
   let added = 0;
   for (const p of data.mainPlayers) {
     if (data.pool[p] && !data.queue.includes(p) && !isInSchedule(p)) {
-      if (!tryMatchLibero(p)) { data.queue.push(p); }
+      tryMatchLibero(p);
+      if (!data.queue.includes(p)) data.queue.push(p);
       added++;
     }
   }
