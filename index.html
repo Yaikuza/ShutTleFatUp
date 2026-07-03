@@ -101,34 +101,20 @@ header h1{font-size:20px;font-weight:800;letter-spacing:-.3px}
 .bottom-bar{display:flex;gap:6px;padding:8px 12px;position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--border);z-index:20}
 .bottom-bar button{flex:1;padding:10px 4px;border:none;border-radius:var(--radius-sm);font-weight:600;font-size:12px;display:flex;align-items:center;justify-content:center;gap:4px;color:var(--text2);background:var(--muted);transition:background .2s}
 .bottom-bar button:active{background:var(--border)}
-main{padding-bottom:64px}
+main{padding-bottom:110px}
 
-/* 2-column panels */
-.main-panels{display:flex;gap:10px;padding:0 12px 8px}
-.panel-card{flex:1;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);cursor:pointer}
-.panel-card .panel-header{padding:10px 12px;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:space-between;user-select:none}
-.panel-card .panel-header.head-players{background:linear-gradient(135deg,#e0e7ff,#c7d2fe);color:#3730a3;border-bottom:3px solid #6366f1}
-.panel-card .panel-header.head-queue{background:linear-gradient(135deg,#fce7f3,#fbcfe8);color:#9d174d;border-bottom:3px solid #ec4899}
-.panel-card .panel-body{background:var(--card);padding:10px 12px;max-height:160px;overflow-y:auto}
-.panel-card .panel-body:empty{display:none}
-.panel-card .panel-body .queue-empty{font-size:12px;color:var(--text2);text-align:center;padding:8px 0}
-.panel-card .panel-body .input-row{margin-bottom:6px}
-.panel-card .panel-body .input-row input{font-size:13px;padding:6px 8px}
-.panel-card .panel-body .input-row button{font-size:12px;padding:6px 10px}
-.panel-card .panel-body .player-item{padding:4px 0;font-size:13px}
-.panel-card .panel-body .player-item .game-count{font-size:11px}
-.panel-card .panel-body .pool-toggle{width:32px;height:20px}
-.panel-card .panel-body .pool-toggle::after{width:16px;height:16px;top:2px;left:2px}
-.panel-card .panel-body .pool-toggle.active::after{transform:translateX(12px)}
-.panel-card .panel-body .del-btn{font-size:14px}
-.panel-card .panel-body .q-panel{padding:0}
-.panel-card .panel-body .q-table{font-size:11px}
-.panel-card .panel-body .q-table th{padding:2px 4px;font-size:11px}
-.panel-card .panel-body .q-table td{padding:2px 4px}
-.panel-card .panel-body .q-panel-title{font-size:12px}
-.panel-card .panel-body .queue-players{min-height:auto;padding:0}
-.panel-card .panel-body .queue-chip{padding:2px 7px;font-size:12px}
-.panel-card .panel-body .queue-chip .remove{font-size:13px}
+/* Bottom bar 2-row */
+.bottom-bar{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--border);z-index:20;padding:6px 12px 10px}
+.bottom-row{display:flex;gap:6px}
+.bottom-row + .bottom-row{margin-top:4px}
+.bottom-row button{flex:1;padding:8px 4px;border:none;border-radius:var(--radius-sm);font-weight:600;font-size:12px;display:flex;align-items:center;justify-content:center;gap:4px;color:var(--text2);background:var(--muted);transition:background .2s}
+.bottom-row button:active{background:var(--border)}
+.bottom-row button .bcount{font-size:11px;padding:1px 6px;border-radius:8px;background:var(--primary);color:#fff;font-weight:700}
+.bottom-row button .bcount.zero{background:#cbd5e1}
+.btn-players{border-left:3px solid #6366f1!important}
+.btn-queue{border-left:3px solid #ec4899!important}
+.btn-stats{border-left:3px solid #10b981!important}
+.btn-settings{border-left:3px solid #f59e0b!important}
 
 /* Players panel */
 .section-title{font-size:16px;font-weight:700;margin:16px 0 8px;display:flex;align-items:center;justify-content:space-between}
@@ -285,32 +271,17 @@ select.setting-input{padding:6px 12px;border:2px solid var(--border);border-radi
 
 <main id="mainView">
   <div id="courtsContainer" class="courts"></div>
-
-  <div class="main-panels">
-    <div class="panel-card" onclick="openSheet('Players')">
-      <div class="panel-header head-players">
-        <span>👤 ผู้เล่น <span id="playerCount" style="font-weight:400;font-size:13px;opacity:.7">0</span></span>
-        <span class="panel-arrow" style="font-size:18px;opacity:.4">›</span>
-      </div>
-      <div class="panel-body" id="playersPanel"></div>
-    </div>
-    <div class="panel-card" onclick="openSheet('Queue')">
-      <div class="panel-header head-queue">
-        <span>👥 ตาราง</span>
-        <span style="display:flex;align-items:center;gap:4px;font-size:13px">
-          <span class="badge">รอบ <span id="roundNumber2">1</span></span>
-          <span id="queueCount2" class="badge">0</span>
-          <button onclick="event.stopPropagation();shuffleQueue()" class="btn-icon" title="สับคิว" style="font-size:16px">🔀</button>
-        </span>
-      </div>
-      <div class="panel-body" id="queuePanel"></div>
-    </div>
-  </div>
 </main>
 
 <div class="bottom-bar">
-  <button onclick="openSheet('Stats')">📊 สถิติ</button>
-  <button onclick="openSheet('Settings')">⚙️ ตั้งค่า</button>
+  <div class="bottom-row">
+    <button class="btn-players" onclick="openSheet('Players')">👤 ผู้เล่น <span id="playerCount" class="bcount zero" style="background:var(--primary)">0</span></button>
+    <button class="btn-queue" onclick="openSheet('Queue')">👥 ตาราง <span id="queueCount" class="bcount zero">0</span></button>
+  </div>
+  <div class="bottom-row">
+    <button class="btn-stats" onclick="openSheet('Stats')">📊 สถิติ</button>
+    <button class="btn-settings" onclick="openSheet('Settings')">⚙️ ตั้งค่า</button>
+  </div>
 </div>
 
 <div class="sheet-overlay" id="sheetOverlay" onclick="closeSheet()"></div>
@@ -443,8 +414,6 @@ function syncQueueCount() {
   const val = data.queue.length;
   const el = document.getElementById('queueCount');
   if (el) { el.textContent = val; el.classList.toggle('zero', val === 0); }
-  const el2 = document.getElementById('queueCount2');
-  if (el2) { el2.textContent = val; el2.classList.toggle('zero', val === 0); }
 }
 
 function ejectFromCourts(name) {
@@ -1054,8 +1023,6 @@ function renderRoundNumber() {
   const val = data.currentRound || 1;
   const el = document.getElementById('roundNumber');
   if (el) el.textContent = val;
-  const el2 = document.getElementById('roundNumber2');
-  if (el2) el2.textContent = val;
 }
 
 function renderQueueChips() {
@@ -1098,21 +1065,11 @@ function renderPairScoreTable() {
 }
 
 function renderQueue() {
-  // Update inline panel
-  const panel = document.getElementById('queuePanel');
-  if (panel) {
-    if (data.queue.length === 0) {
-      panel.innerHTML = '<div class="queue-empty">คิวว่าง</div>';
-    } else {
-      panel.innerHTML = renderQueueChips() + renderPairScoreTable();
-    }
-  }
-  // Update sheet if open
+  syncQueueCount();
   if (sheetContent === 'Queue') {
     const body = document.getElementById('sheetBody');
     if (body) body.innerHTML = renderQueueSheetContent();
   }
-  syncQueueCount();
 }
 
 function showTeam(court, team) {
@@ -1183,27 +1140,12 @@ function renderCourts() {
 
 // ===== PLAYERS TAB =====
 function renderPlayers() {
-  // Update player count badge in panel header
+  // Update player count badge
   const countEl = document.getElementById('playerCount');
-  if (countEl) countEl.textContent = data.mainPlayers.length;
-
-  // Update inline panel
-  const panel = document.getElementById('playersPanel');
-  if (panel) {
-    if (data.mainPlayers.length === 0) {
-      panel.innerHTML = '<div style="padding:8px 0;color:var(--text2);font-size:12px;text-align:center">ยังไม่มีผู้เล่น</div>';
-    } else {
-      panel.innerHTML = data.mainPlayers.map(p => {
-        const active = !!data.pool[p];
-        return '<div class="player-item" style="display:flex;align-items:center;gap:6px">' +
-          '<button class="pool-toggle ' + (active ? 'active' : '') + '" onclick="event.stopPropagation();togglePool(\'' + jsStr(p) + '\')"></button>' +
-          '<span class="name" style="flex:1;font-size:13px">' + escHtml(p) + '</span>' +
-          '<span class="game-count" style="font-size:11px;color:var(--text2)">' + (data.gameCount[p] || 0) + '</span>' +
-          '</div>';
-      }).join('');
-    }
+  if (countEl) {
+    countEl.textContent = data.mainPlayers.length;
+    countEl.classList.toggle('zero', data.mainPlayers.length === 0);
   }
-  // Update sheet if open
   if (sheetContent === 'Players') {
     const body = document.getElementById('sheetBody');
     if (body) body.innerHTML = renderPlayersSheetContent();
