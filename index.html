@@ -69,6 +69,8 @@ header h1{font-size:20px;font-weight:800;letter-spacing:-.3px}
 .court-card.status-waiting.queue-full{border-left-color:var(--success)}
 .court-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px 8px}
 .court-title{font-weight:700;font-size:16px;display:flex;align-items:center;gap:8px}
+.court-header-btn{background:none;border:none;font-size:18px;padding:4px 8px;border-radius:8px;cursor:pointer;color:var(--text2);transition:background .15s}
+.court-header-btn:active{background:var(--muted)}
 .court-body{padding:0 14px 14px}
 .court-empty{text-align:center;padding:16px 0;color:var(--text2)}
 .court-empty .big-btn{display:block;width:100%;max-width:260px;margin:10px auto 0;padding:14px;background:var(--gradient);color:#fff;border:none;border-radius:var(--radius-sm);font-size:16px;font-weight:600;box-shadow:0 2px 8px rgba(99,102,241,.25)}
@@ -89,8 +91,6 @@ header h1{font-size:20px;font-weight:800;letter-spacing:-.3px}
 .court-floor .team-zone .p-name{font-weight:700;font-size:18px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.35)}
 .court-floor .team-zone .consec{font-size:11px;color:rgba(255,255,255,.7);margin-left:4px}
 .court-floor .mid-col{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2px 4px;flex-shrink:0;gap:10px}
-.court-floor .mid-col .swap-btn{background:rgba(255,255,255,.2);border:none;font-size:16px;color:#fff;cursor:pointer;padding:6px;border-radius:50%;line-height:1;width:32px;height:32px;display:flex;align-items:center;justify-content:center}
-.court-floor .mid-col .swap-btn:active{background:rgba(255,255,255,.4)}
 .court-floor .vs-badge{background:rgba(255,255,255,.9);color:var(--court-color,#2d8a4e);width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;box-shadow:0 2px 4px rgba(0,0,0,.2);border:none;cursor:pointer;transition:transform .15s,box-shadow .15s}
 .court-floor .vs-badge:hover{transform:scale(1.08);box-shadow:0 4px 8px rgba(0,0,0,.25)}
 .court-floor .vs-badge:active{transform:scale(.95)}
@@ -1553,6 +1553,7 @@ function renderCourts() {
     return `<div class="${cls}">
       <div class="court-header">
         <span class="court-title">🏟️ สนาม ${c.id}</span>
+        ${c.status === 'playing' ? '<button class="court-header-btn" onclick="swapBoth(' + c.id + ')" title="เปลี่ยนคู่ใหม่">🔄</button>' : ''}
       </div>
       <div class="court-body">${renderCourtBody(c)}</div>
     </div>`;
