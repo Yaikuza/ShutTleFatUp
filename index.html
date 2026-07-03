@@ -438,6 +438,7 @@ function ejectFromCourts(name) {
 
 function removeFromQueue(name) {
   data.queue = data.queue.filter(p => p !== name);
+  data.pool[name] = false;
   ejectFromCourts(name);
   persist();
 }
