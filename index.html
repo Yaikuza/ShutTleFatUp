@@ -997,18 +997,19 @@ function confirmCustomMatch() {
     }
   }
 
-  // Remove selected pairs from roundSchedule (avoid re-suggesting)
-  if (data.roundSchedule && data.roundSchedule.length) {
-    const matchKey = (a, b) => [a, b].sort().join('|');
-    const targetKeys = new Set([
-      matchKey(picker.teamA[0], picker.teamA[1]),
-      matchKey(picker.teamB[0], picker.teamB[1])
-    ]);
-    data.roundSchedule = data.roundSchedule.filter(p => {
-      if (!p.p1 || !p.p2) return false;
-      return !targetKeys.has(matchKey(p.p1, p.p2));
-    });
-  }
+  // Add selected pairs to roundSchedule so this round tracks them
+  if (!data.roundSchedule) data.roundSchedule = [];
+  const matchKey = (a, b) => [a, b].sort().join('|');
+  const newPairA = { p1: picker.teamA[0], p2: picker.teamA[1] };
+  const newPairB = { p1: picker.teamB[0], p2: picker.teamB[1] };
+  const targetKeys = new Set([matchKey(newPairA.p1, newPairA.p2), matchKey(newPairB.p1, newPairB.p2)]);
+  // Dedupe: remove existing entries that match the new pairs
+  data.roundSchedule = data.roundSchedule.filter(p => {
+    if (!p.p1 || !p.p2) return false;
+    return !targetKeys.has(matchKey(p.p1, p.p2));
+  });
+  data.roundSchedule.push(newPairA);
+  data.roundSchedule.push(newPairB);
 
   // Set court
   const court = data.courts.find(c => c.id === picker.courtId);
