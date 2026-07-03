@@ -869,10 +869,10 @@ async function declareWinner(courtId, winner) {
 
   // Winners at limit, losers not → losers stay
   if (winAtLimit) {
-    court.teamA = [...loseTeam]; court.teamB = []; court.status = 'waiting'; court.consecutive = {};
+    if (winner === 'A') { court.teamB = [...loseTeam]; court.teamA = []; } else { court.teamA = [...loseTeam]; court.teamB = []; } court.status = 'waiting'; court.consecutive = {};
     const next = findScheduledOpponents(loseTeam, null);
     if (next) {
-      court.teamB = next;
+      if (winner === 'A') { court.teamA = next; } else { court.teamB = next; }
       court.status = 'playing';
       court.startedRound = data.currentRound;
       data.queue = data.queue.filter(p => !next.includes(p));
@@ -890,8 +890,7 @@ async function declareWinner(courtId, winner) {
 
   const scheduled = findScheduledOpponents(winTeam, loseTeam);
   if (scheduled) {
-    court.teamA = winTeam;
-    court.teamB = scheduled;
+    if (winner === 'A') { court.teamB = scheduled; } else { court.teamA = scheduled; }
     court.startedRound = data.currentRound;
     data.queue = data.queue.filter(p => !scheduled.includes(p));
     toast('⏳ ' + winTeam.join('+') + ' vs ' + scheduled.join('+'));
