@@ -94,7 +94,9 @@ header h1{font-size:20px;font-weight:800;letter-spacing:-.3px}
 .court-floor .mid-col{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2px 4px;flex-shrink:0;gap:10px}
 .court-floor .mid-col .swap-btn{background:rgba(255,255,255,.2);border:none;font-size:16px;color:#fff;cursor:pointer;padding:6px;border-radius:50%;line-height:1;width:32px;height:32px;display:flex;align-items:center;justify-content:center}
 .court-floor .mid-col .swap-btn:active{background:rgba(255,255,255,.4)}
-.court-floor .vs-badge{background:rgba(255,255,255,.9);color:var(--court-color,#2d8a4e);width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;box-shadow:0 2px 4px rgba(0,0,0,.2)}
+.court-floor .vs-badge{background:rgba(255,255,255,.9);color:var(--court-color,#2d8a4e);width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;box-shadow:0 2px 4px rgba(0,0,0,.2);border:none;cursor:pointer;transition:transform .15s,box-shadow .15s}
+.court-floor .vs-badge:hover{transform:scale(1.08);box-shadow:0 4px 8px rgba(0,0,0,.25)}
+.court-floor .vs-badge:active{transform:scale(.95)}
 .court-floor .court-empty{color:rgba(255,255,255,.9);position:relative;z-index:1}
 .court-floor .court-empty-msg{font-size:16px;font-weight:600;color:#fff}
 .court-floor .court-empty-sub{font-size:13px;color:rgba(255,255,255,.7)}
@@ -250,6 +252,32 @@ select.setting-input{padding:6px 12px;border:2px solid var(--border);border-radi
 .sheet-close{background:none;border:none;font-size:20px;color:var(--text2);padding:4px}
 .sheet-body{padding:0 20px 20px}
 
+/* VS Picker */
+.picker-teams{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.picker-team{background:var(--muted);border-radius:var(--radius-sm);padding:10px;min-height:120px;display:flex;flex-direction:column;gap:6px}
+.picker-team.team-a{border-left:3px solid var(--primary)}
+.picker-team.team-b{border-left:3px solid var(--danger)}
+.picker-team-label{font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;display:flex;align-items:center;justify-content:space-between}
+.picker-slot{background:var(--card);border:2px dashed var(--border);border-radius:var(--radius-sm);padding:10px;text-align:center;font-size:14px;color:var(--text2);font-weight:600;min-height:42px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s}
+.picker-slot.filled{border-style:solid;border-color:var(--primary);color:var(--text);background:var(--chip-bg)}
+.picker-slot.team-b-filled{border-color:var(--danger);background:#fee2e2;color:var(--text)}
+.picker-pool-title{font-size:13px;font-weight:600;margin-bottom:8px;color:var(--text2)}
+.picker-pool{display:flex;flex-wrap:wrap;gap:6px;max-height:240px;overflow-y:auto;padding:4px 0}
+.picker-chip{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:6px 12px;font-size:13px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .15s;user-select:none}
+.picker-chip:active{transform:scale(.95)}
+.picker-chip.in-a{background:var(--primary);color:#fff;border-color:var(--primary)}
+.picker-chip.in-b{background:var(--danger);color:#fff;border-color:var(--danger)}
+.picker-chip.disabled{opacity:.4;cursor:not-allowed;background:var(--muted)}
+.picker-chip .chip-court{font-size:10px;background:rgba(0,0,0,.15);padding:1px 5px;border-radius:6px}
+.picker-chip .chip-actions{display:inline-flex;gap:2px;margin-left:4px}
+.picker-chip .chip-actions button{background:rgba(255,255,255,.3);border:none;color:inherit;font-size:10px;padding:2px 5px;border-radius:4px;cursor:pointer;font-weight:700}
+.picker-footer{display:flex;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)}
+.picker-footer button{flex:1;padding:10px;border:none;border-radius:var(--radius-sm);font-weight:600;font-size:14px;cursor:pointer}
+.picker-footer .picker-cancel{background:var(--muted);color:var(--text2)}
+.picker-footer .picker-confirm{background:var(--gradient);color:#fff;opacity:.5;pointer-events:none}
+.picker-footer .picker-confirm.ready{opacity:1;pointer-events:auto}
+.picker-footer .picker-clear{background:var(--bg);color:var(--text2);flex:0 0 auto;padding:10px 14px}
+
 /* Toast */
 .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;padding:10px 20px;border-radius:var(--radius-sm);font-size:14px;font-weight:500;z-index:200;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;box-shadow:var(--shadow-lg)}
 .toast.show{opacity:1}
@@ -294,6 +322,16 @@ select.setting-input{padding:6px 12px;border:2px solid var(--border);border-radi
   <div class="sheet-body" id="sheetBody"></div>
 </div>
 <div class="toast" id="toast"></div>
+
+<div class="sheet-overlay" id="pickerOverlay" onclick="closeCustomMatchPicker()"></div>
+<div class="sheet" id="pickerSheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <span>🎯 เลือกคู่ — สนาม <span id="pickerCourtId"></span></span>
+    <button class="sheet-close" onclick="closeCustomMatchPicker()">✕</button>
+  </div>
+  <div class="sheet-body" id="pickerBody"></div>
+</div>
 
 <script>
 'use strict';
@@ -804,6 +842,191 @@ function swapBoth(courtId) {
   syncQueueCount();
 }
 
+// ===== VS CUSTOM MATCH PICKER =====
+let picker = { courtId: null, teamA: [], teamB: [] };
+
+function openCustomMatchPicker(courtId) {
+  const court = data.courts.find(c => c.id === courtId);
+  if (!court) return;
+  if (court.status === 'playing' &&
+      !confirm('สนามนี้กำลังแข่งอยู่ — เปลี่ยนผู้เล่นทับเลยไหม?')) return;
+  picker = { courtId, teamA: [], teamB: [] };
+  // Pre-fill only from empty/waiting court (not from playing - to allow re-picking)
+  if (court.status !== 'playing') {
+    if (court.teamA.length > 0) picker.teamA = [...court.teamA];
+    if (court.teamB.length > 0) picker.teamB = [...court.teamB];
+  }
+  document.getElementById('pickerCourtId').textContent = courtId;
+  renderPicker();
+  document.getElementById('pickerOverlay').classList.add('open');
+  document.getElementById('pickerSheet').classList.add('open');
+}
+
+function closeCustomMatchPicker() {
+  document.getElementById('pickerOverlay').classList.remove('open');
+  document.getElementById('pickerSheet').classList.remove('open');
+  picker = { courtId: null, teamA: [], teamB: [] };
+}
+
+function getPlayerLocation(name) {
+  for (const c of data.courts) {
+    if (c.id === picker.courtId) continue;
+    if (c.status !== 'playing') continue;
+    if (c.teamA.includes(name) || c.teamB.includes(name)) {
+      return { busy: true, courtId: c.id };
+    }
+  }
+  return { busy: false, courtId: null };
+}
+
+function togglePick(name) {
+  if (picker.teamA.includes(name)) { picker.teamA = picker.teamA.filter(p => p !== name); renderPicker(); return; }
+  if (picker.teamB.includes(name)) { picker.teamB = picker.teamB.filter(p => p !== name); renderPicker(); return; }
+  // Auto-assign to first team with < 2 players
+  if (picker.teamA.length < 2) picker.teamA.push(name);
+  else if (picker.teamB.length < 2) picker.teamB.push(name);
+  else { toast('เลือกครบ 4 คนแล้ว — กด ✕ ที่ชื่อเพื่อเอาออก'); return; }
+  renderPicker();
+}
+
+function movePick(name, target) {
+  // Remove from both
+  picker.teamA = picker.teamA.filter(p => p !== name);
+  picker.teamB = picker.teamB.filter(p => p !== name);
+  if (target === 'A') {
+    if (picker.teamA.length >= 2) { toast('ทีม A ครบ 2 คนแล้ว'); picker.teamA.push(name); return; }
+    picker.teamA.push(name);
+  } else if (target === 'B') {
+    if (picker.teamB.length >= 2) { toast('ทีม B ครบ 2 คนแล้ว'); picker.teamB.push(name); return; }
+    picker.teamB.push(name);
+  } else {
+    picker.teamA.push(name);
+  }
+  renderPicker();
+}
+
+function clearPicker() {
+  picker.teamA = []; picker.teamB = [];
+  renderPicker();
+}
+
+function renderPicker() {
+  const body = document.getElementById('pickerBody');
+  if (!body) return;
+
+  // All available players: mainPlayers (pool) — court players of THIS court already in teamA/teamB
+  // Show: queue (waiting), and "busy in other courts" with disabled
+  const allNames = [...data.mainPlayers];
+  // Build slots
+  const slot = (idx, team) => {
+    const arr = team === 'A' ? picker.teamA : picker.teamB;
+    const name = arr[idx];
+    if (name) {
+      return `<div class="picker-slot filled ${team === 'B' ? 'team-b-filled' : ''}" onclick="movePick('${escHtml(name)}','${team === 'A' ? 'B' : 'A'}')" title="ย้ายไปอีกฝั่ง">${escHtml(name)} ✕</div>`;
+    }
+    return `<div class="picker-slot">ว่าง</div>`;
+  };
+
+  // Pool: show everyone, with state styling
+  const chips = allNames.map(name => {
+    const loc = getPlayerLocation(name);
+    const inA = picker.teamA.includes(name);
+    const inB = picker.teamB.includes(name);
+    if (loc.busy && !inA && !inB) {
+      return `<span class="picker-chip disabled" title="อยู่สนาม ${loc.courtId}"><span class="chip-court">🏟️ ${loc.courtId}</span> ${escHtml(name)}</span>`;
+    }
+    let cls = 'picker-chip';
+    if (inA) cls += ' in-a';
+    else if (inB) cls += ' in-b';
+    const actions = (inA || inB)
+      ? `<span class="chip-actions"><button onclick="event.stopPropagation();movePick('${escHtml(name)}','${inA ? 'B' : 'A'}')" title="ย้าย">⇄</button><button onclick="event.stopPropagation();togglePick('${escHtml(name)}')" title="เอาออก">✕</button></span>`
+      : '';
+    return `<span class="${cls}" onclick="${loc.busy ? 'event.stopPropagation()' : `togglePick('${escHtml(name)}')`}">${escHtml(name)}${actions}</span>`;
+  }).join('');
+
+  const ready = picker.teamA.length === 2 && picker.teamB.length === 2;
+  const courtId = picker.courtId;
+  const totalCount = allNames.length;
+
+  body.innerHTML =
+    `<div class="picker-teams">
+      <div class="picker-team team-a">
+        <div class="picker-team-label"><span>ทีม A</span><span style="color:var(--primary)">${picker.teamA.length}/2</span></div>
+        ${slot(0, 'A')}${slot(1, 'A')}
+      </div>
+      <div class="picker-team team-b">
+        <div class="picker-team-label"><span>ทีม B</span><span style="color:var(--danger)">${picker.teamB.length}/2</span></div>
+        ${slot(0, 'B')}${slot(1, 'B')}
+      </div>
+    </div>
+    <div class="picker-pool-title">👤 เลือกผู้เล่น (${totalCount} คน)</div>
+    <div class="picker-pool">${chips || '<div class="queue-empty">ไม่มีผู้เล่น</div>'}</div>
+    <div class="picker-footer">
+      <button class="picker-clear" onclick="clearPicker()">✕ ล้าง</button>
+      <button class="picker-cancel" onclick="closeCustomMatchPicker()">ยกเลิก</button>
+      <button class="picker-confirm ${ready ? 'ready' : ''}" onclick="confirmCustomMatch()">✅ ยืนยัน (${picker.teamA.length + picker.teamB.length}/4)</button>
+    </div>`;
+}
+
+function confirmCustomMatch() {
+  if (picker.teamA.length !== 2 || picker.teamB.length !== 2) {
+    toast('ต้องเลือก 2+2'); return;
+  }
+  // Validate no duplicates
+  const all = [...picker.teamA, ...picker.teamB];
+  if (new Set(all).size !== 4) { toast('ชื่อซ้ำ'); return; }
+  // Validate no busy players
+  for (const name of all) {
+    const loc = getPlayerLocation(name);
+    if (loc.busy) { toast(`${name} กำลังเล่นที่สนาม ${loc.courtId}`); return; }
+  }
+
+  // Remove from queue and other courts
+  data.queue = data.queue.filter(p => !all.includes(p));
+  for (const c of data.courts) {
+    if (c.id === picker.courtId) continue;
+    for (const p of all) {
+      c.teamA = c.teamA.filter(x => x !== p);
+      c.teamB = c.teamB.filter(x => x !== p);
+    }
+    if (c.status === 'playing' && (c.teamA.length < 2 || c.teamB.length < 2)) {
+      for (const p of [...c.teamA, ...c.teamB])
+        if (p !== LIBERO && !data.queue.includes(p)) data.queue.push(p);
+      c.teamA = []; c.teamB = []; c.status = 'waiting';
+      c.games = 0; c.consecutive = {};
+    }
+  }
+
+  // Remove selected pairs from roundSchedule (avoid re-suggesting)
+  if (data.roundSchedule && data.roundSchedule.length) {
+    const matchKey = (a, b) => [a, b].sort().join('|');
+    const targetKeys = new Set([
+      matchKey(picker.teamA[0], picker.teamA[1]),
+      matchKey(picker.teamB[0], picker.teamB[1])
+    ]);
+    data.roundSchedule = data.roundSchedule.filter(p => {
+      if (!p.p1 || !p.p2) return false;
+      return !targetKeys.has(matchKey(p.p1, p.p2));
+    });
+  }
+
+  // Set court
+  const court = data.courts.find(c => c.id === picker.courtId);
+  if (!court) { closeCustomMatchPicker(); return; }
+  court.teamA = [...picker.teamA];
+  court.teamB = [...picker.teamB];
+  court.status = 'playing';
+  court.games = 0;
+  court.consecutive = {};
+  court.startedRound = data.currentRound;
+
+  closeCustomMatchPicker();
+  saveData();
+  render();
+  syncQueueCount();
+  toast('🎯 ' + court.teamA.join('+') + ' vs ' + court.teamB.join('+'));
+}
+
 // ===== PLAYERS =====
 function addMainPlayer() {
   const input = document.getElementById('newPlayerInputSheet') || document.getElementById('newPlayerInput');
@@ -1177,7 +1400,7 @@ function renderCourtBody(c, hasMatch) {
           pEntry(c.teamA[0]) + pEntry(c.teamA[1]) +
         '</div>' +
         '<div class="mid-col">' +
-          '<div class="vs-badge">VS</div>' +
+          '<button class="vs-badge" onclick="event.stopPropagation();openCustomMatchPicker(' + c.id + ')" title="เลือกคู่เอง">VS</button>' +
           '<button class="swap-btn" onclick="event.stopPropagation();swapBoth(' + c.id + ')">🔄</button>' +
         '</div>' +
         '<div class="team-zone team-b" onclick="declareWinner(' + c.id + ',\'B\')">' +
@@ -1192,7 +1415,10 @@ function renderCourtBody(c, hasMatch) {
        <div class="court-empty-sub">👥 คิว ${data.queue.length} คน</div>`;
   const disabled = data.queue.length < 4 || !hasMatch;
   return `<div class="court-floor"><div class="court-empty">${empty}
-    <button class="big-btn" onclick="fillCourt(${c.id})" ${disabled ? 'disabled' : ''}>👥 จัดผู้เล่น</button>
+    <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px">
+      <button class="big-btn" onclick="fillCourt(${c.id})" ${disabled ? 'disabled' : ''} style="max-width:160px;margin:0">👥 จัดอัตโนมัติ</button>
+      <button class="big-btn" onclick="openCustomMatchPicker(${c.id})" style="max-width:160px;margin:0;background:linear-gradient(135deg,#f59e0b,#ef4444)!important">🎯 เลือกคู่เอง</button>
+    </div>
   </div></div>`;
 }
 
