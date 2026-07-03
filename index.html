@@ -899,11 +899,21 @@ async function declareWinner(courtId, winner) {
     return;
   }
 
-  // No opponents available — fill schedule gaps, keep winners on court
+  // No opponents available — fill schedule, then find opponents directly
   if (data.queue.length >= 2) pairRemainingQueueIntoSchedule();
-  court.status = 'waiting'; court.consecutive = {};
-  court.games = 0;
-  // Keep winners, clear the empty side so fillCourt knows which team needs opponents
+  const win = [...winTeam];
+  const opp = findScheduledOpponents(win, null);
+  if (opp) {
+    if (winner === 'A') { court.teamB = opp; } else { court.teamA = opp; }
+    court.status = 'playing';
+    court.startedRound = data.currentRound;
+    data.queue = data.queue.filter(p => !opp.includes(p));
+    persist();
+    toast('⏳ ' + winTeam.join('+') + ' vs ' + opp.join('+'));
+    return;
+  }
+  // Still no opponents — keep winners on court, wait for fillCourt
+  court.status = 'waiting'; court.consecutive = {}; court.games = 0;
   if (winner === 'A') { court.teamB = []; } else { court.teamA = []; }
   persist();
 }
