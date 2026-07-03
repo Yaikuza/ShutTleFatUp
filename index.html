@@ -72,30 +72,31 @@ header h1{font-size:20px;font-weight:800;letter-spacing:-.3px}
 .court-empty .big-btn{display:block;width:100%;max-width:260px;margin:10px auto 0;padding:14px;background:var(--gradient);color:#fff;border:none;border-radius:var(--radius-sm);font-size:16px;font-weight:600;box-shadow:0 2px 8px rgba(99,102,241,.25)}
 .court-empty .big-btn:disabled{background:#94a3b8;opacity:.6;box-shadow:none}
 .court-empty .big-btn:not(:disabled):active{opacity:.9}
-.match-display{display:flex;gap:4px;padding:8px 0;align-items:stretch}
-.team-zone{flex:1;display:flex;flex-direction:column;gap:6px;padding:10px 8px;border-radius:var(--radius-sm);cursor:pointer;border:2px solid transparent;user-select:none;-webkit-tap-highlight-color:transparent;position:relative}
-.team-zone.team-a{background:linear-gradient(135deg,#eef2ff,#e0e7ff);border-color:#c7d2fe}
-.team-zone.team-a:active{background:linear-gradient(135deg,#c7d2fe,#a5b4fc);border-color:var(--primary)}
-.team-zone.team-b{background:linear-gradient(135deg,#fdf2f8,#fce7f3);border-color:#fbcfe8}
-.team-zone.team-b:active{background:linear-gradient(135deg,#fbcfe8,#f9a8d4);border-color:#ec4899}
-.team-zone .p-entry{text-align:center}
-.team-zone .p-name{font-weight:700;font-size:16px}
-.team-zone .consec{font-size:11px;color:var(--text2);margin-left:4px}
-.team-zone .tap-hint{font-size:10px;color:var(--text2);text-align:center;opacity:.7;margin-top:2px}
-.mid-col{display:flex;flex-direction:column;align-items:center;justify-content:space-around;padding:2px 6px;flex-shrink:0}
-.mid-col .swap-btn{background:none;border:none;font-size:18px;color:var(--text2);cursor:pointer;padding:4px;border-radius:6px;line-height:1}
-.mid-col .swap-btn:active{background:rgba(0,0,0,.06)}
-.vs-badge{background:var(--gradient);color:#fff;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;box-shadow:0 2px 8px rgba(99,102,241,.3)}
-.waiting-actions{display:flex;gap:8px;margin-top:8px}
-.waiting-actions button{flex:1;padding:12px;border:none;border-radius:var(--radius-sm);font-weight:600;font-size:14px}
-.waiting-actions .btn-primary{background:var(--gradient);color:#fff;box-shadow:0 2px 8px rgba(99,102,241,.25)}
-.waiting-actions .btn-primary:disabled{background:#94a3b8;box-shadow:none}
-.waiting-actions .btn-primary:not(:disabled):active{opacity:.9}
-.waiting-actions .btn-outline{background:#fff;color:var(--text2);border:2px solid var(--border)}
-.court-swap-btn{background:none;border:none;color:var(--text2);font-size:12px;padding:6px}
 .court-empty-msg{font-size:14px;margin-bottom:4px;font-weight:500}
 .court-empty-sub{font-size:12px;color:var(--text2);margin-bottom:10px}
 .court-waiting-msg{font-size:14px;margin-bottom:8px;font-weight:500}
+
+/* Court floor */
+.court-floor{background:#2d8a4e;border-radius:var(--radius-sm);padding:10px 12px;position:relative;overflow:hidden;aspect-ratio:13.4/6.1;display:flex;flex-direction:column;justify-content:center}
+.court-floor::before{content:'';position:absolute;inset:8px;border:2px solid rgba(255,255,255,.2);border-radius:2px;pointer-events:none}
+.court-floor::after{content:'';position:absolute;top:8px;bottom:8px;left:50%;width:2px;background:rgba(255,255,255,.35);transform:translateX(-50%);pointer-events:none}
+.court-floor .match-display{display:flex;gap:4px;align-items:stretch;position:relative;z-index:1;flex:1}
+.court-floor .team-zone{flex:1;display:flex;flex-direction:column;gap:6px;padding:12px 8px;border-radius:var(--radius-sm);cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;position:relative;backdrop-filter:blur(4px)}
+.court-floor .team-zone.team-a{background:rgba(255,255,255,.12)}
+.court-floor .team-zone.team-a:active{background:rgba(255,255,255,.3)}
+.court-floor .team-zone.team-b{background:rgba(255,255,255,.12)}
+.court-floor .team-zone.team-b:active{background:rgba(255,255,255,.3)}
+.court-floor .team-zone .p-entry{text-align:center}
+.court-floor .team-zone .p-name{font-weight:700;font-size:18px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.35)}
+.court-floor .team-zone .consec{font-size:11px;color:rgba(255,255,255,.7);margin-left:4px}
+.court-floor .mid-col{display:flex;flex-direction:column;align-items:center;justify-content:space-around;padding:2px 4px;flex-shrink:0}
+.court-floor .mid-col .swap-btn{background:rgba(255,255,255,.2);border:none;font-size:16px;color:#fff;cursor:pointer;padding:6px;border-radius:50%;line-height:1;width:32px;height:32px;display:flex;align-items:center;justify-content:center}
+.court-floor .mid-col .swap-btn:active{background:rgba(255,255,255,.4)}
+.court-floor .vs-badge{background:rgba(255,255,255,.9);color:#2d8a4e;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;box-shadow:0 2px 4px rgba(0,0,0,.2)}
+.court-floor .court-empty{color:rgba(255,255,255,.9);position:relative;z-index:1}
+.court-floor .court-empty-msg{font-size:16px;font-weight:600;color:#fff}
+.court-floor .court-empty-sub{font-size:13px;color:rgba(255,255,255,.7)}
+.court-floor .big-btn{background:rgba(255,255,255,.9)!important;color:#2d8a4e!important;box-shadow:0 2px 8px rgba(0,0,0,.2)!important}
 
 /* Bottom bar */
 main{padding-bottom:110px}
@@ -1082,38 +1083,36 @@ function renderCourtBody(c, hasMatch) {
   const isPlaying = c.status === 'playing' && c.teamA.length === 2 && c.teamB.length === 2;
   if (isPlaying) {
     const limit = data.settings.gamesPerMatch || 2;
-    const pEntry = (p, side) => {
+    const pEntry = (p) => {
       const n = (c.consecutive || {})[p];
-      return '<div class="p-entry ' + side + '">' +
+      return '<div class="p-entry">' +
         '<span class="p-name">' + escHtml(p) + '</span>' +
         (n !== undefined ? '<span class="consec">(' + n + '/' + limit + ')</span>' : '') +
         '</div>';
     };
-    return `
-      <div class="match-display">
-        <div class="team-zone team-a" onclick="declareWinner(${c.id},'A')">
-          ${pEntry(c.teamA[0], '')}
-          ${pEntry(c.teamA[1], '')}
-        </div>
-        <div class="mid-col">
-          <div class="vs-badge">VS</div>
-          <button class="swap-btn" onclick="event.stopPropagation();swapBoth(${c.id})">🔄</button>
-        </div>
-        <div class="team-zone team-b" onclick="declareWinner(${c.id},'B')">
-          ${pEntry(c.teamB[0], '')}
-          ${pEntry(c.teamB[1], '')}
-        </div>
-      </div>`;
+    return '<div class="court-floor">' +
+      '<div class="match-display">' +
+        '<div class="team-zone team-a" onclick="declareWinner(' + c.id + ',\'A\')">' +
+          pEntry(c.teamA[0]) + pEntry(c.teamA[1]) +
+        '</div>' +
+        '<div class="mid-col">' +
+          '<div class="vs-badge">VS</div>' +
+          '<button class="swap-btn" onclick="event.stopPropagation();swapBoth(' + c.id + ')">🔄</button>' +
+        '</div>' +
+        '<div class="team-zone team-b" onclick="declareWinner(' + c.id + ',\'B\')">' +
+          pEntry(c.teamB[0]) + pEntry(c.teamB[1]) +
+        '</div>' +
+      '</div></div>';
   }
   const hasTeamA = c.teamA.length > 0;
   const empty = hasTeamA
-    ? `<div class="court-waiting-msg">⏳ รอคู่: ${escHtml(c.teamA.join(' + '))}</div>`
+    ? `<div class="court-waiting-msg" style="color:rgba(255,255,255,.9);font-weight:600">⏳ รอคู่: ${escHtml(c.teamA.join(' + '))}</div>`
     : `<div class="court-empty-msg">🏟️ สนามว่าง</div>
        <div class="court-empty-sub">👥 คิว ${data.queue.length} คน</div>`;
   const disabled = data.queue.length < 4 || !hasMatch;
-  return `<div class="court-empty">${empty}
+  return `<div class="court-floor"><div class="court-empty">${empty}
     <button class="big-btn" onclick="fillCourt(${c.id})" ${disabled ? 'disabled' : ''}>👥 จัดผู้เล่น</button>
-  </div>`;
+  </div></div>`;
 }
 
 function renderCourts() {
