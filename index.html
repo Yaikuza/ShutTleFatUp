@@ -697,7 +697,15 @@ function fillCourt(courtId) {
       data.roundSchedule.push({ p1: remaining[i], p2: remaining[i + 1] });
   }
 
-  const teams = findScheduledMatch();
+  let teams = findScheduledMatch();
+
+  // Fallback: if no scheduled match (e.g. after custom pick, schedule is empty
+  // for remaining queue), ad-hoc pair the remaining queue so auto-fill still works
+  if (!teams) {
+    const added = pairRemainingQueueIntoSchedule();
+    if (added >= 2) teams = findScheduledMatch();
+  }
+
   if (!teams) {
     checkAndAutoRound();
     return;
@@ -1057,15 +1065,11 @@ function confirmCustomMatch() {
   court.consecutive = {};
   court.startedRound = data.currentRound;
 
-  // Pair remaining queue players into roundSchedule so auto-fill still works
-  const added = pairRemainingQueueIntoSchedule();
-
   closeCustomMatchPicker();
   saveData();
   render();
   syncQueueCount();
-  toast('🎯 ' + court.teamA.join('+') + ' vs ' + court.teamB.join('+') +
-        (added > 0 ? ` · +${added} คู่` : ''));
+  toast('🎯 ' + court.teamA.join('+') + ' vs ' + court.teamB.join('+'));
 }
 
 // ===== PLAYERS =====
