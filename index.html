@@ -836,6 +836,20 @@ function removePlayer(name) {
     if (p.p1 === name) { p.p1 = p.p2 === LIBERO ? null : LIBERO; break; }
     if (p.p2 === name) { p.p2 = p.p1 === LIBERO ? null : LIBERO; break; }
   }
+  // Consolidate Libero pairs
+  const liPlayers = [];
+  for (let i = 0; i < data.roundSchedule.length; i++) {
+    const p = data.roundSchedule[i];
+    if (p.p1 === LIBERO && p.p2 !== null && p.p2 !== LIBERO) liPlayers.push({ idx: i, player: p.p2 });
+    if (p.p2 === LIBERO && p.p1 !== null && p.p1 !== LIBERO) liPlayers.push({ idx: i, player: p.p1 });
+  }
+  while (liPlayers.length >= 2) {
+    const a = liPlayers.shift();
+    const b = liPlayers.shift();
+    data.roundSchedule[a.idx] = { p1: a.player, p2: b.player };
+    data.roundSchedule[b.idx] = { p1: null, p2: null };
+  }
+  data.roundSchedule = data.roundSchedule.filter(p => p.p1 !== null && p.p2 !== null);
   saveData();
   render();
   renderPlayers();
@@ -857,17 +871,24 @@ function togglePool(name) {
     ejectFromCourts(name);
     for (let i = 0; i < data.roundSchedule.length; i++) {
       const p = data.roundSchedule[i];
-      if (p.p1 === name) {
-        if (p.p2 === LIBERO) data.roundSchedule[i] = { p1: null, p2: null };
-        else p.p1 = LIBERO;
-        break;
-      }
-      if (p.p2 === name) {
-        if (p.p1 === LIBERO) data.roundSchedule[i] = { p1: null, p2: null };
-        else p.p2 = LIBERO;
-        break;
-      }
+      if (p.p1 === name) { p.p1 = p.p2 === LIBERO ? null : LIBERO; break; }
+      if (p.p2 === name) { p.p2 = p.p1 === LIBERO ? null : LIBERO; break; }
     }
+    // Consolidate Libero pairs: if 2+ real players each paired with Libero, pair them together
+    const liPlayers = [];
+    for (let i = 0; i < data.roundSchedule.length; i++) {
+      const p = data.roundSchedule[i];
+      if (p.p1 === LIBERO && p.p2 !== null && p.p2 !== LIBERO) liPlayers.push({ idx: i, player: p.p2 });
+      if (p.p2 === LIBERO && p.p1 !== null && p.p1 !== LIBERO) liPlayers.push({ idx: i, player: p.p1 });
+    }
+    while (liPlayers.length >= 2) {
+      const a = liPlayers.shift();
+      const b = liPlayers.shift();
+      data.roundSchedule[a.idx] = { p1: a.player, p2: b.player };
+      data.roundSchedule[b.idx] = { p1: null, p2: null };
+    }
+    // Clean null pairs
+    data.roundSchedule = data.roundSchedule.filter(p => p.p1 !== null && p.p2 !== null);
   }
   saveData();
   render();
