@@ -30,6 +30,23 @@
   --gradient: linear-gradient(135deg, #6366f1, #8b5cf6);
   --gradient-warm: linear-gradient(135deg, #f59e0b, #ef4444);
 }
+.theme-dark {
+  --primary: #818cf8; --primary-light: #a5b4fc; --primary-dark: #6366f1;
+  --success: #34d399; --success-light: #064e3b; --warning: #fbbf24; --warning-light: #78350f; --danger: #f87171;
+  --bg: #0f172a; --card: #1e293b; --text: #f1f5f9; --text2: #94a3b8;
+  --border: #334155; --border-soft: #1e293b;
+  --shadow: 0 2px 8px rgba(0,0,0,.3); --shadow-lg: 0 8px 30px rgba(0,0,0,.5);
+  --muted: #1e293b; --chip-bg: #1e1b4b; --line: #334155;
+}
+.theme-pastel {
+  --primary: #a78bfa; --primary-light: #c4b5fd; --primary-dark: #8b5cf6;
+  --success: #86efac; --success-light: #f0fdf4; --warning: #fcd34d; --warning-light: #fffbeb; --danger: #fca5a5;
+  --bg: #fdf2f8; --card: #fff7ed; --text: #5b21b6; --text2: #a78bfa;
+  --border: #fbcfe8; --border-soft: #fce7f3;
+  --shadow: 0 2px 8px rgba(0,0,0,.04); --shadow-lg: 0 8px 30px rgba(0,0,0,.08);
+  --muted: #fdf4ff; --chip-bg: #ede9fe; --line: #fbcfe8;
+  --gradient: linear-gradient(135deg, #a78bfa, #f9a8d4); --gradient-warm: linear-gradient(135deg, #fcd34d, #fca5a5);
+}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{font-size:16px;-webkit-text-size-adjust:100%}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
@@ -377,7 +394,7 @@ function getDef() {
     roundPairs: {},
     roundSchedule: [],
     currentRound: 1,
-    settings: { gamesPerMatch: 2, courtColumns: 0, courtColor: '#2d8a4e' }
+    settings: { gamesPerMatch: 2, courtColumns: 0, courtColor: '#2d8a4e', theme: 'light' }
   };
 }
 
@@ -394,10 +411,11 @@ function migrate(d) {
     }
     d.nextCourtId = d.courts.length + 1;
   }
-  d.settings = d.settings || { gamesPerMatch: 2, courtColumns: 0, courtColor: '#2d8a4e' };
+  d.settings = d.settings || { gamesPerMatch: 2, courtColumns: 0, courtColor: '#2d8a4e', theme: 'light' };
   if (!d.settings.gamesPerMatch) d.settings.gamesPerMatch = 2;
   if (d.settings.courtColumns === undefined) d.settings.courtColumns = 0;
   if (!d.settings.courtColor) d.settings.courtColor = '#2d8a4e';
+  if (!d.settings.theme) d.settings.theme = 'light';
   d.roundPairs = d.roundPairs || {};
   d.roundSchedule = d.roundSchedule || [];
   d.currentRound = d.currentRound || 1;
@@ -1425,12 +1443,18 @@ function dragEnd(e) {
 }
 
 function render() {
+  applyTheme();
   renderCourts();
   renderQueue();
   renderPlayers();
   renderCourtCount();
   renderRoundNumber();
   applyCourtColor();
+}
+
+function applyTheme() {
+  const theme = (data.settings && data.settings.theme) || 'light';
+  document.documentElement.className = theme === 'light' ? '' : 'theme-' + theme;
 }
 
 function applyCourtColor() {
@@ -1808,6 +1832,14 @@ function renderSettingsContent() {
     { v: 3, l: '3 คอลัมน์' }
   ].map(o => '<option value="' + o.v + '" ' + (s.courtColumns === o.v ? 'selected' : '') + '>' + o.l + '</option>').join('');
   return '<div class="settings-card">' +
+      '<div class="setting-row">' +
+        '<div><div class="setting-label">ธีม</div><div class="setting-desc">เปลี่ยนโทนสี</div></div>' +
+        '<select class="setting-input" onchange="data.settings.theme=this.value;saveData();render()">' +
+          '<option value="light"' + (s.theme === 'light' ? ' selected' : '') + '>☀️ สว่าง</option>' +
+          '<option value="dark"' + (s.theme === 'dark' ? ' selected' : '') + '>🌙 มืด</option>' +
+          '<option value="pastel"' + (s.theme === 'pastel' ? ' selected' : '') + '>🌸 Pastel</option>' +
+        '</select>' +
+      '</div>' +
       '<div class="setting-row">' +
         '<div><div class="setting-label">จำนวนเกม/คู่</div><div class="setting-desc">เล่นกี่เกมแล้วพัก</div></div>' +
         '<select class="setting-input" onchange="data.settings.gamesPerMatch=parseInt(this.value);saveData();render()">' +
