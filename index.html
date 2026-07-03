@@ -271,7 +271,27 @@ select.setting-input{padding:6px 12px;border:2px solid var(--border);border-radi
 .picker-chip .chip-court{font-size:10px;background:rgba(0,0,0,.15);padding:1px 5px;border-radius:6px}
 .picker-chip .chip-actions{display:inline-flex;gap:2px;margin-left:4px}
 .picker-chip .chip-actions button{background:rgba(255,255,255,.3);border:none;color:inherit;font-size:10px;padding:2px 5px;border-radius:4px;cursor:pointer;font-weight:700}
-.picker-footer{display:flex;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)}
+.picker-tabs{display:flex;gap:0;margin:0 0 14px;background:var(--muted);border-radius:var(--radius-sm);padding:4px;position:relative}
+.picker-tab{flex:1;padding:8px 4px;border:none;background:transparent;font-size:13px;font-weight:600;color:var(--text2);border-radius:8px;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:4px;z-index:1}
+.picker-tab.active{background:var(--card);color:var(--text);box-shadow:var(--shadow)}
+.picker-tab.disabled{opacity:.4;cursor:not-allowed}
+.picker-pages{overflow:hidden;position:relative}
+.picker-page{display:none;animation:fadeIn .2s ease}
+.picker-page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateX(8px)}to{opacity:1;transform:translateX(0)}}
+.picker-pair-list{display:flex;flex-direction:column;gap:8px;max-height:280px;overflow-y:auto;padding:4px 0}
+.picker-pair{background:var(--card);border:2px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;transition:all .15s;user-select:none}
+.picker-pair:active{transform:scale(.98)}
+.picker-pair.in-a{border-color:var(--primary);background:var(--chip-bg)}
+.picker-pair.in-b{border-color:var(--danger);background:#fee2e2}
+.picker-pair.used{opacity:.4;cursor:not-allowed;background:var(--muted)}
+.picker-pair .pair-names{font-weight:600;font-size:14px}
+.picker-pair .pair-actions{display:flex;gap:4px}
+.picker-pair .pair-actions button{background:var(--muted);border:1px solid var(--border);font-size:11px;padding:4px 8px;border-radius:6px;cursor:pointer;font-weight:600;color:var(--text2)}
+.picker-pair .pair-actions button.t-a{color:var(--primary);border-color:var(--primary)}
+.picker-pair .pair-actions button.t-b{color:var(--danger);border-color:var(--danger)}
+.picker-pair .pair-actions button:disabled{opacity:.3;cursor:not-allowed}
+.picker-empty-msg{text-align:center;color:var(--text2);font-size:13px;padding:20px;background:var(--muted);border-radius:var(--radius-sm)}
 .picker-footer button{flex:1;padding:10px;border:none;border-radius:var(--radius-sm);font-weight:600;font-size:14px;cursor:pointer}
 .picker-footer .picker-cancel{background:var(--muted);color:var(--text2)}
 .picker-footer .picker-confirm{background:var(--gradient);color:#fff;opacity:.5;pointer-events:none}
@@ -887,23 +907,65 @@ function pairRemainingQueueIntoSchedule() {
 }
 
 // ===== VS CUSTOM MATCH PICKER =====
-let picker = { courtId: null, teamA: [], teamB: [] };
+let picker = { courtId: null, teamA: [], teamB: [], page: 0 };
 
 function openCustomMatchPicker(courtId) {
   const court = data.courts.find(c => c.id === courtId);
   if (!court) return;
   if (court.status === 'playing' &&
       !confirm('สนามนี้กำลังแข่งอยู่ — เปลี่ยนผู้เล่นทับเลยไหม?')) return;
-  picker = { courtId, teamA: [], teamB: [] };
+  picker = { courtId, teamA: [], teamB: [], page: 0 };
   // Pre-fill only from empty/waiting court (not from playing - to allow re-picking)
   if (court.status !== 'playing') {
     if (court.teamA.length > 0) picker.teamA = [...court.teamA];
     if (court.teamB.length > 0) picker.teamB = [...court.teamB];
   }
+  // Auto-switch to page 1 (chip pool) if schedule is empty
+  if (!data.roundSchedule || data.roundSchedule.length === 0) {
+    picker.page = 0;
+  }
   document.getElementById('pickerCourtId').textContent = courtId;
   renderPicker();
   document.getElementById('pickerOverlay').classList.add('open');
   document.getElementById('pickerSheet').classList.add('open');
+}
+
+function switchPickerPage(p) {
+  picker.page = p;
+  renderPicker();
+}
+
+function pickPairFromSchedule(idx, target) {
+  if (!data.roundSchedule || !data.roundSchedule[idx]) return;
+  const pair = data.roundSchedule[idx];
+  if (!pair.p1 || !pair.p2) return; // skip bye
+  const players = [pair.p1, pair.p2];
+  // If both players already in same team, remove
+  const inA = players.every(n => picker.teamA.includes(n));
+  const inB = players.every(n => picker.teamB.includes(n));
+  if ((target === 'A' && inA) || (target === 'B' && inB)) {
+    picker.teamA = picker.teamA.filter(n => !players.includes(n));
+    picker.teamB = picker.teamB.filter(n => !players.includes(n));
+    renderPicker();
+    return;
+  }
+  // Remove from both teams first
+  picker.teamA = picker.teamA.filter(n => !players.includes(n));
+  picker.teamB = picker.teamB.filter(n => !players.includes(n));
+  // Assign
+  if (target === 'A') {
+    if (picker.teamA.length >= 2) { toast('ทีม A ครบ 2 คนแล้ว'); return; }
+    picker.teamA.push(...players);
+  } else if (target === 'B') {
+    if (picker.teamB.length >= 2) { toast('ทีม B ครบ 2 คนแล้ว'); return; }
+    picker.teamB.push(...players);
+  } else {
+    // Auto-assign
+    if (picker.teamA.length < 2) picker.teamA.push(...players);
+    else if (picker.teamB.length < 2) picker.teamB.push(...players);
+    else { toast('ครบ 4 คนแล้ว'); return; }
+  }
+  renderPicker();
 }
 
 function closeCustomMatchPicker() {
@@ -958,10 +1020,7 @@ function renderPicker() {
   const body = document.getElementById('pickerBody');
   if (!body) return;
 
-  // All available players: mainPlayers (pool) — court players of THIS court already in teamA/teamB
-  // Show: queue (waiting), and "busy in other courts" with disabled
   const allNames = [...data.mainPlayers];
-  // Build slots
   const slot = (idx, team) => {
     const arr = team === 'A' ? picker.teamA : picker.teamB;
     const name = arr[idx];
@@ -971,7 +1030,6 @@ function renderPicker() {
     return `<div class="picker-slot">ว่าง</div>`;
   };
 
-  // Pool: show everyone, with state styling
   const chips = allNames.map(name => {
     const loc = getPlayerLocation(name);
     const inA = picker.teamA.includes(name);
@@ -989,8 +1047,40 @@ function renderPicker() {
   }).join('');
 
   const ready = picker.teamA.length === 2 && picker.teamB.length === 2;
-  const courtId = picker.courtId;
   const totalCount = allNames.length;
+  const hasSchedule = data.roundSchedule && data.roundSchedule.some(p => p.p1 && p.p2 && p.p1 !== LIBERO && p.p2 !== LIBERO);
+  const page = picker.page || 0;
+
+  // Schedule pairs (page 2)
+  let schedulePairsHtml = '';
+  if (data.roundSchedule && data.roundSchedule.length) {
+    const usedPairKeys = new Set();
+    for (let i = 0; i < data.roundSchedule.length; i++) {
+      const p = data.roundSchedule[i];
+      if (!p.p1 || !p.p2) continue;
+      const isBye = p.p1 === LIBERO || p.p2 === LIBERO;
+      if (isBye) continue;
+      const key = [p.p1, p.p2].sort().join('|');
+      if (usedPairKeys.has(key)) continue;
+      usedPairKeys.add(key);
+      const inA = picker.teamA.includes(p.p1) && picker.teamA.includes(p.p2);
+      const inB = picker.teamB.includes(p.p1) && picker.teamB.includes(p.p2);
+      const inUse = inA || inB;
+      let cls = 'picker-pair';
+      if (inA) cls += ' in-a';
+      else if (inB) cls += ' in-b';
+      // From schedule page, busy is OK (confirm will pull players out of other courts)
+      const disabledA = inA || (!inA && picker.teamA.length >= 2);
+      const disabledB = inB || (!inB && picker.teamB.length >= 2);
+      schedulePairsHtml += `<div class="${cls}">
+        <span class="pair-names">${escHtml(p.p1)} + ${escHtml(p.p2)}</span>
+        <span class="pair-actions">
+          <button class="t-a" ${disabledA ? 'disabled' : ''} onclick="pickPairFromSchedule(${i},'A')" title="ลงทีม A">→ A</button>
+          <button class="t-b" ${disabledB ? 'disabled' : ''} onclick="pickPairFromSchedule(${i},'B')" title="ลงทีม B">→ B</button>
+        </span>
+      </div>`;
+    }
+  }
 
   body.innerHTML =
     `<div class="picker-teams">
@@ -1003,8 +1093,22 @@ function renderPicker() {
         ${slot(0, 'B')}${slot(1, 'B')}
       </div>
     </div>
-    <div class="picker-pool-title">👤 เลือกผู้เล่น (${totalCount} คน)</div>
-    <div class="picker-pool">${chips || '<div class="queue-empty">ไม่มีผู้เล่น</div>'}</div>
+    <div class="picker-tabs">
+      <button class="picker-tab ${page === 0 ? 'active' : ''}" onclick="switchPickerPage(0)">👤 เลือกเอง</button>
+      <button class="picker-tab ${page === 1 ? 'active' : ''} ${hasSchedule ? '' : 'disabled'}" ${hasSchedule ? '' : 'disabled'} onclick="${hasSchedule ? `switchPickerPage(1)` : ''}">📋 จากตาราง${hasSchedule ? '' : ' (ยังไม่มี)'}</button>
+    </div>
+    <div class="picker-pages">
+      <div class="picker-page ${page === 0 ? 'active' : ''}">
+        <div class="picker-pool-title">👤 เลือกผู้เล่น (${totalCount} คน)</div>
+        <div class="picker-pool">${chips || '<div class="queue-empty">ไม่มีผู้เล่น</div>'}</div>
+      </div>
+      <div class="picker-page ${page === 1 ? 'active' : ''}">
+        ${hasSchedule
+          ? `<div class="picker-pool-title">📋 เลือก 2 คู่จากตารางรอบนี้</div>
+             <div class="picker-pair-list">${schedulePairsHtml || '<div class="picker-empty-msg">ไม่มีคู่ในตาราง</div>'}</div>`
+          : `<div class="picker-empty-msg">⚠️ ตารางรอบนี้ยังไม่ได้สร้าง<br><br>กรุณาใช้ "👥 จัดอัตโนมัติ" ก่อน หรือเลือกผู้เล่นจากหน้าแรก</div>`}
+      </div>
+    </div>
     <div class="picker-footer">
       <button class="picker-clear" onclick="clearPicker()">✕ ล้าง</button>
       <button class="picker-cancel" onclick="closeCustomMatchPicker()">ยกเลิก</button>
@@ -1019,11 +1123,8 @@ function confirmCustomMatch() {
   // Validate no duplicates
   const all = [...picker.teamA, ...picker.teamB];
   if (new Set(all).size !== 4) { toast('ชื่อซ้ำ'); return; }
-  // Validate no busy players
-  for (const name of all) {
-    const loc = getPlayerLocation(name);
-    if (loc.busy) { toast(`${name} กำลังเล่นที่สนาม ${loc.courtId}`); return; }
-  }
+  // Busy players are OK — they will be pulled out of their current court below
+  // (override is allowed for custom picks, including from schedule page)
 
   // Remove from queue and other courts
   data.queue = data.queue.filter(p => !all.includes(p));
