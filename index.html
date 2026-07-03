@@ -62,7 +62,8 @@ header h1{font-size:20px;font-weight:800;letter-spacing:-.3px}
 
 /* Courts */
 .courts{padding:0 12px 12px;display:grid;gap:10px}
-.courts.cols-auto{grid-template-columns:repeat(auto-fill,minmax(320px,1fr))}
+.courts.cols-auto{grid-template-columns:1fr}
+@media(min-width:640px){.courts.cols-auto{grid-template-columns:1fr 1fr}}
 .court-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;animation:slideUp .25s ease;border-left:4px solid var(--border)}
 .court-card.status-playing{border-left-color:var(--warning)}
 .court-card.status-waiting.queue-full{border-left-color:var(--success)}
