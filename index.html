@@ -53,14 +53,17 @@ header h1{font-size:20px;font-weight:800;letter-spacing:-.3px}
 .queue-players{display:flex;flex-wrap:wrap;gap:8px;min-height:36px;padding:4px 0}
 .queue-chip{display:inline-flex;align-items:center;gap:6px;background:var(--chip-bg);color:var(--primary);padding:4px 10px;border-radius:18px;font-size:13px;font-weight:500;white-space:nowrap;cursor:grab;transition:box-shadow .2s,transform .2s;user-select:none}
 .queue-chip:active{cursor:grabbing;box-shadow:var(--shadow-lg);transform:scale(1.05)}
-.queue-chip.dragging{opacity:.5}
+.queue-chip.dragging{opacity:.4}
+.queue-chip.drag-over{box-shadow:0 0 0 2px var(--primary);transform:translateY(-2px)}
 .queue-chip .remove{background:none;border:none;color:#94a3b8;font-size:16px;padding:0 2px;line-height:1;cursor:pointer}
 .queue-chip .remove:active{color:var(--danger)}
 .queue-empty{color:var(--text2);font-size:13px;padding:4px 0}
 
 
 /* Courts */
-.courts{padding:0 12px 12px;display:flex;flex-direction:column;gap:10px}
+.courts{padding:0 12px 12px;display:grid;gap:10px}
+.courts.cols-auto{grid-template-columns:1fr}
+@media(min-width:640px){.courts.cols-auto{grid-template-columns:1fr 1fr}}
 .court-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;animation:slideUp .25s ease;border-left:4px solid var(--border)}
 .court-card.status-playing{border-left-color:var(--warning)}
 .court-card.status-waiting.queue-full{border-left-color:var(--success)}
@@ -71,41 +74,47 @@ header h1{font-size:20px;font-weight:800;letter-spacing:-.3px}
 .court-empty .big-btn{display:block;width:100%;max-width:260px;margin:10px auto 0;padding:14px;background:var(--gradient);color:#fff;border:none;border-radius:var(--radius-sm);font-size:16px;font-weight:600;box-shadow:0 2px 8px rgba(99,102,241,.25)}
 .court-empty .big-btn:disabled{background:#94a3b8;opacity:.6;box-shadow:none}
 .court-empty .big-btn:not(:disabled):active{opacity:.9}
-.match-display{display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 0}
-.team-box{flex:1;max-width:40%;background:var(--muted);border-radius:var(--radius-sm);padding:14px 10px;text-align:center;cursor:pointer;border:2px solid transparent;transition:all .2s;user-select:none;-webkit-tap-highlight-color:transparent;position:relative}
-.team-box.team-a{background:linear-gradient(135deg,#eef2ff,#e0e7ff);border-color:#c7d2fe}
-.team-box.team-a:active{background:linear-gradient(135deg,#c7d2fe,#a5b4fc);border-color:var(--primary)}
-.team-box.team-b{background:linear-gradient(135deg,#fdf2f8,#fce7f3);border-color:#fbcfe8}
-.team-box.team-b:active{background:linear-gradient(135deg,#fbcfe8,#f9a8d4);border-color:#ec4899}
-.team-box .names{font-weight:700;font-size:16px;line-height:1.4}
-.team-box .tap-hint{font-size:10px;color:var(--text2);margin-top:4px;opacity:.7}
-.team-box .consec{font-size:11px;color:var(--text2);margin-left:4px}
-.vs-badge{background:var(--gradient);color:#fff;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;box-shadow:0 2px 8px rgba(99,102,241,.3);flex-shrink:0;z-index:1}
-.waiting-actions{display:flex;gap:8px;margin-top:8px}
-.waiting-actions button{flex:1;padding:12px;border:none;border-radius:var(--radius-sm);font-weight:600;font-size:14px}
-.waiting-actions .btn-primary{background:var(--gradient);color:#fff;box-shadow:0 2px 8px rgba(99,102,241,.25)}
-.waiting-actions .btn-primary:disabled{background:#94a3b8;box-shadow:none}
-.waiting-actions .btn-primary:not(:disabled):active{opacity:.9}
-.waiting-actions .btn-outline{background:#fff;color:var(--text2);border:2px solid var(--border)}
-.court-swap-row{margin-top:4px;text-align:center}
-.court-swap-btn{background:none;border:none;color:var(--text2);font-size:12px;padding:6px}
 .court-empty-msg{font-size:14px;margin-bottom:4px;font-weight:500}
 .court-empty-sub{font-size:12px;color:var(--text2);margin-bottom:10px}
 .court-waiting-msg{font-size:14px;margin-bottom:8px;font-weight:500}
 
-/* Collapse sections */
-.collapse-section{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;margin:0 12px 10px}
-.collapse-section:first-child{margin-top:8px}
-.collapse-header{padding:14px 16px;font-weight:600;font-size:15px;display:flex;align-items:center;justify-content:space-between;user-select:none;-webkit-tap-highlight-color:transparent;cursor:pointer}
-.collapse-header:active{opacity:.8}
-.collapse-header.head-players{background:linear-gradient(135deg,#e0e7ff,#c7d2fe);color:#3730a3;border-bottom:3px solid #6366f1}
-.collapse-header.head-queue{background:linear-gradient(135deg,#fce7f3,#fbcfe8);color:#9d174d;border-bottom:3px solid #ec4899}
-.collapse-header.head-stats{background:linear-gradient(135deg,#d1fae5,#a7f3d0);color:#065f46;border-bottom:3px solid #10b981}
-.collapse-header.head-settings{background:linear-gradient(135deg,#fef3c7,#fde68a);color:#92400e;border-bottom:3px solid #f59e0b}
-.collapse-icon{font-size:12px;transition:transform .2s;color:var(--text2)}
-.collapse-icon.open{transform:rotate(90deg)}
-.collapse-body{display:none;padding:0 16px 16px;border-top:1px solid var(--border)}
-.collapse-body.open{display:block}
+/* Court floor */
+.court-floor{background:var(--court-color,#2d8a4e);border-radius:var(--radius-sm);padding:10px 12px;position:relative;overflow:hidden;aspect-ratio:13.4/6.1;display:flex;flex-direction:column;justify-content:center}
+.court-floor::before{content:'';position:absolute;inset:8px;border:2px solid rgba(255,255,255,.2);border-radius:2px;pointer-events:none}
+.court-floor::after{content:'';position:absolute;top:8px;bottom:8px;left:50%;width:2px;background:rgba(255,255,255,.35);transform:translateX(-50%);pointer-events:none}
+.court-floor .match-display{display:flex;gap:4px;align-items:stretch;position:relative;z-index:1;flex:1}
+.court-floor .team-zone{flex:1;display:flex;flex-direction:column;gap:6px;padding:12px 8px;border-radius:var(--radius-sm);cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;position:relative;backdrop-filter:blur(4px);justify-content:center}
+.court-floor .team-zone.team-a{background:rgba(255,255,255,.12)}
+.court-floor .team-zone.team-a:active{background:rgba(255,255,255,.3)}
+.court-floor .team-zone.team-b{background:rgba(255,255,255,.12)}
+.court-floor .team-zone.team-b:active{background:rgba(255,255,255,.3)}
+.court-floor .team-zone .p-entry{text-align:center}
+.court-floor .team-zone .p-name{font-weight:700;font-size:18px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.35)}
+.court-floor .team-zone .consec{font-size:11px;color:rgba(255,255,255,.7);margin-left:4px}
+.court-floor .mid-col{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2px 4px;flex-shrink:0;gap:10px}
+.court-floor .mid-col .swap-btn{background:rgba(255,255,255,.2);border:none;font-size:16px;color:#fff;cursor:pointer;padding:6px;border-radius:50%;line-height:1;width:32px;height:32px;display:flex;align-items:center;justify-content:center}
+.court-floor .mid-col .swap-btn:active{background:rgba(255,255,255,.4)}
+.court-floor .vs-badge{background:rgba(255,255,255,.9);color:var(--court-color,#2d8a4e);width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;box-shadow:0 2px 4px rgba(0,0,0,.2)}
+.court-floor .court-empty{color:rgba(255,255,255,.9);position:relative;z-index:1}
+.court-floor .court-empty-msg{font-size:16px;font-weight:600;color:#fff}
+.court-floor .court-empty-sub{font-size:13px;color:rgba(255,255,255,.7)}
+.court-floor .big-btn{background:rgba(255,255,255,.9)!important;color:var(--court-color,#2d8a4e)!important;box-shadow:0 2px 8px rgba(0,0,0,.2)!important}
+
+/* Bottom bar */
+main{padding-bottom:110px}
+
+/* Bottom bar 2-row */
+.bottom-bar{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--border);z-index:20;padding:6px 12px 10px}
+.bottom-row{display:flex;gap:6px}
+.bottom-row + .bottom-row{margin-top:4px}
+.bottom-row button{flex:1;padding:8px 4px;border:none;border-radius:var(--radius-sm);font-weight:600;font-size:12px;display:flex;align-items:center;justify-content:center;gap:4px;color:var(--text2);background:var(--muted);transition:background .2s}
+.bottom-row button:active{background:var(--border)}
+.bottom-row button .bcount{font-size:11px;padding:1px 6px;border-radius:8px;background:var(--primary);color:#fff;font-weight:700}
+.bottom-row button .bcount.zero{background:#cbd5e1}
+.btn-players{background:linear-gradient(135deg,#e0e7ff,#c7d2fe)!important;color:#3730a3!important;border-left:3px solid #6366f1!important}
+.btn-queue{background:linear-gradient(135deg,#fce7f3,#fbcfe8)!important;color:#9d174d!important;border-left:3px solid #ec4899!important}
+.btn-stats{background:linear-gradient(135deg,#d1fae5,#a7f3d0)!important;color:#065f46!important;border-left:3px solid #10b981!important}
+.btn-settings{background:linear-gradient(135deg,#fef3c7,#fde68a)!important;color:#92400e!important;border-left:3px solid #f59e0b!important}
 
 /* Players panel */
 .section-title{font-size:16px;font-weight:700;margin:16px 0 8px;display:flex;align-items:center;justify-content:space-between}
@@ -250,47 +259,30 @@ select.setting-input{padding:6px 12px;border:2px solid var(--border);border-radi
 
 <header>
   <div class="header-top">
-    <h1>🏸 สนาม</h1>
+    <h1>🏸 สนาม <span class="badge">รอบ <span id="roundNumber">1</span></span></h1>
     <div class="court-ctrl">
       <button onclick="removeCourt()" title="ลดสนาม">−</button>
        <span id="courtCount">2</span>
       <button onclick="addCourt()" title="เพิ่มสนาม">+</button>
+      <button onclick="resetSession()" class="btn-icon" title="รีเซตรอบ (เก็บชื่อ+สถิติ)" style="margin-left:4px">♻️</button>
     </div>
   </div>
 </header>
 
 <main id="mainView">
-  <div class="collapse-section">
-    <div class="collapse-header head-players" onclick="toggleCollapse('Players')">
-      <span>👤 ผู้เล่น</span>
-      <span class="collapse-icon">▶</span>
-    </div>
-    <div id="collapsePlayers" class="collapse-body"></div>
-  </div>
-
-  <div class="collapse-section">
-    <div class="collapse-header head-queue" onclick="toggleCollapse('Queue')">
-      <span>👥 ตาราง</span>
-      <span style="display:flex;align-items:center;gap:6px;font-size:13px">
-        <span class="badge badge-primary">รอบ <span id="roundNumber">1</span></span>
-        <span id="queueCount" class="badge">0</span>
-        <button onclick="event.stopPropagation();shuffleQueue()" class="btn-icon" title="สับคิว">🔀</button>
-        <button onclick="event.stopPropagation();resetSession()" class="btn-icon" title="รีเซตรอบ (เก็บชื่อ+สถิติ)">♻️</button>
-      </span>
-      <span class="collapse-icon open">▶</span>
-    </div>
-    <div id="collapseQueue" class="collapse-body open">
-      <div id="queuePlayers" class="queue-players"></div>
-    </div>
-  </div>
-
   <div id="courtsContainer" class="courts"></div>
-
-  <div style="display:flex;gap:10px;margin:0 12px 10px">
-    <button onclick="openSheet('Stats')" style="flex:1;padding:12px;background:linear-gradient(135deg,#ecfdf5,#d1fae5);border:none;border-radius:var(--radius-sm);font-weight:600;font-size:14px;color:#065f46;display:flex;align-items:center;justify-content:center;gap:6px">📊 สถิติ</button>
-    <button onclick="openSheet('Settings')" style="flex:1;padding:12px;background:linear-gradient(135deg,#fffbeb,#fef3c7);border:none;border-radius:var(--radius-sm);font-weight:600;font-size:14px;color:#92400e;display:flex;align-items:center;justify-content:center;gap:6px">⚙️ ตั้งค่า</button>
-  </div>
 </main>
+
+<div class="bottom-bar">
+  <div class="bottom-row">
+    <button class="btn-players" onclick="openSheet('Players')">👤 ผู้เล่น <span id="playerCount" class="bcount zero" style="background:var(--primary)">0</span></button>
+    <button class="btn-queue" onclick="openSheet('Queue')">👥 ตาราง <span id="queueCount" class="bcount zero">0</span></button>
+  </div>
+  <div class="bottom-row">
+    <button class="btn-stats" onclick="openSheet('Stats')">📊 สถิติ</button>
+    <button class="btn-settings" onclick="openSheet('Settings')">⚙️ ตั้งค่า</button>
+  </div>
+</div>
 
 <div class="sheet-overlay" id="sheetOverlay" onclick="closeSheet()"></div>
 <div class="sheet" id="sheet">
@@ -335,7 +327,7 @@ function getDef() {
     roundPairs: {},
     roundSchedule: [],
     currentRound: 1,
-    settings: { gamesPerMatch: 2 }
+    settings: { gamesPerMatch: 2, courtColumns: 0, courtColor: '#2d8a4e' }
   };
 }
 
@@ -352,8 +344,10 @@ function migrate(d) {
     }
     d.nextCourtId = d.courts.length + 1;
   }
-  d.settings = d.settings || { gamesPerMatch: 2 };
+  d.settings = d.settings || { gamesPerMatch: 2, courtColumns: 0, courtColor: '#2d8a4e' };
   if (!d.settings.gamesPerMatch) d.settings.gamesPerMatch = 2;
+  if (d.settings.courtColumns === undefined) d.settings.courtColumns = 0;
+  if (!d.settings.courtColor) d.settings.courtColor = '#2d8a4e';
   d.roundPairs = d.roundPairs || {};
   d.roundSchedule = d.roundSchedule || [];
   d.currentRound = d.currentRound || 1;
@@ -419,8 +413,9 @@ function shuffle(arr) {
 
 // ===== QUEUE =====
 function syncQueueCount() {
+  const val = data.queue.length;
   const el = document.getElementById('queueCount');
-  if (el) el.textContent = data.queue.length;
+  if (el) { el.textContent = val; el.classList.toggle('zero', val === 0); }
 }
 
 function ejectFromCourts(name) {
@@ -443,6 +438,7 @@ function ejectFromCourts(name) {
 
 function removeFromQueue(name) {
   data.queue = data.queue.filter(p => p !== name);
+  data.pool[name] = false;
   ejectFromCourts(name);
   persist();
 }
@@ -455,12 +451,20 @@ function shuffleQueue() {
 }
 
 function startNewRound() {
+  // Clean stale Libero/null pairs from schedule
+  data.roundSchedule = data.roundSchedule.filter(p => p.p1 !== LIBERO && p.p2 !== LIBERO && p.p1 !== null && p.p2 !== null);
+
   const noRepeat = getPlayedPairKeys();
   data.currentRound++;
   data.roundPairs = {};
 
-  // Add Libero if odd queue count
-  const hadOdd = data.queue.length % 2 === 1;
+  // Count all active players (queue + schedule) to determine odd/even
+  const allActive = new Set(data.queue);
+  for (const p of data.roundSchedule) {
+    if (p.p1 !== null && p.p1 !== LIBERO) allActive.add(p.p1);
+    if (p.p2 !== null && p.p2 !== LIBERO) allActive.add(p.p2);
+  }
+  const hadOdd = allActive.size % 2 === 1;
   if (hadOdd) data.queue.push(LIBERO);
 
   // Step A: First 2 pairs from queue (rest time priority, no repeat)
@@ -802,12 +806,14 @@ function swapBoth(courtId) {
 
 // ===== PLAYERS =====
 function addMainPlayer() {
-  const input = document.getElementById('newPlayerInput');
+  const input = document.getElementById('newPlayerInputSheet') || document.getElementById('newPlayerInput');
+  if (!input) return;
   const name = (input.value || '').trim();
   if (!name) return;
   if (data.mainPlayers.includes(name)) { toast('มีชื่อนี้อยู่แล้ว'); return; }
   data.mainPlayers.push(name);
   data.pool[name] = true;
+  tryMatchLibero(name);
   if (!data.queue.includes(name)) data.queue.push(name);
   input.value = '';
   saveData();
@@ -815,7 +821,6 @@ function addMainPlayer() {
   renderPlayers();
   syncQueueCount();
   input.focus();
-  input.selectionStart = input.selectionEnd = input.value.length;
 }
 
 function removePlayer(name) {
@@ -824,7 +829,26 @@ function removePlayer(name) {
   delete data.pool[name];
   data.queue = data.queue.filter(p => p !== name);
   ejectFromCourts(name);
-  data.roundSchedule = data.roundSchedule.filter(p => p.p1 !== name && p.p2 !== name);
+  // Libero replacement in schedule
+  for (let i = 0; i < data.roundSchedule.length; i++) {
+    const p = data.roundSchedule[i];
+    if (p.p1 === name) { p.p1 = p.p2 === LIBERO ? null : LIBERO; break; }
+    if (p.p2 === name) { p.p2 = p.p1 === LIBERO ? null : LIBERO; break; }
+  }
+  // Consolidate Libero pairs
+  const liPlayers = [];
+  for (let i = 0; i < data.roundSchedule.length; i++) {
+    const p = data.roundSchedule[i];
+    if (p.p1 === LIBERO && p.p2 !== null && p.p2 !== LIBERO) liPlayers.push({ idx: i, player: p.p2 });
+    if (p.p2 === LIBERO && p.p1 !== null && p.p1 !== LIBERO) liPlayers.push({ idx: i, player: p.p1 });
+  }
+  while (liPlayers.length >= 2) {
+    const a = liPlayers.shift();
+    const b = liPlayers.shift();
+    data.roundSchedule[a.idx] = { p1: a.player, p2: b.player };
+    data.roundSchedule[b.idx] = { p1: null, p2: null };
+  }
+  data.roundSchedule = data.roundSchedule.filter(p => p.p1 !== null && p.p2 !== null);
   saveData();
   render();
   renderPlayers();
@@ -834,11 +858,35 @@ function removePlayer(name) {
 function togglePool(name) {
   data.pool[name] = !data.pool[name];
   if (data.pool[name]) {
-    if (!data.queue.includes(name) && !isInAnyCourt(name)) data.queue.push(name);
+    // Turn ON: put in schedule + queue so they can be matched and appear next round
+    if (!isInAnyCourt(name) && !isInSchedule(name)) {
+      tryMatchLibero(name);
+      if (!data.queue.includes(name)) data.queue.push(name);
+    }
   } else {
+    // Turn OFF: remove from queue, eject from courts, Libero replacement in schedule
     data.queue = data.queue.filter(p => p !== name);
     ejectFromCourts(name);
-    data.roundSchedule = data.roundSchedule.filter(p => p.p1 !== name && p.p2 !== name);
+    for (let i = 0; i < data.roundSchedule.length; i++) {
+      const p = data.roundSchedule[i];
+      if (p.p1 === name) { p.p1 = p.p2 === LIBERO ? null : LIBERO; break; }
+      if (p.p2 === name) { p.p2 = p.p1 === LIBERO ? null : LIBERO; break; }
+    }
+    // Consolidate Libero pairs: if 2+ real players each paired with Libero, pair them together
+    const liPlayers = [];
+    for (let i = 0; i < data.roundSchedule.length; i++) {
+      const p = data.roundSchedule[i];
+      if (p.p1 === LIBERO && p.p2 !== null && p.p2 !== LIBERO) liPlayers.push({ idx: i, player: p.p2 });
+      if (p.p2 === LIBERO && p.p1 !== null && p.p1 !== LIBERO) liPlayers.push({ idx: i, player: p.p1 });
+    }
+    while (liPlayers.length >= 2) {
+      const a = liPlayers.shift();
+      const b = liPlayers.shift();
+      data.roundSchedule[a.idx] = { p1: a.player, p2: b.player };
+      data.roundSchedule[b.idx] = { p1: null, p2: null };
+    }
+    // Clean null pairs
+    data.roundSchedule = data.roundSchedule.filter(p => p.p1 !== null && p.p2 !== null);
   }
   saveData();
   render();
@@ -852,12 +900,31 @@ function isInAnyCourt(name) {
   return false;
 }
 
+function isInSchedule(name) {
+  return data.roundSchedule && data.roundSchedule.some(p => p.p1 === name || p.p2 === name);
+}
+
+function tryMatchLibero(name) {
+  if (!data.roundSchedule || data.roundSchedule.length === 0) return false;
+  for (const p of data.roundSchedule) {
+    if (p.p1 === LIBERO && p.p2 !== null) { p.p1 = name; return true; }
+    if (p.p2 === LIBERO) { p.p2 = name; return true; }
+  }
+  data.roundSchedule.push({ p1: name, p2: LIBERO });
+  return true;
+}
+
 function addPoolToQueue() {
   let added = 0;
-  for (const p of data.mainPlayers)
-    if (data.pool[p] && !data.queue.includes(p)) { data.queue.push(p); added++; }
+  for (const p of data.mainPlayers) {
+    if (data.pool[p] && !data.queue.includes(p) && !isInSchedule(p)) {
+      tryMatchLibero(p);
+      if (!data.queue.includes(p)) data.queue.push(p);
+      added++;
+    }
+  }
   if (added === 0) { toast('ไม่มีคนเพิ่ม'); return; }
-  data.queue = shuffle(data.queue);
+  if (data.queue.length > 0) data.queue = shuffle(data.queue);
   persist();
   toast('เพิ่ม ' + added + ' คน');
 }
@@ -887,17 +954,6 @@ function resetSession() {
   renderPlayers();
   syncQueueCount();
   toast('🔄 รีเซตรอบเรียบร้อย');
-}
-
-// ===== COLLAPSE =====
-function toggleCollapse(name) {
-  const body = document.getElementById('collapse' + name);
-  if (!body) return;
-  const icon = body.parentElement.querySelector('.collapse-icon');
-  const isOpen = body.classList.toggle('open');
-  if (icon) icon.classList.toggle('open', isOpen);
-  if (!isOpen) return;
-  if (name === 'Players') renderPlayers();
 }
 
 // ===== STATS COMPUTATION =====
@@ -966,15 +1022,16 @@ function openSheet(name) {
   const sheet = document.getElementById('sheet');
   const title = document.getElementById('sheetTitle');
   const body = document.getElementById('sheetBody');
-  if (name === 'Stats') {
-    title.textContent = '📊 สถิติ';
-    body.style.padding = '0';
-    body.innerHTML = renderStatsContent();
-  } else {
-    title.textContent = '⚙️ ตั้งค่า';
-    body.style.padding = '';
-    body.innerHTML = renderSettingsContent();
-  }
+  const titles = { Players: '👤 ผู้เล่น', Queue: '👥 ตาราง', Stats: '📊 สถิติ', Settings: '⚙️ ตั้งค่า' };
+  const renderers = {
+    Players: renderPlayersSheetContent,
+    Queue: renderQueueSheetContent,
+    Stats: renderStatsContent,
+    Settings: renderSettingsContent
+  };
+  title.textContent = titles[name] || name;
+  body.style.padding = name === 'Settings' ? '' : '0';
+  body.innerHTML = (renderers[name] || (() => ''))();
   overlay.classList.add('open');
   sheet.classList.add('open');
   sheetContent = name;
@@ -1002,8 +1059,18 @@ function dragOver(e) {
   e.dataTransfer.dropEffect = 'move';
 }
 
+function dragEnter(e, idx) {
+  e.preventDefault();
+  if (dragIdx >= 0 && dragIdx !== idx) e.target.classList.add('drag-over');
+}
+
+function dragLeave(e) {
+  e.target.classList.remove('drag-over');
+}
+
 function dragDrop(e, toIdx) {
   e.preventDefault();
+  e.target.classList.remove('drag-over');
   document.querySelectorAll('.queue-chip.dragging').forEach(el => el.classList.remove('dragging'));
   if (dragIdx < 0 || dragIdx === toIdx) { dragIdx = -1; return; }
   const item = data.queue.splice(dragIdx, 1)[0];
@@ -1012,24 +1079,37 @@ function dragDrop(e, toIdx) {
   persist();
 }
 
+function dragEnd(e) {
+  e.target.classList.remove('dragging');
+  document.querySelectorAll('.queue-chip.drag-over').forEach(el => el.classList.remove('drag-over'));
+  dragIdx = -1;
+}
+
 function render() {
   renderCourts();
   renderQueue();
+  renderPlayers();
   renderCourtCount();
   renderRoundNumber();
+  applyCourtColor();
+}
+
+function applyCourtColor() {
+  document.documentElement.style.setProperty('--court-color', data.settings.courtColor || '#2d8a4e');
 }
 
 function renderRoundNumber() {
+  const val = data.currentRound || 1;
   const el = document.getElementById('roundNumber');
-  if (el) el.textContent = data.currentRound || 1;
+  if (el) el.textContent = val;
 }
 
 function renderQueueChips() {
   return '<div style="width:100%;margin-bottom:6px;display:flex;flex-wrap:wrap;gap:6px">' +
     data.queue.map((p, i) =>
-      '<span class="queue-chip" draggable="true" ondragstart="dragStart(event,' + i + ')" ondrop="dragDrop(event,' + i + ')" ondragover="dragOver(event)" data-idx="' + i + '">' +
+      '<span class="queue-chip" draggable="true" ondragstart="dragStart(event,' + i + ')" ondragenter="dragEnter(event,' + i + ')" ondragleave="dragLeave(event)" ondrop="dragDrop(event,' + i + ')" ondragover="dragOver(event)" ondragend="dragEnd(event)">' +
       escHtml(p) +
-      '<button class="remove" onclick="event.stopPropagation();removeFromQueue(\'' + jsStr(p) + '\')">✕</button></span>'
+      '<button class="remove" onclick="event.stopPropagation();togglePool(\'' + jsStr(p) + '\')">✕</button></span>'
     ).join('') +
     '</div>';
 }
@@ -1064,20 +1144,11 @@ function renderPairScoreTable() {
 }
 
 function renderQueue() {
-  const el = document.getElementById('queuePlayers');
-  if (!el) return;
-  if (data.queue.length === 0) {
-    el.innerHTML = '<div class="queue-empty">คิวว่าง — เพิ่มผู้เล่นจาก 👤</div>';
-    syncQueueCount();
-    return;
-  }
-
-  el.innerHTML =
-    renderQueueChips() +
-    renderQueueStatus() +
-    renderPairScoreTable();
-
   syncQueueCount();
+  if (sheetContent === 'Queue') {
+    const body = document.getElementById('sheetBody');
+    if (body) body.innerHTML = renderQueueSheetContent();
+  }
 }
 
 function showTeam(court, team) {
@@ -1092,38 +1163,45 @@ function showTeam(court, team) {
 function renderCourtBody(c, hasMatch) {
   const isPlaying = c.status === 'playing' && c.teamA.length === 2 && c.teamB.length === 2;
   if (isPlaying) {
-    const teamAStr = c.teamA.map(p => escHtml(p)).join('<span style="color:var(--text2);margin:0 4px">+</span>');
-    const teamBStr = c.teamB.map(p => escHtml(p)).join('<span style="color:var(--text2);margin:0 4px">+</span>');
-    return `
-      <div class="match-display">
-        <div class="team-box team-a" onclick="declareWinner(${c.id},'A')">
-          <div class="names">${teamAStr}</div>
-          <div class="tap-hint">👆 ชนะ</div>
-        </div>
-        <div class="vs-badge">VS</div>
-        <div class="team-box team-b" onclick="declareWinner(${c.id},'B')">
-          <div class="names">${teamBStr}</div>
-          <div class="tap-hint">👆 ชนะ</div>
-        </div>
-      </div>
-      <div class="court-swap-row">
-        <button class="court-swap-btn" onclick="swapBoth(${c.id})">🔄 เปลี่ยนคู่</button>
-      </div>`;
+    const limit = data.settings.gamesPerMatch || 2;
+    const pEntry = (p) => {
+      const n = (c.consecutive || {})[p];
+      return '<div class="p-entry">' +
+        '<span class="p-name">' + escHtml(p) + '</span>' +
+        (n !== undefined ? '<span class="consec">(' + n + '/' + limit + ')</span>' : '') +
+        '</div>';
+    };
+    return '<div class="court-floor">' +
+      '<div class="match-display">' +
+        '<div class="team-zone team-a" onclick="declareWinner(' + c.id + ',\'A\')">' +
+          pEntry(c.teamA[0]) + pEntry(c.teamA[1]) +
+        '</div>' +
+        '<div class="mid-col">' +
+          '<div class="vs-badge">VS</div>' +
+          '<button class="swap-btn" onclick="event.stopPropagation();swapBoth(' + c.id + ')">🔄</button>' +
+        '</div>' +
+        '<div class="team-zone team-b" onclick="declareWinner(' + c.id + ',\'B\')">' +
+          pEntry(c.teamB[0]) + pEntry(c.teamB[1]) +
+        '</div>' +
+      '</div></div>';
   }
   const hasTeamA = c.teamA.length > 0;
   const empty = hasTeamA
-    ? `<div class="court-waiting-msg">⏳ รอคู่: ${escHtml(c.teamA.join(' + '))}</div>`
+    ? `<div class="court-waiting-msg" style="color:rgba(255,255,255,.9);font-weight:600">⏳ รอคู่: ${escHtml(c.teamA.join(' + '))}</div>`
     : `<div class="court-empty-msg">🏟️ สนามว่าง</div>
        <div class="court-empty-sub">👥 คิว ${data.queue.length} คน</div>`;
   const disabled = data.queue.length < 4 || !hasMatch;
-  return `<div class="court-empty">${empty}
+  return `<div class="court-floor"><div class="court-empty">${empty}
     <button class="big-btn" onclick="fillCourt(${c.id})" ${disabled ? 'disabled' : ''}>👥 จัดผู้เล่น</button>
-  </div>`;
+  </div></div>`;
 }
 
 function renderCourts() {
   const el = document.getElementById('courtsContainer');
   if (!el) return;
+  const cols = data.settings.courtColumns || 0;
+  el.className = 'courts' + (cols === 0 ? ' cols-auto' : '');
+  el.style.gridTemplateColumns = cols > 0 ? 'repeat(' + cols + ',1fr)' : '';
   const noSchedule = !data.roundSchedule || data.roundSchedule.length === 0;
   const hasMatch = noSchedule || !!findScheduledMatch();
   el.innerHTML = data.courts.map(c => {
@@ -1142,10 +1220,22 @@ function renderCourts() {
 
 // ===== PLAYERS TAB =====
 function renderPlayers() {
-  const el = document.getElementById('collapsePlayers');
-  if (!el) return;
-  let h = '<div class="input-row">' +
-    '<input type="text" id="newPlayerInput" placeholder="ชื่อ..." onkeydown="if(event.key===\'Enter\')addMainPlayer()">' +
+  // Update player count badge
+  const countEl = document.getElementById('playerCount');
+  if (countEl) {
+    countEl.textContent = data.mainPlayers.length;
+    countEl.classList.toggle('zero', data.mainPlayers.length === 0);
+  }
+  if (sheetContent === 'Players') {
+    const body = document.getElementById('sheetBody');
+    if (body) body.innerHTML = renderPlayersSheetContent();
+  }
+}
+
+function renderPlayersSheetContent() {
+  let h = '<div style="padding:0 0 12px">' +
+    '<div class="input-row">' +
+    '<input type="text" id="newPlayerInputSheet" placeholder="ชื่อ..." onkeydown="if(event.key===\'Enter\')addMainPlayer()">' +
     '<button onclick="addMainPlayer()">เพิ่ม</button></div>';
   h += '<div class="section-title">ผู้เล่นหลัก <span style="font-size:13px;font-weight:400;color:var(--text2)">(' + data.mainPlayers.length + ')</span></div>';
   if (data.mainPlayers.length === 0) {
@@ -1160,7 +1250,27 @@ function renderPlayers() {
       </div>`;
     }
   }
-  el.innerHTML = h;
+  h += '<div class="action-bar">' +
+    '<button class="btn-primary" onclick="addPoolToQueue()">➕ เพิ่ม pool</button>' +
+    '<button class="btn-primary" onclick="clearQueue()">🧹 ล้างคิว</button>' +
+    '</div></div>';
+  return h;
+}
+
+function renderQueueSheetContent() {
+  const sitOut = data.roundSchedule && data.roundSchedule.some(p => p.p2 === null) ? ' · 1 คนพัก' : '';
+  let h = '<div style="padding:0 0 12px">' +
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">' +
+    '<span class="badge badge-primary">รอบ ' + data.currentRound + sitOut + '</span>' +
+    '<button onclick="shuffleQueue()" class="btn-icon" title="สับคิว">🔀</button>' +
+    '</div>';
+  if (data.queue.length === 0) {
+    h += '<div class="queue-empty">คิวว่าง</div>';
+  } else {
+    h += renderQueueChips() + renderQueueStatus() + renderPairScoreTable();
+  }
+  h += '</div>';
+  return h;
 }
 
 // ===== STATS DERIVATION =====
@@ -1346,15 +1456,31 @@ function renderStatsHistory() {
 // ===== SETTINGS =====
 function renderSettingsContent() {
   const s = data.settings;
-  const options = [1, 2, 3, 4, 5].map(n =>
+  const gameOpts = [1, 2, 3, 4, 5].map(n =>
     '<option value="' + n + '" ' + (s.gamesPerMatch === n ? 'selected' : '') + '>' + n + ' เกม</option>'
   ).join('');
+  const colOpts = [
+    { v: 0, l: 'อัตโนมัติ' },
+    { v: 1, l: '1 คอลัมน์' },
+    { v: 2, l: '2 คอลัมน์' },
+    { v: 3, l: '3 คอลัมน์' }
+  ].map(o => '<option value="' + o.v + '" ' + (s.courtColumns === o.v ? 'selected' : '') + '>' + o.l + '</option>').join('');
   return '<div class="settings-card">' +
       '<div class="setting-row">' +
         '<div><div class="setting-label">จำนวนเกม/คู่</div><div class="setting-desc">เล่นกี่เกมแล้วพัก</div></div>' +
         '<select class="setting-input" onchange="data.settings.gamesPerMatch=parseInt(this.value);saveData();render()">' +
-          options +
+          gameOpts +
         '</select>' +
+      '</div>' +
+      '<div class="setting-row">' +
+        '<div><div class="setting-label">แสดงสนาม</div><div class="setting-desc">จำนวนคอลัมน์บนจอกว้าง</div></div>' +
+        '<select class="setting-input" onchange="data.settings.courtColumns=parseInt(this.value);saveData();render()">' +
+          colOpts +
+        '</select>' +
+      '</div>' +
+      '<div class="setting-row">' +
+        '<div><div class="setting-label">สีพื้นสนาม</div><div class="setting-desc">คลิกเพื่อเปลี่ยน</div></div>' +
+        '<input type="color" class="setting-input" style="width:44px;height:32px;padding:2px;cursor:pointer" value="' + escHtml(s.courtColor || '#2d8a4e') + '" onchange="data.settings.courtColor=this.value;saveData();render()">' +
       '</div>' +
     '</div>' +
     '<div class="settings-card">' +
