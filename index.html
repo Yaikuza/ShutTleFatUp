@@ -805,7 +805,9 @@ function addMainPlayer() {
   if (data.mainPlayers.includes(name)) { toast('มีชื่อนี้อยู่แล้ว'); return; }
   data.mainPlayers.push(name);
   data.pool[name] = true;
-  if (!data.queue.includes(name)) data.queue.push(name);
+  if (!isInSchedule(name) && !tryMatchLibero(name)) {
+    if (!data.queue.includes(name)) data.queue.push(name);
+  }
   input.value = '';
   saveData();
   render();
@@ -820,7 +822,12 @@ function removePlayer(name) {
   delete data.pool[name];
   data.queue = data.queue.filter(p => p !== name);
   ejectFromCourts(name);
-  data.roundSchedule = data.roundSchedule.filter(p => p.p1 !== name && p.p2 !== name);
+  // Libero replacement in schedule
+  for (let i = 0; i < data.roundSchedule.length; i++) {
+    const p = data.roundSchedule[i];
+    if (p.p1 === name) { p.p1 = p.p2 === LIBERO ? null : LIBERO; break; }
+    if (p.p2 === name) { p.p2 = p.p1 === LIBERO ? null : LIBERO; break; }
+  }
   saveData();
   render();
   renderPlayers();
@@ -830,11 +837,29 @@ function removePlayer(name) {
 function togglePool(name) {
   data.pool[name] = !data.pool[name];
   if (data.pool[name]) {
-    if (!data.queue.includes(name) && !isInAnyCourt(name)) data.queue.push(name);
+    // Turn ON: try to match with Libero in schedule
+    if (!isInAnyCourt(name) && !isInSchedule(name)) {
+      if (!tryMatchLibero(name)) {
+        if (!data.queue.includes(name)) data.queue.push(name);
+      }
+    }
   } else {
+    // Turn OFF: remove from queue, eject from courts, Libero replacement in schedule
     data.queue = data.queue.filter(p => p !== name);
     ejectFromCourts(name);
-    data.roundSchedule = data.roundSchedule.filter(p => p.p1 !== name && p.p2 !== name);
+    for (let i = 0; i < data.roundSchedule.length; i++) {
+      const p = data.roundSchedule[i];
+      if (p.p1 === name) {
+        if (p.p2 === LIBERO) data.roundSchedule[i] = { p1: null, p2: null };
+        else p.p1 = LIBERO;
+        break;
+      }
+      if (p.p2 === name) {
+        if (p.p1 === LIBERO) data.roundSchedule[i] = { p1: null, p2: null };
+        else p.p2 = LIBERO;
+        break;
+      }
+    }
   }
   saveData();
   render();
@@ -848,12 +873,30 @@ function isInAnyCourt(name) {
   return false;
 }
 
+function isInSchedule(name) {
+  return data.roundSchedule && data.roundSchedule.some(p => p.p1 === name || p.p2 === name);
+}
+
+function tryMatchLibero(name) {
+  if (!data.roundSchedule || data.roundSchedule.length === 0) return false;
+  for (const p of data.roundSchedule) {
+    if (p.p1 === LIBERO && p.p2 !== null) { p.p1 = name; return true; }
+    if (p.p2 === LIBERO) { p.p2 = name; return true; }
+  }
+  data.roundSchedule.push({ p1: name, p2: LIBERO });
+  return true;
+}
+
 function addPoolToQueue() {
   let added = 0;
-  for (const p of data.mainPlayers)
-    if (data.pool[p] && !data.queue.includes(p)) { data.queue.push(p); added++; }
+  for (const p of data.mainPlayers) {
+    if (data.pool[p] && !data.queue.includes(p) && !isInSchedule(p)) {
+      if (!tryMatchLibero(p)) { data.queue.push(p); }
+      added++;
+    }
+  }
   if (added === 0) { toast('ไม่มีคนเพิ่ม'); return; }
-  data.queue = shuffle(data.queue);
+  if (data.queue.length > 0) data.queue = shuffle(data.queue);
   persist();
   toast('เพิ่ม ' + added + ' คน');
 }
@@ -1038,7 +1081,7 @@ function renderQueueChips() {
     data.queue.map((p, i) =>
       '<span class="queue-chip" draggable="true" ondragstart="dragStart(event,' + i + ')" ondragenter="dragEnter(event,' + i + ')" ondragleave="dragLeave(event)" ondrop="dragDrop(event,' + i + ')" ondragover="dragOver(event)" ondragend="dragEnd(event)">' +
       escHtml(p) +
-      '<button class="remove" onclick="event.stopPropagation();removeFromQueue(\'' + jsStr(p) + '\')">✕</button></span>'
+      '<button class="remove" onclick="event.stopPropagation();togglePool(\'' + jsStr(p) + '\')">✕</button></span>'
     ).join('') +
     '</div>';
 }
