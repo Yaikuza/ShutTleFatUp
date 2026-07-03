@@ -1045,7 +1045,7 @@ function renderPicker() {
   const body = document.getElementById('pickerBody');
   if (!body) return;
 
-  const allNames = [...data.mainPlayers];
+  const allNames = [...data.queue];
   const slot = (idx, team) => {
     const arr = team === 'A' ? picker.teamA : picker.teamB;
     const name = arr[idx];
