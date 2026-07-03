@@ -62,8 +62,8 @@ header h1{font-size:20px;font-weight:800;letter-spacing:-.3px}
 
 
 /* Courts */
-.courts{padding:0 12px 12px;display:grid;grid-template-columns:1fr;gap:10px}
-@media(min-width:640px){.courts{grid-template-columns:1fr 1fr}}
+.courts{padding:0 12px 12px;display:grid;gap:10px}
+@media(min-width:640px){.courts.cols-auto{grid-template-columns:1fr 1fr}}
 .court-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;animation:slideUp .25s ease;border-left:4px solid var(--border)}
 .court-card.status-playing{border-left-color:var(--warning)}
 .court-card.status-waiting.queue-full{border-left-color:var(--success)}
@@ -327,7 +327,7 @@ function getDef() {
     roundPairs: {},
     roundSchedule: [],
     currentRound: 1,
-    settings: { gamesPerMatch: 2 }
+    settings: { gamesPerMatch: 2, courtColumns: 0 }
   };
 }
 
@@ -344,8 +344,9 @@ function migrate(d) {
     }
     d.nextCourtId = d.courts.length + 1;
   }
-  d.settings = d.settings || { gamesPerMatch: 2 };
+  d.settings = d.settings || { gamesPerMatch: 2, courtColumns: 0 };
   if (!d.settings.gamesPerMatch) d.settings.gamesPerMatch = 2;
+  if (d.settings.courtColumns === undefined) d.settings.courtColumns = 0;
   d.roundPairs = d.roundPairs || {};
   d.roundSchedule = d.roundSchedule || [];
   d.currentRound = d.currentRound || 1;
@@ -1120,6 +1121,9 @@ function renderCourtBody(c, hasMatch) {
 function renderCourts() {
   const el = document.getElementById('courtsContainer');
   if (!el) return;
+  const cols = data.settings.courtColumns || 0;
+  el.className = 'courts' + (cols === 0 ? ' cols-auto' : '');
+  el.style.gridTemplateColumns = cols > 0 ? 'repeat(' + cols + ',1fr)' : '';
   const noSchedule = !data.roundSchedule || data.roundSchedule.length === 0;
   const hasMatch = noSchedule || !!findScheduledMatch();
   el.innerHTML = data.courts.map(c => {
@@ -1374,14 +1378,26 @@ function renderStatsHistory() {
 // ===== SETTINGS =====
 function renderSettingsContent() {
   const s = data.settings;
-  const options = [1, 2, 3, 4, 5].map(n =>
+  const gameOpts = [1, 2, 3, 4, 5].map(n =>
     '<option value="' + n + '" ' + (s.gamesPerMatch === n ? 'selected' : '') + '>' + n + ' เกม</option>'
   ).join('');
+  const colOpts = [
+    { v: 0, l: 'อัตโนมัติ' },
+    { v: 1, l: '1 คอลัมน์' },
+    { v: 2, l: '2 คอลัมน์' },
+    { v: 3, l: '3 คอลัมน์' }
+  ].map(o => '<option value="' + o.v + '" ' + (s.courtColumns === o.v ? 'selected' : '') + '>' + o.l + '</option>').join('');
   return '<div class="settings-card">' +
       '<div class="setting-row">' +
         '<div><div class="setting-label">จำนวนเกม/คู่</div><div class="setting-desc">เล่นกี่เกมแล้วพัก</div></div>' +
         '<select class="setting-input" onchange="data.settings.gamesPerMatch=parseInt(this.value);saveData();render()">' +
-          options +
+          gameOpts +
+        '</select>' +
+      '</div>' +
+      '<div class="setting-row">' +
+        '<div><div class="setting-label">แสดงสนาม</div><div class="setting-desc">จำนวนคอลัมน์บนจอกว้าง</div></div>' +
+        '<select class="setting-input" onchange="data.settings.courtColumns=parseInt(this.value);saveData();render()">' +
+          colOpts +
         '</select>' +
       '</div>' +
     '</div>' +
