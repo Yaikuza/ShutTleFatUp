@@ -80,14 +80,11 @@ header h1{font-size:20px;font-weight:800;letter-spacing:-.3px}
 
 /* Court floor */
 .court-floor{background:var(--court-color,#2d8a4e);border-radius:var(--radius-sm);padding:10px 12px;position:relative;overflow:hidden;aspect-ratio:13.4/6.1;display:flex;flex-direction:column;justify-content:center}
-.court-floor::before{content:'';position:absolute;inset:8px;border:2px solid rgba(255,255,255,.2);border-radius:2px;pointer-events:none}
-.court-floor::after{content:'';position:absolute;top:8px;bottom:8px;left:50%;width:2px;background:rgba(255,255,255,.35);transform:translateX(-50%);pointer-events:none}
+.court-floor{background-color:var(--court-color,#2d8a4e);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1340 610'%3E%3Cline x1='0' y1='46' x2='1340' y2='46' stroke='rgba(255,255,255,.35)' stroke-width='1.5'/%3E%3Cline x1='0' y1='564' x2='1340' y2='564' stroke='rgba(255,255,255,.35)' stroke-width='1.5'/%3E%3Cline x1='472' y1='0' x2='472' y2='610' stroke='rgba(255,255,255,.35)' stroke-width='1.5'/%3E%3Cline x1='868' y1='0' x2='868' y2='610' stroke='rgba(255,255,255,.35)' stroke-width='1.5'/%3E%3Cline x1='76' y1='0' x2='76' y2='610' stroke='rgba(255,255,255,.35)' stroke-width='1.5'/%3E%3Cline x1='1264' y1='0' x2='1264' y2='610' stroke='rgba(255,255,255,.35)' stroke-width='1.5'/%3E%3Cline x1='0' y1='305' x2='472' y2='305' stroke='rgba(255,255,255,.35)' stroke-width='1.5'/%3E%3Cline x1='868' y1='305' x2='1340' y2='305' stroke='rgba(255,255,255,.35)' stroke-width='1.5'/%3E%3Cline x1='670' y1='0' x2='670' y2='610' stroke='rgba(255,255,255,.5)' stroke-width='3'/%3E%3C/svg%3E");background-size:cover}
 .court-floor .match-display{display:flex;gap:4px;align-items:stretch;position:relative;z-index:1;flex:1}
-.court-floor .team-zone{flex:1;display:flex;flex-direction:column;gap:6px;padding:12px 8px;border-radius:var(--radius-sm);cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;position:relative;backdrop-filter:blur(4px);justify-content:center}
-.court-floor .team-zone.team-a{background:rgba(255,255,255,.12)}
-.court-floor .team-zone.team-a:active{background:rgba(255,255,255,.3)}
-.court-floor .team-zone.team-b{background:rgba(255,255,255,.12)}
-.court-floor .team-zone.team-b:active{background:rgba(255,255,255,.3)}
+.court-floor .team-zone{flex:1;display:grid;grid-template-rows:1fr auto 1fr;align-items:center;justify-items:center;padding:6px;border-radius:var(--radius-sm);cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;position:relative}
+.court-floor .team-zone.team-a:active{background:rgba(255,255,255,.15)}
+.court-floor .team-zone.team-b:active{background:rgba(255,255,255,.15)}
 .court-floor .team-zone .p-entry{text-align:center}
 .court-floor .team-zone .p-name{font-weight:700;font-size:18px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.35)}
 .court-floor .team-zone .consec{font-size:11px;color:rgba(255,255,255,.7);margin-left:4px}
@@ -97,6 +94,7 @@ header h1{font-size:20px;font-weight:800;letter-spacing:-.3px}
 .court-floor .vs-badge{background:rgba(255,255,255,.9);color:var(--court-color,#2d8a4e);width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;box-shadow:0 2px 4px rgba(0,0,0,.2);border:none;cursor:pointer;transition:transform .15s,box-shadow .15s}
 .court-floor .vs-badge:hover{transform:scale(1.08);box-shadow:0 4px 8px rgba(0,0,0,.25)}
 .court-floor .vs-badge:active{transform:scale(.95)}
+.court-floor .mid-game-label{font-size:11px;font-weight:600;color:rgba(255,255,255,.7);text-align:center;padding:2px 0}
 .court-floor .court-empty{color:rgba(255,255,255,.9);position:relative;z-index:1}
 .court-floor .court-empty-msg{font-size:16px;font-weight:600;color:#fff}
 .court-floor .court-empty-sub{font-size:13px;color:rgba(255,255,255,.7)}
@@ -1532,25 +1530,23 @@ function showTeam(court, team) {
 function renderCourtBody(c) {
   const isPlaying = c.status === 'playing' && c.teamA.length === 2 && c.teamB.length === 2;
   if (isPlaying) {
-    const limit = data.settings.gamesPerMatch || 2;
     const pEntry = (p) => {
-      const n = (c.consecutive || {})[p];
       return '<div class="p-entry">' +
         '<span class="p-name">' + escHtml(p) + '</span>' +
-        (n !== undefined ? '<span class="consec">(' + n + '/' + limit + ')</span>' : '') +
         '</div>';
     };
+    const gameLabelA = '<div class="mid-game-label">เกม' + ((data.roundPairs[key(c.teamA[0], c.teamA[1])] || 0) + 1) + '</div>';
+    const gameLabelB = '<div class="mid-game-label">เกม' + ((data.roundPairs[key(c.teamB[0], c.teamB[1])] || 0) + 1) + '</div>';
     return '<div class="court-floor">' +
       '<div class="match-display">' +
         '<div class="team-zone team-a" onclick="declareWinner(' + c.id + ',\'A\')">' +
-          pEntry(c.teamA[0]) + pEntry(c.teamA[1]) +
+          pEntry(c.teamA[0]) + gameLabelA + pEntry(c.teamA[1]) +
         '</div>' +
         '<div class="mid-col">' +
           '<button class="vs-badge" onclick="event.stopPropagation();openCustomMatchPicker(' + c.id + ')" title="เลือกคู่เอง">VS</button>' +
-          '<button class="swap-btn" onclick="event.stopPropagation();swapBoth(' + c.id + ')">🔄</button>' +
         '</div>' +
         '<div class="team-zone team-b" onclick="declareWinner(' + c.id + ',\'B\')">' +
-          pEntry(c.teamB[0]) + pEntry(c.teamB[1]) +
+          pEntry(c.teamB[0]) + gameLabelB + pEntry(c.teamB[1]) +
         '</div>' +
       '</div></div>';
   }
