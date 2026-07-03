@@ -879,47 +879,8 @@ async function declareWinner(courtId, winner) {
     return;
   }
 
-  // No opponents available from schedule (with exclude)
-  // Winner-stays: first try to find any valid pair from schedule (without exclude)
-  let newOpp = null;
-  let fromSchedule = false;
-  if (data.roundSchedule) {
-    const limit = data.settings.gamesPerMatch || 2;
-    const qSet = new Set(data.queue);
-    for (const p of data.roundSchedule) {
-      if (!p.p1 || !p.p2) continue;
-      if (p.p1 === winTeam[0] || p.p1 === winTeam[1]) continue;
-      if (p.p2 === winTeam[0] || p.p2 === winTeam[1]) continue;
-      if (!qSet.has(p.p1) || !qSet.has(p.p2)) continue;
-      if ((data.roundPairs[key(p.p1, p.p2)] || 0) >= limit) continue;
-      newOpp = [p.p1, p.p2];
-      fromSchedule = true;
-      break;
-    }
-  }
-  // Fallback: create random pair from queue
-  if (!newOpp) {
-    const avail = data.queue.filter(p => p !== LIBERO);
-    if (avail.length >= 2) {
-      const shuffled = shuffle(avail);
-      newOpp = [shuffled[0], shuffled[1]];
-    }
-  }
-  if (newOpp) {
-    if (winner === 'A') {
-      court.teamB = newOpp;
-    } else {
-      court.teamA = newOpp;
-    }
-    court.status = 'playing';
-    court.startedRound = data.currentRound;
-    data.queue = data.queue.filter(p => !newOpp.includes(p));
-    if (!fromSchedule) data.roundSchedule.push({ p1: newOpp[0], p2: newOpp[1] });
-    persist();
-    toast('⏳ ' + winTeam.join('+') + ' vs ' + newOpp.join('+'));
-    return;
-  }
-  // Not enough players — both teams to queue
+  // No opponents available — fill schedule gaps, then send winners to queue too
+  if (data.queue.length >= 2) pairRemainingQueueIntoSchedule();
   for (const p of winTeam) if (p !== LIBERO && !data.queue.includes(p)) data.queue.push(p);
   court.teamA = []; court.teamB = []; court.status = 'waiting'; court.consecutive = {};
   persist();
