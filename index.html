@@ -49,6 +49,8 @@ header h1{font-size:20px;font-weight:800;letter-spacing:-.3px}
 
 /* Queue */
 .badge{background:var(--gradient);color:#fff;font-size:12px;padding:2px 10px;border-radius:10px;font-weight:600}
+.badge-empty{background:#94a3b8;font-size:11px;padding:1px 8px}
+.badge-waiting{background:var(--warning);font-size:11px;padding:1px 8px}
 .badge-primary{background:var(--primary-light)}
 .queue-players{display:flex;flex-wrap:wrap;gap:8px;min-height:36px;padding:4px 0}
 .queue-chip{display:inline-flex;align-items:center;gap:6px;background:var(--chip-bg);color:var(--primary);padding:4px 10px;border-radius:18px;font-size:13px;font-weight:500;white-space:nowrap;cursor:grab;transition:box-shadow .2s,transform .2s;user-select:none}
@@ -76,7 +78,6 @@ header h1{font-size:20px;font-weight:800;letter-spacing:-.3px}
 .court-empty .big-btn{display:block;width:100%;max-width:260px;margin:10px auto 0;padding:14px;background:var(--gradient);color:#fff;border:none;border-radius:var(--radius-sm);font-size:16px;font-weight:600;box-shadow:0 2px 8px rgba(99,102,241,.25)}
 .court-empty .big-btn:disabled{background:#94a3b8;opacity:.6;box-shadow:none}
 .court-empty .big-btn:not(:disabled):active{opacity:.9}
-.court-empty-msg{font-size:14px;margin-bottom:4px;font-weight:500}
 .court-empty-sub{font-size:12px;color:var(--text2);margin-bottom:10px}
 .court-waiting-msg{font-size:14px;margin-bottom:8px;font-weight:500}
 
@@ -96,7 +97,6 @@ header h1{font-size:20px;font-weight:800;letter-spacing:-.3px}
 .court-floor .vs-badge:active{transform:scale(.95)}
 .court-floor .mid-game-label{font-size:11px;font-weight:600;color:rgba(255,255,255,.7);text-align:center;padding:2px 0}
 .court-floor .court-empty{color:rgba(255,255,255,.9);position:relative;z-index:1}
-.court-floor .court-empty-msg{font-size:16px;font-weight:600;color:#fff}
 .court-floor .court-empty-sub{font-size:13px;color:rgba(255,255,255,.7)}
 .court-floor .big-btn{background:rgba(255,255,255,.9)!important;color:var(--court-color,#2d8a4e)!important;box-shadow:0 2px 8px rgba(0,0,0,.2)!important;border:none!important}
 .court-floor .big-btn:not(:disabled):active{opacity:.85}
@@ -1525,8 +1525,7 @@ function renderCourtBody(c) {
   const hasTeamA = c.teamA.length > 0;
   const empty = hasTeamA
     ? `<div class="court-waiting-msg" style="color:rgba(255,255,255,.9);font-weight:600">⏳ รอคู่: ${escHtml(c.teamA.join(' + '))}</div>`
-    : `<div class="court-empty-msg">🏟️ สนามว่าง</div>
-       <div class="court-empty-sub">👥 คิว ${data.queue.length} คน</div>`;
+    : `<div class="court-empty-sub">👥 คิว ${data.queue.length} คน</div>`;
   // Auto-fill is only blocked when queue has < 4 players. Otherwise, fillCourt
   // can either find a scheduled match OR ad-hoc pair the remaining queue.
   const disabled = data.queue.length < 4;
@@ -1552,7 +1551,10 @@ function renderCourts() {
     else if (data.queue.length >= 4 && hasMatch) cls += ' status-waiting queue-full';
     return `<div class="${cls}">
       <div class="court-header">
-        <span class="court-title">🏟️ สนาม ${c.id}</span>
+        <span class="court-title">🏟️ สนาม ${c.id}
+          ${c.status === 'waiting' && c.teamA.length === 0 ? '<span class="badge badge-empty">ว่าง</span>' : ''}
+          ${c.status === 'waiting' && c.teamA.length > 0 ? '<span class="badge badge-waiting">รอคู่</span>' : ''}
+        </span>
         ${c.status === 'playing' ? '<button class="court-header-btn" onclick="swapBoth(' + c.id + ')" title="เปลี่ยนคู่ใหม่">🔄</button>' : ''}
       </div>
       <div class="court-body">${renderCourtBody(c)}</div>
