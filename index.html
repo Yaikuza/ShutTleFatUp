@@ -840,12 +840,6 @@ async function declareWinner(courtId, winner) {
   // Both at limit → court vacant
   if (winAtLimit && loseAtLimit) {
     court.teamA = []; court.teamB = []; court.status = 'waiting'; court.consecutive = {};
-    // Remove these pairs from schedule so findScheduledMatch won't re-suggest them
-    data.roundSchedule = data.roundSchedule.filter(p => {
-      if (!p.p1 || !p.p2) return false;
-      const k = key(p.p1, p.p2);
-      return k !== key(winTeam[0], winTeam[1]) && k !== key(loseTeam[0], loseTeam[1]);
-    });
     saveData(); render(); syncQueueCount();
     await fillCourt(courtId);
     return;
@@ -883,17 +877,30 @@ async function declareWinner(courtId, winner) {
     return;
   }
 
-  // No opponents available
+  // No opponents available from schedule
+  // Winner-stays: keep winners on court, create ad-hoc opponents from queue
+  const avail = data.queue.filter(p => p !== LIBERO);
+  if (avail.length >= 2) {
+    const shuffled = shuffle(avail);
+    const newOpp = [shuffled[0], shuffled[1]];
+    if (winner === 'A') {
+      court.teamB = newOpp;
+    } else {
+      court.teamA = newOpp;
+    }
+    court.status = 'playing';
+    court.startedRound = data.currentRound;
+    data.queue = data.queue.filter(p => !newOpp.includes(p));
+    data.roundSchedule.push({ p1: newOpp[0], p2: newOpp[1] });
+    persist();
+    toast('⏳ ' + winTeam.join('+') + ' vs ' + newOpp.join('+'));
+    return;
+  }
+  // Not enough players — both teams to queue
   for (const p of winTeam) if (p !== LIBERO && !data.queue.includes(p)) data.queue.push(p);
   court.teamA = []; court.teamB = []; court.status = 'waiting'; court.consecutive = {};
-  // Remove these pairs from schedule so findScheduledMatch won't re-suggest them
-  data.roundSchedule = data.roundSchedule.filter(p => {
-    if (!p.p1 || !p.p2) return false;
-    const k = key(p.p1, p.p2);
-    return k !== key(winTeam[0], winTeam[1]) && k !== key(loseTeam[0], loseTeam[1]);
-  });
-  saveData(); render();
-  await fillCourt(courtId);
+  persist();
+  await checkAndAutoRound();
 }
 
 async function swapBoth(courtId) {
