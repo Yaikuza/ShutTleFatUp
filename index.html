@@ -451,6 +451,9 @@ function shuffleQueue() {
 }
 
 function startNewRound() {
+  // Clean stale Libero/null pairs from schedule
+  data.roundSchedule = data.roundSchedule.filter(p => p.p1 !== LIBERO && p.p2 !== LIBERO && p.p1 !== null && p.p2 !== null);
+
   const noRepeat = getPlayedPairKeys();
   data.currentRound++;
   data.roundPairs = {};
