@@ -840,6 +840,12 @@ async function declareWinner(courtId, winner) {
   // Both at limit → court vacant
   if (winAtLimit && loseAtLimit) {
     court.teamA = []; court.teamB = []; court.status = 'waiting'; court.consecutive = {};
+    // Remove these pairs from schedule so findScheduledMatch won't re-suggest them
+    data.roundSchedule = data.roundSchedule.filter(p => {
+      if (!p.p1 || !p.p2) return false;
+      const k = key(p.p1, p.p2);
+      return k !== key(winTeam[0], winTeam[1]) && k !== key(loseTeam[0], loseTeam[1]);
+    });
     saveData(); render(); syncQueueCount();
     await fillCourt(courtId);
     return;
@@ -880,6 +886,12 @@ async function declareWinner(courtId, winner) {
   // No opponents available
   for (const p of winTeam) if (p !== LIBERO && !data.queue.includes(p)) data.queue.push(p);
   court.teamA = []; court.teamB = []; court.status = 'waiting'; court.consecutive = {};
+  // Remove these pairs from schedule so findScheduledMatch won't re-suggest them
+  data.roundSchedule = data.roundSchedule.filter(p => {
+    if (!p.p1 || !p.p2) return false;
+    const k = key(p.p1, p.p2);
+    return k !== key(winTeam[0], winTeam[1]) && k !== key(loseTeam[0], loseTeam[1]);
+  });
   saveData(); render();
   await fillCourt(courtId);
 }
