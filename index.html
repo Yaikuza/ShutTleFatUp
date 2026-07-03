@@ -697,6 +697,8 @@ async function checkAndAutoRound() {
   if (data.queue.length < 4) return;
   if (!data.courts.some(c => c.status !== 'playing')) return;
   if (findScheduledMatch()) return;
+  // ถ้ายังมีสนามอื่นกำลังเล่นอยู่ → รอให้จบก่อน อย่าเพิ่งถามจัดรอบใหม่
+  if (data.courts.some(c => c.status === 'playing')) return;
   if (await confirmDialog('🏸 ตารางจัดคู่ต่อไม่ได้แล้ว\n🔄 จัดตารางรอบใหม่?')) {
     startNewRound();
   }
