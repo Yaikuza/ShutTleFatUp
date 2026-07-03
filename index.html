@@ -869,7 +869,7 @@ async function declareWinner(courtId, winner) {
 
   // Winners at limit, losers not → losers stay
   if (winAtLimit) {
-    court.teamA = [...loseTeam]; court.teamB = []; court.status = 'waiting'; court.consecutive = {};
+    if (winner === 'A') { court.teamB = [...loseTeam]; court.teamA = []; } else { court.teamA = [...loseTeam]; court.teamB = []; } court.status = 'waiting'; court.consecutive = {};
     const next = findScheduledOpponents(loseTeam, null);
     if (next) {
       court.teamB = next;
