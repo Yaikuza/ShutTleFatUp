@@ -53,9 +53,35 @@
 - `feat/vs-picker` → master
 - `fix/bugs` → master
 
+### Mobile Optimization (`polish` — 13 Jul 2026)
+- Touch targets 48px (mobile) / 36px (desktop), min 44px for icon buttons
+- iOS Safe Area support (env safe-area-inset)
+- Prevent iOS long-press context menu (-webkit-touch-callout)
+- Debounced localStorage save (300ms debounce, immediate flag)
+- GPU acceleration (will-change, translateZ(0))
+- Scroll lock bottom sheets (body fixed on open)
+- Smooth scrolling + 100dvh (with @supports fallback)
+- Focus visible outlines for accessibility
+- Haptic feedback (navigator.vibrate)
+- Loading spinner on fillCourt
+- Long-press reorder popup (⬆️/⬇️ for mobile, 500ms hold)
+- HTML5 Drag API for desktop queue reorder (unchanged)
+- Chip padding increased on mobile (8px 14px, font 15px)
+
 ## Current state
-- Branch: master (clean)
+- Branch: `polish` (based on master, unmerged)
 - Functions as async: `fillCourt`, `declareWinner`, `swapBoth`, `openCustomMatchPicker`, `removePlayer`, `resetSession`, `deleteAllData`, `checkAndAutoRound`
+
+## Minor findings (from code review 13 Jul 2026)
+
+### 1. VS badge 48px ไม่มี desktop fallback
+`.court-floor .vs-badge` ถูกเปลี่ยนเป็น 48px ถาวร — บน desktop ใหญ่เกิน ควรเพิ่ม @media(min-width:768px) ให้กลับ 36px
+
+### 2. Loading overlay หายตอน persist → render
+showLoading append overlay แล้ว persist() เรียก render() ซึ่ง recreate DOM ทั้ง court card → overlay หาย hideLoading หาไม่เจอ (silent fail) — ไม่เสีย logic แต่ spinner อาจไม่แสดงถึงตอนจบ
+
+### 3. saveData(true) ไม่ clear pending debounce
+saveData() (debounce) → saveData(true) (immediate) — pending timer ยังอยู่ แต่ fire แล้ว JSON.stringify(data) ที่ ref เดียวกัน → ไม่เสีย data แค่ redundant
 
 ## Next session priorities
 
