@@ -62,19 +62,30 @@
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{font-size:16px;-webkit-text-size-adjust:100%}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;min-height:100dvh;overflow-x:hidden}
+@supports not (height: 1dvh) { body { min-height: 100vh; } }
 button{touch-action:manipulation;cursor:pointer;-webkit-tap-highlight-color:transparent}
 input,button{font-size:inherit;font-family:inherit}
+/* Focus visible */
+button:focus-visible, .queue-chip:focus-visible, .picker-chip:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; z-index: 10; }
+input:focus-visible, select:focus-visible { outline: 3px solid var(--primary); outline-offset: 0; }
+/* iOS safe area */
+@supports (padding: env(safe-area-inset-top)) { body { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); } header { padding-top: calc(14px + env(safe-area-inset-top)); } .bottom-bar { padding-bottom: calc(12px + env(safe-area-inset-bottom)); } main { padding-bottom: calc(130px + env(safe-area-inset-bottom)); } }
+/* Prevent long-press context menu on iOS */
+* { -webkit-touch-callout: none; }
+input, textarea { -webkit-touch-callout: default; }
+button, .queue-chip, .court-floor, .picker-chip { -webkit-user-select: none; user-select: none; }
 
 /* Header */
 header{background:var(--gradient);color:#fff;padding:14px 16px;position:sticky;top:0;z-index:10;box-shadow:0 2px 12px rgba(99,102,241,.3)}
 .header-top{display:flex;align-items:center;justify-content:space-between}
 header h1{font-size:20px;font-weight:800;letter-spacing:-.3px}
 .court-ctrl{display:flex;align-items:center;gap:8px}
-.court-ctrl button{background:rgba(255,255,255,.2);border:none;color:#fff;width:36px;height:36px;border-radius:50%;font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.court-ctrl button{background:rgba(255,255,255,.2);border:none;color:#fff;width:48px;height:48px;min-width:48px;min-height:48px;border-radius:50%;font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+@media(min-width:768px){.court-ctrl button{width:36px;height:36px;min-width:36px;min-height:36px}}
 .court-ctrl button:active{background:rgba(255,255,255,.35)}
 .court-ctrl span{font-weight:700;font-size:18px;min-width:20px;text-align:center}
-.btn-icon{background:none;border:none;font-size:22px;padding:6px;border-radius:8px;line-height:1}
+.btn-icon{background:none;border:none;font-size:22px;padding:8px;border-radius:8px;line-height:1;min-width:44px;min-height:44px}
 .btn-icon:active{background:rgba(0,0,0,.08)}
 
 /* Queue */
@@ -82,10 +93,11 @@ header h1{font-size:20px;font-weight:800;letter-spacing:-.3px}
 .badge-empty{background:#94a3b8;font-size:11px;padding:1px 8px}
 .badge-waiting{background:var(--warning);font-size:11px;padding:1px 8px}
 .badge-primary{background:var(--primary-light)}
-.queue-chip{display:inline-flex;align-items:center;gap:6px;background:var(--chip-bg);color:var(--primary);padding:4px 10px;border-radius:18px;font-size:13px;font-weight:500;white-space:nowrap;cursor:grab;transition:box-shadow .2s,transform .2s;user-select:none}
-.queue-chip:active{cursor:grabbing;box-shadow:var(--shadow-lg);transform:scale(1.05)}
-.queue-chip.dragging{opacity:.4}
-.queue-chip.drag-over{box-shadow:0 0 0 2px var(--primary);transform:translateY(-2px)}
+.queue-chip{display:inline-flex;align-items:center;gap:6px;background:var(--chip-bg);color:var(--primary);padding:4px 10px;border-radius:18px;font-size:13px;font-weight:500;white-space:nowrap;cursor:grab;transition:box-shadow .2s,transform .2s;user-select:none;will-change:transform;transform:translateZ(0);backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.queue-chip:active{cursor:grabbing;box-shadow:var(--shadow-lg);transform:scale(1.05) translateZ(0)}
+.queue-chip.dragging{opacity:.6;box-shadow:var(--shadow-lg);transform:scale(1.03) translateZ(0)}
+@media(max-width:767px){.queue-chip{padding:8px 14px;font-size:15px;gap:8px}}
+.queue-chip.drag-over{box-shadow:0 0 0 2px var(--primary);transform:translateY(-2px) translateZ(0)}
 .queue-chip .remove{background:none;border:none;color:#94a3b8;font-size:16px;padding:0 2px;line-height:1;cursor:pointer}
 .queue-chip .remove:active{color:var(--danger)}
 .queue-empty{color:var(--text2);font-size:13px;padding:4px 0}
@@ -100,7 +112,7 @@ header h1{font-size:20px;font-weight:800;letter-spacing:-.3px}
 .court-card.status-waiting.queue-full{border-left-color:var(--success)}
 .court-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px 8px}
 .court-title{font-weight:700;font-size:16px;display:flex;align-items:center;gap:8px}
-.court-header-btn{background:none;border:none;font-size:18px;padding:4px 8px;border-radius:8px;cursor:pointer;color:var(--text2);transition:background .15s}
+.court-header-btn{background:none;border:none;font-size:18px;padding:8px;border-radius:8px;cursor:pointer;color:var(--text2);transition:background .15s;min-width:44px;min-height:44px}
 .court-header-btn:active{background:var(--muted)}
 .court-body{padding:0 14px 14px}
 .court-empty{text-align:center;padding:16px 0;color:var(--text2)}
@@ -120,7 +132,7 @@ header h1{font-size:20px;font-weight:800;letter-spacing:-.3px}
 .court-floor .team-zone .p-entry{text-align:center}
 .court-floor .team-zone .p-name{font-weight:700;font-size:18px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.35)}
 .court-floor .mid-col{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2px 4px;flex-shrink:0;gap:10px}
-.court-floor .vs-badge{background:rgba(255,255,255,.9);color:var(--court-color,#2d8a4e);width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;box-shadow:0 2px 4px rgba(0,0,0,.2);border:none;cursor:pointer;transition:transform .15s,box-shadow .15s}
+.court-floor .vs-badge{background:rgba(255,255,255,.9);color:var(--court-color,#2d8a4e);width:48px;height:48px;min-width:48px;min-height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;box-shadow:0 2px 4px rgba(0,0,0,.2);border:none;cursor:pointer;transition:transform .15s,box-shadow .15s}
 .court-floor .vs-badge:hover{transform:scale(1.08);box-shadow:0 4px 8px rgba(0,0,0,.25)}
 .court-floor .vs-badge:active{transform:scale(.95)}
 .court-floor .mid-game-label{font-size:11px;font-weight:600;color:rgba(255,255,255,.7);text-align:center;padding:2px 0}
@@ -182,11 +194,12 @@ main{padding-bottom:130px}
 .q-next-btn{margin-top:6px;width:100%;padding:10px;border:none;border-radius:var(--radius-sm);font-weight:600;font-size:14px;background:var(--primary);color:#fff}
 /* Stats panel */
 /* Stats scroll-snap */
-.stats-layout{display:flex;flex-direction:column;height:calc(85vh - 70px)}
+.stats-layout{display:flex;flex-direction:column;height:calc(85vh - 70px);height:calc(85dvh - 70px)}
+@supports not (height: 1dvh) { .stats-layout { height: calc(85vh - 70px); } }
 .stats-tabs{display:flex;gap:6px;padding:12px 16px;flex-shrink:0}
 .stats-tabs button{flex:1;padding:8px 6px;border:none;border-radius:8px;background:var(--muted);font-weight:600;font-size:13px;color:var(--text2);transition:all .2s}
 .stats-tabs button.active{background:var(--primary);color:#fff}
-.stats-scroll{flex:1;min-height:0;display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.stats-scroll{flex:1;min-height:0;display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;scroll-behavior:smooth}
 .stats-scroll::-webkit-scrollbar{display:none}
 .stats-panel{flex:0 0 100%;scroll-snap-align:start;overflow-y:auto;padding:0 16px 20px}
 
@@ -249,11 +262,11 @@ select.setting-input{padding:6px 12px;border:2px solid var(--border);border-radi
 /* Bottom sheet */
 .sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;opacity:0;pointer-events:none;transition:opacity .3s}
 .sheet-overlay.open{opacity:1;pointer-events:auto}
-.sheet{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-radius:var(--radius) var(--radius) 0 0;z-index:101;transform:translateY(100%);transition:transform .35s cubic-bezier(.32,.72,0,1);max-height:85vh;overflow-y:auto;box-shadow:var(--shadow-lg)}
-.sheet.open{transform:translateY(0)}
+.sheet{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-radius:var(--radius) var(--radius) 0 0;z-index:101;transform:translateY(100%);transition:transform .35s cubic-bezier(.32,.72,0,1);max-height:85vh;overflow-y:auto;box-shadow:var(--shadow-lg);will-change:transform;backface-visibility:hidden;-webkit-backface-visibility:hidden;-webkit-overflow-scrolling:touch;scroll-behavior:smooth}
+.sheet.open{transform:translateY(0) translateZ(0)}
 .sheet-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:10px auto}
 .sheet-header{padding:0 20px 12px;display:flex;align-items:center;justify-content:space-between;font-weight:700;font-size:17px}
-.sheet-close{background:none;border:none;font-size:20px;color:var(--text2);padding:4px}
+.sheet-close{background:none;border:none;font-size:20px;color:var(--text2);padding:8px;min-width:44px;min-height:44px}
 .sheet-body{padding:0 20px 20px}
 
 /* VS Picker */
@@ -266,9 +279,9 @@ select.setting-input{padding:6px 12px;border:2px solid var(--border);border-radi
 .picker-slot.filled{border-style:solid;border-color:var(--primary);color:var(--text);background:var(--chip-bg)}
 .picker-slot.team-b-filled{border-color:var(--danger);background:#fee2e2;color:var(--text)}
 .picker-pool-title{font-size:13px;font-weight:600;margin-bottom:8px;color:var(--text2)}
-.picker-pool{display:flex;flex-wrap:wrap;gap:6px;max-height:240px;overflow-y:auto;padding:4px 0}
-.picker-chip{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:6px 12px;font-size:13px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .15s;user-select:none}
-.picker-chip:active{transform:scale(.95)}
+.picker-pool{display:flex;flex-wrap:wrap;gap:6px;max-height:240px;overflow-y:auto;padding:4px 0;-webkit-overflow-scrolling:touch;scroll-behavior:smooth}
+.picker-chip{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:6px 12px;font-size:13px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .15s;user-select:none;will-change:transform;transform:translateZ(0);backface-visibility:hidden}
+.picker-chip:active{transform:scale(.95) translateZ(0)}
 .picker-chip.in-a{background:var(--primary);color:#fff;border-color:var(--primary)}
 .picker-chip.in-b{background:var(--danger);color:#fff;border-color:var(--danger)}
 .picker-chip.disabled{opacity:.4;cursor:not-allowed;background:var(--muted)}
@@ -283,7 +296,7 @@ select.setting-input{padding:6px 12px;border:2px solid var(--border);border-radi
 .picker-page{display:none;animation:fadeIn .2s ease}
 .picker-page.active{display:block}
 @keyframes fadeIn{from{opacity:0;transform:translateX(8px)}to{opacity:1;transform:translateX(0)}}
-.picker-pair-list{display:flex;flex-direction:column;gap:8px;max-height:280px;overflow-y:auto;padding:4px 0}
+.picker-pair-list{display:flex;flex-direction:column;gap:8px;max-height:280px;overflow-y:auto;padding:4px 0;-webkit-overflow-scrolling:touch;scroll-behavior:smooth}
 .picker-pair{background:var(--card);border:2px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;transition:all .15s;user-select:none}
 .picker-pair:active{transform:scale(.98)}
 .picker-pair.in-a{border-color:var(--primary);background:var(--chip-bg)}
@@ -300,6 +313,20 @@ select.setting-input{padding:6px 12px;border:2px solid var(--border);border-radi
 .picker-footer .picker-confirm{background:var(--gradient);color:#fff;opacity:.5;pointer-events:none}
 .picker-footer .picker-confirm.ready{opacity:1;pointer-events:auto}
 .picker-footer .picker-clear{background:var(--bg);color:var(--text2);flex:0 0 auto;padding:10px 14px}
+
+/* Move popup */
+.move-popup{position:fixed;z-index:250;background:var(--card);border-radius:var(--radius-sm);box-shadow:var(--shadow-lg);padding:8px;min-width:140px;animation:slideUp .15s ease}
+.move-popup-title{font-size:13px;font-weight:700;text-align:center;padding:4px 8px 8px;color:var(--text);border-bottom:1px solid var(--border);margin-bottom:6px}
+.move-popup-actions{display:flex;gap:4px}
+.move-popup-actions button{flex:1;padding:10px 6px;border:none;border-radius:8px;font-size:13px;font-weight:600;background:var(--muted);color:var(--text2)}
+.move-popup-actions button:active{background:var(--primary);color:#fff}
+.move-popup-actions button:disabled{opacity:.3}
+.move-popup-close{width:100%;margin-top:6px;padding:8px;border:none;border-radius:8px;font-size:12px;font-weight:600;background:var(--bg);color:var(--text2)}
+
+/* Loading */
+.loading-overlay{position:absolute;inset:0;background:rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;z-index:50;backdrop-filter:blur(2px);border-radius:var(--radius-sm)}
+.spinner{width:40px;height:40px;border:4px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 
 /* Toast & Confirm */
 .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;padding:10px 20px;border-radius:var(--radius-sm);font-size:14px;font-weight:500;z-index:200;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;box-shadow:var(--shadow-lg)}
@@ -450,7 +477,25 @@ function loadData() {
   return getDef();
 }
 
-function saveData() { localStorage.setItem(SK, JSON.stringify(data)); }
+let _saveTimeout = null;
+function saveData(immediate) {
+  if (immediate) {
+    try { localStorage.setItem(SK, JSON.stringify(data)); } catch (e) {
+      console.error('localStorage save failed:', e);
+      if (e.name === 'QuotaExceededError') toast('⚠️ พื้นที่เต็ม — ลองลบประวัติเก่า');
+      else toast('⚠️ บันทึกไม่สำเร็จ');
+    }
+    return;
+  }
+  clearTimeout(_saveTimeout);
+  _saveTimeout = setTimeout(() => {
+    try { localStorage.setItem(SK, JSON.stringify(data)); } catch (e) {
+      console.error('localStorage save failed:', e);
+      if (e.name === 'QuotaExceededError') toast('⚠️ พื้นที่เต็ม — ลองลบประวัติเก่า');
+      else toast('⚠️ บันทึกไม่สำเร็จ');
+    }
+  }, 300);
+}
 
 let data = loadData();
 
@@ -480,6 +525,7 @@ function toast(msg) {
   t.classList.add('show');
   clearTimeout(t._timer);
   t._timer = setTimeout(() => t.classList.remove('show'), 2200);
+  haptic('light');
 }
 
 function toastTop(msg) {
@@ -507,10 +553,26 @@ function closeConfirm(result) {
   if (_confirmResolve) { _confirmResolve(result); _confirmResolve = null; }
 }
 
-function persist() {
-  saveData();
+function persist(immediate) {
+  saveData(immediate);
   render();
   syncQueueCount();
+}
+
+function showLoading(courtId) {
+  const card = document.querySelector(`[data-court-id="${courtId}"]`);
+  if (!card) return;
+  const overlay = document.createElement('div');
+  overlay.className = 'loading-overlay';
+  overlay.innerHTML = '<div class="spinner"></div>';
+  card.style.position = 'relative';
+  card.appendChild(overlay);
+}
+function hideLoading(courtId) {
+  const card = document.querySelector(`[data-court-id="${courtId}"]`);
+  if (!card) return;
+  const overlay = card.querySelector('.loading-overlay');
+  if (overlay) overlay.remove();
 }
 
 function shuffle(arr) {
@@ -750,6 +812,8 @@ function findScheduledOpponents(winTeam, exclude) {
 }
 
 async function fillCourt(courtId) {
+  showLoading(courtId);
+  try {
   const court = data.courts.find(c => c.id === courtId);
   if (!court) return;
   if (court.status === 'playing') { toast('สนามนี้กำลังเล่นอยู่'); return; }
@@ -804,6 +868,7 @@ async function fillCourt(courtId) {
   court.consecutive = {};
   court.startedRound = data.currentRound;
   persist();
+  } finally { hideLoading(courtId); }
 }
 
 function recordStats(court) {
@@ -830,6 +895,7 @@ function recordStats(court) {
 }
 
 async function declareWinner(courtId, winner) {
+  haptic('success');
   const court = data.courts.find(c => c.id === courtId);
   if (!court || court.status !== 'playing') return;
   if (!court.consecutive) court.consecutive = {};
@@ -854,7 +920,7 @@ async function declareWinner(courtId, winner) {
     for (const p of [...court.teamA, ...court.teamB])
       if (p !== LIBERO && !data.queue.includes(p)) data.queue.push(p);
     court.teamA = []; court.teamB = []; court.status = 'waiting'; court.consecutive = {};
-    saveData(); render(); syncQueueCount();
+    persist(true);
     await fillCourt(courtId);
     return;
   }
@@ -880,7 +946,7 @@ async function declareWinner(courtId, winner) {
   // Both at limit → court vacant
   if (winAtLimit && loseAtLimit) {
     court.teamA = []; court.teamB = []; court.status = 'waiting'; court.consecutive = {};
-    saveData(); render(); syncQueueCount();
+    persist(true);
     await fillCourt(courtId);
     return;
   }
@@ -1002,6 +1068,9 @@ async function openCustomMatchPicker(courtId) {
   }
   document.getElementById('pickerCourtId').textContent = courtId;
   renderPicker();
+  document.body.style.overflow = 'hidden';
+  document.body.style.position = 'fixed';
+  document.body.style.width = '100%';
   document.getElementById('pickerOverlay').classList.add('open');
   document.getElementById('pickerSheet').classList.add('open');
 }
@@ -1045,6 +1114,9 @@ function pickPairFromSchedule(idx, target) {
 }
 
 function closeCustomMatchPicker() {
+  document.body.style.overflow = '';
+  document.body.style.position = '';
+  document.body.style.width = '';
   document.getElementById('pickerOverlay').classList.remove('open');
   document.getElementById('pickerSheet').classList.remove('open');
   picker = { courtId: null, teamA: [], teamB: [] };
@@ -1193,6 +1265,7 @@ function renderPicker() {
 }
 
 function confirmCustomMatch() {
+  haptic('success');
   if (picker.teamA.length !== 2 || picker.teamB.length !== 2) {
     toast('ต้องเลือก 2+2'); return;
   }
@@ -1309,6 +1382,7 @@ async function removePlayer(name) {
 }
 
 function togglePool(name) {
+  haptic('light');
   data.pool[name] = !data.pool[name];
   if (data.pool[name]) {
     // Turn ON: put in schedule + queue so they can be matched and appear next round
@@ -1463,6 +1537,9 @@ function openSheet(name) {
   title.textContent = titles[name] || name;
   body.style.padding = name === 'Settings' ? '' : '0';
   body.innerHTML = (renderers[name] || (() => ''))();
+  document.body.style.overflow = 'hidden';
+  document.body.style.position = 'fixed';
+  document.body.style.width = '100%';
   overlay.classList.add('open');
   sheet.classList.add('open');
   sheetContent = name;
@@ -1471,6 +1548,9 @@ function openSheet(name) {
 function closeSheet() {
   const body = document.getElementById('sheetBody');
   body.style.padding = '';
+  document.body.style.overflow = '';
+  document.body.style.position = '';
+  document.body.style.width = '';
   document.getElementById('sheetOverlay').classList.remove('open');
   document.getElementById('sheet').classList.remove('open');
   sheetContent = null;
@@ -1484,21 +1564,17 @@ function dragStart(e, idx) {
   e.dataTransfer.effectAllowed = 'move';
   e.target.classList.add('dragging');
 }
-
 function dragOver(e) {
   e.preventDefault();
   e.dataTransfer.dropEffect = 'move';
 }
-
 function dragEnter(e, idx) {
   e.preventDefault();
   if (dragIdx >= 0 && dragIdx !== idx) e.target.classList.add('drag-over');
 }
-
 function dragLeave(e) {
   e.target.classList.remove('drag-over');
 }
-
 function dragDrop(e, toIdx) {
   e.preventDefault();
   e.target.classList.remove('drag-over');
@@ -1509,11 +1585,60 @@ function dragDrop(e, toIdx) {
   dragIdx = -1;
   persist();
 }
-
 function dragEnd(e) {
   e.target.classList.remove('dragging');
   document.querySelectorAll('.queue-chip.drag-over').forEach(el => el.classList.remove('drag-over'));
   dragIdx = -1;
+}
+
+// ===== LONG-PRESS REORDER (mobile) =====
+function setupLongPressReorder() {
+  if (setupLongPressReorder._done) return;
+  setupLongPressReorder._done = true;
+  let timer = null;
+  function close() { document.querySelector('.move-popup')?.remove(); }
+  document.addEventListener('touchstart', (e) => {
+    const chip = e.target.closest('.queue-chip');
+    if (!chip || e.target.closest('.remove')) return;
+    timer = setTimeout(() => {
+      const idx = Array.from(chip.parentNode.children).indexOf(chip);
+      const name = data.queue[idx];
+      close();
+      const p = document.createElement('div');
+      p.className = 'move-popup';
+      p.innerHTML = `<div class="move-popup-title">${escHtml(name)}</div>
+        <div class="move-popup-actions">
+          <button onclick="movePlayer(${idx},-1)" ${idx===0?'disabled':''}>⬆️ ขึ้น</button>
+          <button onclick="movePlayer(${idx},1)" ${idx===data.queue.length-1?'disabled':''}>⬇️ ลง</button>
+        </div>
+        <button class="move-popup-close" onclick="closeMovePopup()">✕ ปิด</button>`;
+      document.body.appendChild(p);
+      const r = chip.getBoundingClientRect();
+      p.style.top = Math.min(r.bottom + 4, window.innerHeight - p.offsetHeight - 4) + 'px';
+      p.style.left = Math.max(4, Math.min(r.left, window.innerWidth - p.offsetWidth - 4)) + 'px';
+      haptic('light');
+    }, 500);
+  }, { passive: true });
+  document.addEventListener('touchmove', () => { clearTimeout(timer); close(); }, { passive: true });
+  document.addEventListener('touchend', () => { clearTimeout(timer); });
+  document.addEventListener('touchcancel', () => { clearTimeout(timer); close(); });
+  document.addEventListener('click', (e) => { if (!e.target.closest('.move-popup')) close(); });
+}
+function movePlayer(idx, dir) {
+  const to = idx + dir;
+  if (to < 0 || to >= data.queue.length) return;
+  const item = data.queue.splice(idx, 1)[0];
+  data.queue.splice(to, 0, item);
+  closeMovePopup();
+  haptic('medium');
+  persist();
+}
+function closeMovePopup() { document.querySelector('.move-popup')?.remove(); }
+
+function haptic(type) {
+  if (!window.navigator.vibrate) return;
+  const patterns = { light: [10], medium: [20], heavy: [30], success: [10, 50, 10], error: [50, 100, 50] };
+  window.navigator.vibrate(patterns[type] || patterns.light);
 }
 
 function render() {
@@ -1584,7 +1709,7 @@ function renderQueue() {
   syncQueueCount();
   if (sheetContent === 'Queue') {
     const body = document.getElementById('sheetBody');
-    if (body) body.innerHTML = renderQueueSheetContent();
+    if (body) { body.innerHTML = renderQueueSheetContent(); }
   }
 }
 
@@ -1638,7 +1763,7 @@ function renderCourts() {
     let cls = 'court-card';
     if (c.status === 'playing') cls += ' status-playing';
     else if (data.queue.length >= 4 && hasMatch) cls += ' status-waiting queue-full';
-    return `<div class="${cls}">
+    return `<div class="${cls}" data-court-id="${c.id}">
       <div class="court-header">
         <span class="court-title">🏟️ สนาม ${c.id}
           ${c.status === 'waiting' && c.teamA.length === 0 ? '<span class="badge badge-empty">ว่าง</span>' : ''}
@@ -1975,6 +2100,7 @@ function importData(e) {
 function init() {
   render();
   renderCourtCount();
+  setupLongPressReorder();
 }
 
 init();
