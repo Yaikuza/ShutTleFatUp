@@ -1,0 +1,17 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "agent": {
+    "reviewer": {
+      "description": "Code review agent. Use when the user says review, รีวิว, code review, PR review.",
+      "model": "opencode-go/qwen-3.7-max",
+      "mode": "subagent",
+      "permission": {
+        "edit": "deny",
+        "bash": "ask",
+        "read": "allow",
+        "glob": "allow",
+        "grep": "allow"
+      }
+    }
+  }
+}
