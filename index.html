@@ -327,6 +327,7 @@ select.setting-input{padding:6px 12px;border:2px solid var(--border);border-radi
        <span id="courtCount">2</span>
       <button onclick="addCourt()" title="เพิ่มสนาม">+</button>
       <button onclick="resetSession()" class="btn-icon" title="รีเซตรอบ (เก็บชื่อ+สถิติ)" style="margin-left:4px">♻️</button>
+      <button onclick="undo()" class="btn-icon" id="undoBtn" title="เลิกทำ" style="display:none;margin-left:4px;opacity:.85">↩️</button>
     </div>
   </div>
 </header>
@@ -521,6 +522,35 @@ function shuffle(arr) {
   return arr;
 }
 
+// ===== UNDO SYSTEM =====
+const undoStack = [];
+const MAX_UNDO = 30;
+
+function pushSnapshot(description) {
+  const snapshot = JSON.parse(JSON.stringify(data));
+  undoStack.push({ snapshot, description });
+  if (undoStack.length > MAX_UNDO) undoStack.shift();
+  const btn = document.getElementById('undoBtn');
+  if (btn) { btn.style.display = ''; btn.title = '↩️ เลิกทำ: ' + description; }
+}
+
+function undo() {
+  if (undoStack.length === 0) return;
+  const entry = undoStack.pop();
+  data = migrate(entry.snapshot);
+  closeSheet();
+  closeCustomMatchPicker();
+  document.getElementById('confirmOverlay').style.display = 'none';
+  saveData();
+  render();
+  const btn = document.getElementById('undoBtn');
+  if (btn) {
+    btn.title = undoStack.length > 0 ? '↩️ เลิกทำ: ' + undoStack[undoStack.length - 1].description : '';
+    if (undoStack.length === 0) btn.style.display = 'none';
+  }
+  toast('↩️ เลิกทำ: ' + entry.description);
+}
+
 // ===== QUEUE =====
 function syncQueueCount() {
   const val = data.queue.length;
@@ -548,12 +578,14 @@ function ejectFromCourts(name) {
 
 function shuffleQueue() {
   if (data.queue.length < 2) { toast('คิวมีคนน้อยเกินไป'); return; }
+  pushSnapshot('สับคิว');
   data.queue = shuffle(data.queue.slice());
   persist();
   toast('🔀 สับคิว');
 }
 
 function startNewRound() {
+  pushSnapshot('รอบใหม่');
   // Clean stale Libero/null pairs from schedule
   data.roundSchedule = data.roundSchedule.filter(p => p.p1 !== LIBERO && p.p2 !== LIBERO && p.p1 !== null && p.p2 !== null);
 
@@ -643,6 +675,7 @@ function renumberCourts() {
 
 function addCourt() {
   if (data.courts.length >= MAX_COURTS) { toast('สูงสุด ' + MAX_COURTS + ' สนาม'); return; }
+  pushSnapshot('เพิ่มสนาม');
   data.courts.push(freshCourt(data.nextCourtId++));
   renumberCourts();
   saveData();
@@ -653,6 +686,7 @@ function addCourt() {
 
 function removeCourt() {
   if (data.courts.length <= MIN_COURTS) { toast('ต้องมีอย่างน้อย ' + MIN_COURTS + ' สนาม'); return; }
+  pushSnapshot('ลดสนาม');
   const c = data.courts.pop();
   if (c.status === 'playing')
     for (const p of [...c.teamA, ...c.teamB])
@@ -796,6 +830,7 @@ async function fillCourt(courtId) {
     await checkAndAutoRound();
     return;
   }
+  pushSnapshot('จัดคู่อัตโนมัติ');
   court.teamA = teams[0];
   court.teamB = teams[1];
   data.queue = data.queue.filter(p => !teams[0].includes(p) && !teams[1].includes(p));
@@ -833,6 +868,7 @@ async function declareWinner(courtId, winner) {
   const court = data.courts.find(c => c.id === courtId);
   if (!court || court.status !== 'playing') return;
   if (!court.consecutive) court.consecutive = {};
+  pushSnapshot('ประกาศผล');
 
   data.history.push({
     time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
@@ -938,6 +974,7 @@ async function declareWinner(courtId, winner) {
 async function swapBoth(courtId) {
   const court = data.courts.find(c => c.id === courtId);
   if (!court || court.status !== 'playing') return;
+  pushSnapshot('เปลี่ยนคู่');
   for (const p of [...court.teamA, ...court.teamB])
     if (p !== LIBERO && !data.queue.includes(p)) data.queue.push(p);
   court.teamA = []; court.teamB = []; court.status = 'waiting'; court.consecutive = {};
@@ -1199,8 +1236,7 @@ function confirmCustomMatch() {
   // Validate no duplicates
   const all = [...picker.teamA, ...picker.teamB];
   if (new Set(all).size !== 4) { toast('ชื่อซ้ำ'); return; }
-  // Busy players are OK — they will be pulled out of their current court below
-  // (override is allowed for custom picks, including from schedule page)
+  pushSnapshot('เลือกคู่เอง');
 
   // Return current court's old players to queue (they're being replaced)
   const pickCourt = data.courts.find(c => c.id === picker.courtId);
@@ -1264,6 +1300,7 @@ function addMainPlayer() {
   const name = (input.value || '').trim();
   if (!name) return;
   if (data.mainPlayers.includes(name)) { toast('มีชื่อนี้อยู่แล้ว'); return; }
+  pushSnapshot('เพิ่มผู้เล่น');
   data.mainPlayers.push(name);
   data.pool[name] = true;
   tryMatchLibero(name);
@@ -1278,6 +1315,7 @@ function addMainPlayer() {
 
 async function removePlayer(name) {
   if (!(await confirmDialog('ลบ "' + name + '"?'))) return;
+  pushSnapshot('ลบผู้เล่น');
   data.mainPlayers = data.mainPlayers.filter(p => p !== name);
   delete data.pool[name];
   data.queue = data.queue.filter(p => p !== name);
@@ -1309,6 +1347,7 @@ async function removePlayer(name) {
 }
 
 function togglePool(name) {
+  pushSnapshot('เปลี่ยนสถานะผู้เล่น');
   data.pool[name] = !data.pool[name];
   if (data.pool[name]) {
     // Turn ON: put in schedule + queue so they can be matched and appear next round
@@ -1369,6 +1408,7 @@ function tryMatchLibero(name) {
 
 async function resetSession() {
   if (!(await confirmDialog('รีเซตรอบเล่น?\n\n• ล้างคิว + สนาม + ประวัติ\n• ผู้เล่นที่เช็คชื่อ (pool on) กลับเข้าสู่ระบบ\n• เริ่มรอบใหม่\n\nชื่อผู้เล่นและสถิติรวมยังอยู่ครบ'))) return;
+  pushSnapshot('รีเซตรอบ');
 
   data.queue = [];
   data.courts = data.courts.map(c => freshCourt(c.id));
@@ -1934,6 +1974,7 @@ function renderSettingsContent() {
 
 async function deleteAllData() {
   if (!(await confirmDialog('ลบข้อมูลทั้งหมด?\nย้อนกลับไม่ได้'))) return;
+  pushSnapshot('ลบข้อมูลทั้งหมด');
   localStorage.removeItem(SK);
   data = getDef();
   saveData();
@@ -1960,6 +2001,7 @@ function importData(e) {
     try {
       const d = JSON.parse(ev.target.result);
       if (!d.courts || !d.settings) { toast('ไฟล์ไม่ถูกต้อง'); return; }
+      pushSnapshot('นำเข้าข้อมูล');
       data = migrate(d);
       saveData();
       render();
