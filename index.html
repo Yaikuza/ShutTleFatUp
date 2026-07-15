@@ -1262,19 +1262,29 @@ function confirmCustomMatch() {
     }
   }
 
-  // Add selected pairs to roundSchedule so this round tracks them
+  // Update roundSchedule: remove entries broken by the pick, re-pair leftovers
   if (!data.roundSchedule) data.roundSchedule = [];
-  const matchKey = (a, b) => [a, b].sort().join('|');
-  const newPairA = { p1: picker.teamA[0], p2: picker.teamA[1] };
-  const newPairB = { p1: picker.teamB[0], p2: picker.teamB[1] };
-  const targetKeys = new Set([matchKey(newPairA.p1, newPairA.p2), matchKey(newPairB.p1, newPairB.p2)]);
-  // Dedupe: remove existing entries that match the new pairs
-  data.roundSchedule = data.roundSchedule.filter(p => {
-    if (!p.p1 || !p.p2) return false;
-    return !targetKeys.has(matchKey(p.p1, p.p2));
-  });
-  data.roundSchedule.push(newPairA);
-  data.roundSchedule.push(newPairB);
+  const selectedSet = new Set(all);
+  const kept = [];
+  const leftover = [];
+  for (const p of data.roundSchedule) {
+    if (!p.p1 || !p.p2) continue;
+    if (selectedSet.has(p.p1) || selectedSet.has(p.p2)) {
+      if (!selectedSet.has(p.p1) && p.p1 !== LIBERO) leftover.push(p.p1);
+      if (!selectedSet.has(p.p2) && p.p2 !== LIBERO) leftover.push(p.p2);
+    } else {
+      kept.push(p);
+    }
+  }
+  shuffle(leftover);
+  const result = [...kept];
+  for (let i = 0; i + 1 < leftover.length; i += 2)
+    result.push({ p1: leftover[i], p2: leftover[i + 1] });
+  if (leftover.length % 2 === 1)
+    result.push({ p1: leftover[leftover.length - 1], p2: LIBERO });
+  result.push({ p1: picker.teamA[0], p2: picker.teamA[1] });
+  result.push({ p1: picker.teamB[0], p2: picker.teamB[1] });
+  data.roundSchedule = result;
 
   // Set court
   const court = data.courts.find(c => c.id === picker.courtId);
