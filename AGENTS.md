@@ -1,6 +1,32 @@
-# Session notes — 3 Jul 2026
+# Session notes — 16 Jul 2026
 
 ## Completed this session
+
+### Hellven Mode (`feat/hellven-mode`)
+- ผู้เล่นมีระดับ: 🔥 Hell / 😇 Heaven / 🧑 Human — `data.playerLevel[p]`
+- สนามแบ่งระดับ cyclically: สนาม 1=Hell, 2=Heaven, 3=Human, 4=Hell...
+- Settings toggle `hellvenMode` — default off
+- กฎการจับคู่: Hell vs Heaven **ห้าม** (ยกเว้น mixed team), Human จับกับใครก็ได้
+- `pairByLevel()` — จับคู่แยก Hell pool (Hell+Human) และ Heaven pool (Heaven+Human)
+- Player list → `player-chip` (tag style) พร้อม level toggle + level cycle button
+- Queue chips, pair score table, court header แสดง level icon/badge
+- Picker filter เฉพาะผู้เล่นที่ compatible กับ court level
+- `findScheduledMatch(courtId)` — filter ตาม court level
+- `anyCourtCanMatch()` helper สำหรับ auto-round check
+- Dedup `getMatchSchedule()` filter duplicate pairs
+- Migration: `hellvenMode`, `playerLevel` default
+
+### Snapshot-based Undo System
+- `pushSnapshot()` ก่อน action แต่ละครั้ง (push/undo stack max 30)
+- `undoSnapshot()` — restore snapshot ของ state ก่อนหน้านี้
+- ปุ่ม ↩️ ถัดจากปุ่ม Settings
+- Integration: add/remove player, clear queue, fill court, declare winner, reset session, custom match confirm
+
+### Fix: re-pair leftover players in roundSchedule
+- หลัง custom match confirm, จับคู่ `leftover` ที่เหลือใหม่ผ่าน `pairByLevel()` กันซ้ำ
+- ถ้าคู่เดิมถูกจับไปแล้ว (keepSet) ไม่ใส่ซ้ำใน schedule
+
+## Previous sessions
 
 ### VS Custom Match Picker (`feat/vs-picker`)
 - ปุ่ม VS + 🎯 เลือกคู่เอง (ghost button) เปิด modal เลือกคู่ 2+2
@@ -54,7 +80,9 @@
 - `fix/bugs` → master
 
 ## Current state
-- Branch: master (clean)
+- Branch: feat/hellven-mode (dirty — unstaged changes)
+- Commits: 5a85879 (undo), b6845cd (fix re-pair leftover)
+- Unstaged: Hellven Mode full implementation (playerLevel, court level, pairByLevel, picker filter, level UI)
 - Functions as async: `fillCourt`, `declareWinner`, `swapBoth`, `openCustomMatchPicker`, `removePlayer`, `resetSession`, `deleteAllData`, `checkAndAutoRound`
 
 ## Next session priorities
