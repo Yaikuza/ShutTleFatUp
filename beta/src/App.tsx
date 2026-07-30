@@ -51,6 +51,8 @@ export default function App() {
   const [customPlayers, setCustomPlayers] = useState<string[]>(["", "", "", ""]);
   const [liberoPicker, setLiberoPicker] = useState<{ courtId: number; side: "A" | "B" } | null>(null);
   const [statsTab, setStatsTab] = useState<"players" | "pairs" | "h2h" | "history">("players");
+  const [notice, setNotice] = useState("");
+  const [confirmAction, setConfirmAction] = useState<{ message: string; run: () => void } | null>(null);
   const undoStack = useRef<AppState[]>([]);
   const draggedQueueId = useRef<string | null>(null);
   const roomSync = useRoomSync(state, dispatch);
@@ -60,6 +62,25 @@ export default function App() {
     document.documentElement.dataset.theme = state.settings.theme;
     document.documentElement.style.setProperty("--court-color", state.settings.courtColor);
   }, [state.settings.theme, state.settings.courtColor]);
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(""), 2600);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
+  useEffect(() => {
+    if (!confirmAction && customCourtId === null && !liberoPicker) return;
+    const close = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setConfirmAction(null);
+      setCustomCourtId(null);
+      setLiberoPicker(null);
+    };
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, [confirmAction, customCourtId, liberoPicker]);
+
+  const askConfirm = (message: string, run: () => void) =>
+    setConfirmAction({ message, run });
 
   const send = (action: AppAction) => {
     if (roomSync.status === "saving" && action.type === "match/finish") return;
@@ -137,10 +158,14 @@ export default function App() {
     if (!file) return;
     try {
       const imported = JSON.parse(await file.text()) as AppState;
-      if (!Array.isArray(imported.players) || !Array.isArray(imported.courts)) return;
+      if (!Array.isArray(imported.players) || !Array.isArray(imported.courts)) {
+        setNotice("ไฟล์ข้อมูลไม่ถูกต้อง");
+        return;
+      }
       send({ type: "state/replace", state: imported });
+      setNotice("นำเข้าข้อมูลเรียบร้อย");
     } catch {
-      window.alert("ไฟล์ข้อมูลไม่ถูกต้อง");
+      setNotice("ไฟล์ข้อมูลไม่ถูกต้อง");
     }
   };
 
@@ -166,6 +191,10 @@ export default function App() {
     customCourtId !== null && court.id !== customCourtId && court.status === "playing"
       ? [...(court.teamA ?? []), ...(court.teamB ?? [])]
       : []
+  ));
+  const allBusyIds = new Set(state.courts.flatMap(court => court.status === "playing"
+    ? [...(court.teamA ?? []), ...(court.teamB ?? []), court.liberoA, court.liberoB]
+    : []
   ));
 
   return (
@@ -260,7 +289,13 @@ export default function App() {
           <div className="data-actions">
             <button className="ghost" onClick={exportData}>Export</button>
             <label className="ghost file-button">Import<input type="file" accept=".json" onChange={event => void importData(event.target.files?.[0])} /></label>
-            <button className="ghost danger" onClick={() => window.confirm("รีเซตรอบและสนามทั้งหมด?") && send({ type: "session/reset" })}>รีเซต Session</button>
+            <button className="ghost danger" onClick={() => askConfirm(
+              "รีเซตรอบ คิว สนาม และประวัติของ Session นี้? รายชื่อผู้เล่นและสถิติถาวรจะยังอยู่",
+              () => {
+                send({ type: "session/reset" });
+                setNotice("รีเซต Session เรียบร้อย");
+              }
+            )}>รีเซต Session</button>
           </div>
           <div className="room-settings">
             <div>
@@ -460,8 +495,11 @@ export default function App() {
               <button className="ghost compact" onClick={() => send({ type: "player/toggle", id: player.id })}>
                 {player.active ? "พัก" : "เปิด"}
               </button>
-              <button className="ghost compact danger" onClick={() =>
-                window.confirm(`ลบ ${player.name}?`) && send({ type: "player/remove", id: player.id })
+              <button className="ghost compact danger" disabled={allBusyIds.has(player.id)} onClick={() =>
+                askConfirm(`ลบ ${player.name} ออกจากรายชื่อผู้เล่น?`, () => {
+                  send({ type: "player/remove", id: player.id });
+                  setNotice(`ลบ ${player.name} แล้ว`);
+                })
               }>ลบ</button>
             </div>
           ))}
@@ -604,6 +642,26 @@ export default function App() {
           </section>
         </div>
       )}
+
+      {confirmAction && (
+        <div className="modal-backdrop" role="presentation">
+          <section className="modal confirm-modal" role="alertdialog" aria-modal="true" aria-label="ยืนยันรายการ">
+            <p className="eyebrow">ShutTle Fat Up</p>
+            <h2>ยืนยันรายการ</h2>
+            <p>{confirmAction.message}</p>
+            <div className="modal-actions">
+              <button className="ghost" onClick={() => setConfirmAction(null)}>ยกเลิก</button>
+              <button className="round-button" onClick={() => {
+                const run = confirmAction.run;
+                setConfirmAction(null);
+                run();
+              }}>ยืนยัน</button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {notice && <div className="toast" role="status" aria-live="polite">{notice}</div>}
     </main>
   );
 }

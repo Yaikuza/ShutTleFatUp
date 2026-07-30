@@ -180,6 +180,15 @@ form button { background: #f2b84b; color: #18362e; border: 0; }
 }
 .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
 .modal-actions .round-button { margin: 0; }
+.confirm-modal p:not(.eyebrow) { color: #b9cec7; line-height: 1.65; }
+.toast {
+  position: fixed; z-index: 80; left: 50%; bottom: max(24px, env(safe-area-inset-bottom));
+  translate: -50% 0; width: max-content; max-width: calc(100% - 32px); padding: 12px 18px;
+  border: 1px solid rgba(255,255,255,.18); border-radius: 999px; background: #f2b84b;
+  color: #18362e; box-shadow: 0 16px 50px rgba(0,0,0,.32); font-weight: 900;
+  animation: toast-in .22s ease-out;
+}
+@keyframes toast-in { from { opacity: 0; transform: translateY(12px); } }
 
 @media (max-width: 760px) {
   .app-shell { padding-top: 22px; }
