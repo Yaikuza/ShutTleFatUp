@@ -41,6 +41,11 @@ export type Settings = {
   gamesPerPair: number;
   hellvenMode: boolean;
   courtCount: number;
+  lowPlayerMode: "auto" | "on" | "off";
+  lowPlayerThreshold: number;
+  theme: "light" | "dark" | "pastel" | "sepia";
+  courtColor: string;
+  courtColumns: 0 | 1 | 2 | 3;
 };
 
 export type AppState = {

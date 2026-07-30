@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createPairs, fillCourt, finishMatch, LIBERO, projectedRoundComplete, teamsCanPlay } from "./engine";
+import { createPairs, fillCourt, finishMatch, LIBERO, projectedRoundComplete, setCustomMatch, teamsCanPlay } from "./engine";
 import { initialState } from "./initialState";
 import type { AppState, Pair, Player, Team } from "./types";
 
@@ -48,7 +48,11 @@ describe("court rotation", () => {
       { id: "C|D", members: ["C", "D"] },
       { id: "E|LIBERO", members: ["E", LIBERO] }
     ];
-    let state: AppState = { ...base, schedule: pairs };
+    let state: AppState = {
+      ...base,
+      settings: { ...base.settings, lowPlayerMode: "off" },
+      schedule: pairs
+    };
     state = fillCourt(state, 1);
     const firstCourt = state.courts[0];
     expect(firstCourt.status).toBe("playing");
@@ -105,5 +109,29 @@ describe("Hellven court compatibility", () => {
     expect(teamsCanPlay(state, ["A", "B"], ["C", "D"])).toBe(false);
     expect(teamsCanPlay(state, ["B", "D"], ["A", LIBERO])).toBe(true);
     expect(teamsCanPlay(state, ["B", "D"], ["C", LIBERO])).toBe(true);
+  });
+});
+
+describe("court safety", () => {
+  it("does not pull a player from another playing court into a custom match", () => {
+    const base = stateWithPlayers(["human", "human", "human", "human", "human"]);
+    const state: AppState = {
+      ...base,
+      courts: [
+        { ...base.courts[0], status: "playing", teamA: ["A", "B"], teamB: ["C", "D"] },
+        { ...base.courts[1] }
+      ]
+    };
+    expect(setCustomMatch(state, 2, ["A", "B", "C", "E"])).toBe(state);
+  });
+
+  it("fills directly from the queue when low-player mode is enabled", () => {
+    const state = {
+      ...stateWithPlayers(["human", "human", "human", "human"]),
+      settings: { ...initialState.settings, lowPlayerMode: "on" as const }
+    };
+    const filled = fillCourt(state, 1);
+    expect(filled.courts[0].status).toBe("playing");
+    expect(filled.schedule).toHaveLength(0);
   });
 });

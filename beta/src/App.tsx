@@ -48,10 +48,15 @@ export default function App() {
   const [roomCode, setRoomCode] = useState("");
   const [customCourtId, setCustomCourtId] = useState<number | null>(null);
   const [customPlayers, setCustomPlayers] = useState<string[]>(["", "", "", ""]);
+  const [liberoPicker, setLiberoPicker] = useState<{ courtId: number; side: "A" | "B" } | null>(null);
   const undoStack = useRef<AppState[]>([]);
   const roomSync = useRoomSync(state, dispatch);
 
   useEffect(() => saveState(state), [state]);
+  useEffect(() => {
+    document.documentElement.dataset.theme = state.settings.theme;
+    document.documentElement.style.setProperty("--court-color", state.settings.courtColor);
+  }, [state.settings.theme, state.settings.courtColor]);
 
   const send = (action: AppAction) => {
     undoStack.current.push(structuredClone(state));
@@ -95,6 +100,26 @@ export default function App() {
       members: customPlayers as [string, string, string, string]
     });
     setCustomCourtId(null);
+  };
+
+  const exportData = () => {
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `shuttle-fat-up-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  };
+
+  const importData = async (file?: File) => {
+    if (!file) return;
+    try {
+      const imported = JSON.parse(await file.text()) as AppState;
+      if (!Array.isArray(imported.players) || !Array.isArray(imported.courts)) return;
+      send({ type: "state/replace", state: imported });
+    } catch {
+      window.alert("ไฟล์ข้อมูลไม่ถูกต้อง");
+    }
   };
 
   const activeCount = state.players.filter(player => player.active).length;
@@ -159,6 +184,54 @@ export default function App() {
               onChange={event => send({ type: "settings/update", patch: { hellvenMode: event.target.checked } })}
             />
           </label>
+          <label>
+            <span>โหมดคนน้อย</span>
+            <select value={state.settings.lowPlayerMode} onChange={event => send({
+              type: "settings/update",
+              patch: { lowPlayerMode: event.target.value as AppState["settings"]["lowPlayerMode"] }
+            })}>
+              <option value="auto">อัตโนมัติ</option>
+              <option value="on">เปิดตลอด</option>
+              <option value="off">ปิด</option>
+            </select>
+          </label>
+          <label>
+            <span>เกณฑ์คนน้อย</span>
+            <select value={state.settings.lowPlayerThreshold} onChange={event => send({
+              type: "settings/update", patch: { lowPlayerThreshold: Number(event.target.value) }
+            })}>
+              {[4, 6, 8, 10].map(value => <option key={value} value={value}>{value} คน</option>)}
+            </select>
+          </label>
+          <label>
+            <span>ธีม</span>
+            <select value={state.settings.theme} onChange={event => send({
+              type: "settings/update", patch: { theme: event.target.value as AppState["settings"]["theme"] }
+            })}>
+              <option value="light">สว่าง</option><option value="dark">มืด</option>
+              <option value="pastel">Pastel</option><option value="sepia">Sepia</option>
+            </select>
+          </label>
+          <label>
+            <span>สีสนาม</span>
+            <input type="color" value={state.settings.courtColor} onChange={event => send({
+              type: "settings/update", patch: { courtColor: event.target.value }
+            })} />
+          </label>
+          <label>
+            <span>คอลัมน์สนาม</span>
+            <select value={state.settings.courtColumns} onChange={event => send({
+              type: "settings/update", patch: { courtColumns: Number(event.target.value) as 0 | 1 | 2 | 3 }
+            })}>
+              <option value="0">อัตโนมัติ</option><option value="1">1</option>
+              <option value="2">2</option><option value="3">3</option>
+            </select>
+          </label>
+          <div className="data-actions">
+            <button className="ghost" onClick={exportData}>Export</button>
+            <label className="ghost file-button">Import<input type="file" accept=".json" onChange={event => void importData(event.target.files?.[0])} /></label>
+            <button className="ghost danger" onClick={() => window.confirm("รีเซตรอบและสนามทั้งหมด?") && send({ type: "session/reset" })}>รีเซต Session</button>
+          </div>
           <div className="room-settings">
             <div>
               <strong>ห้อง Realtime</strong>
@@ -211,7 +284,11 @@ export default function App() {
         </button>
       </section>
 
-      <section className="courts-grid">
+      <section className="courts-grid" style={{
+        gridTemplateColumns: state.settings.courtColumns
+          ? `repeat(${state.settings.courtColumns}, minmax(0, 1fr))`
+          : undefined
+      }}>
         {state.courts.map(court => {
           const playing = court.status === "playing" && court.teamA && court.teamB;
           return (
@@ -225,11 +302,17 @@ export default function App() {
                   <button className="team team-a" onClick={() => send({ type: "match/finish", courtId: court.id, winner: "A" })}>
                     {teamLabel(court.teamA!, court.liberoA).map(member => <b key={member}>{member}</b>)}
                     <small>{teamFlag(state, court.teamA!)}</small>
+                    {court.teamA!.includes(LIBERO) && <span className="libero-select" onClick={event => {
+                      event.stopPropagation(); setLiberoPicker({ courtId: court.id, side: "A" });
+                    }}>เปลี่ยน Libero</span>}
                   </button>
                   <span className="versus">VS</span>
                   <button className="team team-b" onClick={() => send({ type: "match/finish", courtId: court.id, winner: "B" })}>
                     {teamLabel(court.teamB!, court.liberoB).map(member => <b key={member}>{member}</b>)}
                     <small>{teamFlag(state, court.teamB!)}</small>
+                    {court.teamB!.includes(LIBERO) && <span className="libero-select" onClick={event => {
+                      event.stopPropagation(); setLiberoPicker({ courtId: court.id, side: "B" });
+                    }}>เปลี่ยน Libero</span>}
                   </button>
                 </div>
               ) : (
@@ -241,7 +324,10 @@ export default function App() {
                   </div>
                 </div>
               )}
-              {playing && <button className="custom-corner" onClick={() => openCustom(court.id)}>เลือกคู่เอง</button>}
+              {playing && <div className="court-corners">
+                <button onClick={() => send({ type: "court/replace", courtId: court.id })}>เปลี่ยนทั้งคอร์ท</button>
+                <button onClick={() => openCustom(court.id)}>เลือกคู่เอง</button>
+              </div>}
             </article>
           );
         })}
@@ -254,7 +340,10 @@ export default function App() {
               <p className="eyebrow">Waiting list</p>
               <h2>คิวผู้เล่น</h2>
             </div>
-            <button className="ghost compact" onClick={() => send({ type: "queue/shuffle" })}>สุ่มคิว</button>
+            <div className="inline-actions">
+              <button className="ghost compact" onClick={() => send({ type: "queue/shuffle" })}>สุ่มคิว</button>
+              <button className="ghost compact" onClick={() => send({ type: "queue/clear" })}>ล้างคิว</button>
+            </div>
           </div>
           <div className="chips">
             {state.queue.map((id, index) => {
@@ -262,9 +351,11 @@ export default function App() {
               if (!player) return null;
               return (
                 <span className="queue-chip" key={id}>
+                  <button disabled={index === 0} onClick={() => send({ type: "queue/move", id, direction: -1 })}>↑</button>
                   <i>{index + 1}</i>
                   {state.settings.hellvenMode && levelMeta[player.level].icon}
                   {player.name}
+                  <button disabled={index === state.queue.length - 1} onClick={() => send({ type: "queue/move", id, direction: 1 })}>↓</button>
                 </span>
               );
             })}
@@ -316,6 +407,9 @@ export default function App() {
               <button className="ghost compact" onClick={() => send({ type: "player/toggle", id: player.id })}>
                 {player.active ? "พัก" : "เปิด"}
               </button>
+              <button className="ghost compact danger" onClick={() =>
+                window.confirm(`ลบ ${player.name}?`) && send({ type: "player/remove", id: player.id })
+              }>ลบ</button>
             </div>
           ))}
         </div>
@@ -369,7 +463,10 @@ export default function App() {
                     )}
                   >
                     <option value="">เลือกผู้เล่น</option>
-                    {state.players.filter(player => player.active).map(player => (
+                    {state.players.filter(player => player.active && !state.courts.some(court =>
+                      court.id !== customCourtId && court.status === "playing"
+                      && [...(court.teamA ?? []), ...(court.teamB ?? [])].includes(player.id)
+                    )).map(player => (
                       <option
                         key={player.id}
                         value={player.id}
@@ -386,6 +483,26 @@ export default function App() {
               <button className="ghost" onClick={() => setCustomCourtId(null)}>ยกเลิก</button>
               <button className="round-button" onClick={confirmCustom}>ยืนยันคู่</button>
             </div>
+          </section>
+        </div>
+      )}
+
+      {liberoPicker && (
+        <div className="modal-backdrop">
+          <section className="modal">
+            <p className="eyebrow">Dynamic Libero</p>
+            <h2>เลือกผู้เล่นที่ว่าง</h2>
+            <div className="picker-list">
+              {state.queue.filter(id => !state.courts.some(court => court.status === "playing"
+                && [...(court.teamA ?? []), ...(court.teamB ?? [])].includes(id)
+              )).map(id => (
+                <button key={id} onClick={() => {
+                  send({ type: "court/libero", ...liberoPicker, playerId: id });
+                  setLiberoPicker(null);
+                }}>{playerName(id)}</button>
+              ))}
+            </div>
+            <div className="modal-actions"><button className="ghost" onClick={() => setLiberoPicker(null)}>รอต่อไป</button></div>
           </section>
         </div>
       )}

@@ -24,6 +24,11 @@ export const initialState: AppState = {
   settings: {
     gamesPerPair: 2,
     hellvenMode: false,
-    courtCount: 2
+    courtCount: 2,
+    lowPlayerMode: "auto",
+    lowPlayerThreshold: 6,
+    theme: "dark",
+    courtColor: "#2d8a4e",
+    courtColumns: 0
   }
 };

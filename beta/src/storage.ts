@@ -16,7 +16,11 @@ function repairState(state: AppState): AppState {
       .filter(player => player.active && !onCourt.has(player.id))
       .map(player => player.id)
   ])];
-  return { ...state, queue };
+  return {
+    ...state,
+    queue,
+    settings: { ...initialState.settings, ...state.settings }
+  };
 }
 
 export function loadState(): AppState {
@@ -45,9 +49,15 @@ export function loadState(): AppState {
       queue: Array.isArray(source.queue) ? source.queue.filter((name: string) => name !== "Libero") : [],
       round: source.currentRound || 1,
       settings: {
+        ...initialState.settings,
         gamesPerPair: source.settings?.gamesPerMatch || 2,
         hellvenMode: Boolean(source.settings?.hellvenMode),
-        courtCount: Math.max(1, source.courts?.length || 2)
+        courtCount: Math.max(1, source.courts?.length || 2),
+        lowPlayerMode: source.settings?.lowPlayerMode ?? "auto",
+        lowPlayerThreshold: source.settings?.lowPlayerThreshold ?? 6,
+        theme: source.settings?.theme ?? "dark",
+        courtColor: source.settings?.courtColor ?? "#2d8a4e",
+        courtColumns: source.settings?.courtColumns ?? 0
       }
     });
   } catch {

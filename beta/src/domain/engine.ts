@@ -104,7 +104,7 @@ export function projectedRoundComplete(state: AppState): boolean {
   );
 }
 
-function realMembers(team: Team): PlayerId[] {
+export function realMembers(team: Team): PlayerId[] {
   return team.filter((member): member is PlayerId => member !== LIBERO);
 }
 
@@ -130,12 +130,15 @@ export function assignLibero(state: AppState, court: Court, team: Team, side: "A
 }
 
 export function fillCourt(state: AppState, courtId: number): AppState {
-  let next = state.schedule.length ? state : startRound(state);
+  const lowMode = state.settings.lowPlayerMode === "on"
+    || (state.settings.lowPlayerMode === "auto" && state.queue.length <= state.settings.lowPlayerThreshold);
+  let next = lowMode ? state : state.schedule.length ? state : startRound(state);
   const court = next.courts.find(item => item.id === courtId);
   if (!court || court.status === "playing") return next;
 
   const queueSet = new Set(next.queue);
-  const available = next.schedule.filter(pair => {
+  const sourcePairs = lowMode ? createPairs(next, next.queue.filter(id => !borrowedIds(next).has(id))) : next.schedule;
+  const available = sourcePairs.filter(pair => {
     if ((next.pairGames[pair.id] ?? 0) >= next.settings.gamesPerPair) return false;
     return realMembers(pair.members).every(id => queueSet.has(id));
   }).sort((first, second) => {
@@ -204,6 +207,12 @@ export function setCustomMatch(state: AppState, courtId: number, members: [Playe
   if (new Set(members).size !== 4) return state;
   const court = state.courts.find(item => item.id === courtId);
   if (!court || !members.every(id => state.players.some(player => player.id === id && player.active))) return state;
+  const busyElsewhere = new Set(state.courts.flatMap(item =>
+    item.id !== courtId && item.status === "playing"
+      ? [...realMembers(item.teamA ?? [LIBERO, LIBERO]), ...realMembers(item.teamB ?? [LIBERO, LIBERO])]
+      : []
+  ));
+  if (members.some(id => busyElsewhere.has(id))) return state;
   const teamA: Team = [members[0], members[1]];
   const teamB: Team = [members[2], members[3]];
   if (!teamsCanPlay(state, teamA, teamB)) return state;
@@ -224,6 +233,44 @@ export function setCustomMatch(state: AppState, courtId: number, members: [Playe
     ...state,
     queue,
     courts: state.courts.map(item => item.id === courtId ? nextCourt : item)
+  };
+}
+
+export function replaceCourt(state: AppState, courtId: number): AppState {
+  const court = state.courts.find(item => item.id === courtId);
+  if (!court) return state;
+  const returned = [...realMembers(court.teamA ?? [LIBERO, LIBERO]), ...realMembers(court.teamB ?? [LIBERO, LIBERO])]
+    .filter(id => !state.queue.includes(id));
+  const cleared: Court = {
+    ...court, status: "waiting", teamA: null, teamB: null,
+    liberoA: null, liberoB: null, startedRound: state.round
+  };
+  const next = {
+    ...state,
+    queue: [...state.queue, ...returned],
+    courts: state.courts.map(item => item.id === courtId ? cleared : item)
+  };
+  return fillCourt(next, courtId);
+}
+
+export function setCourtLibero(
+  state: AppState,
+  courtId: number,
+  side: "A" | "B",
+  playerId: PlayerId
+): AppState {
+  const court = state.courts.find(item => item.id === courtId);
+  const team = side === "A" ? court?.teamA : court?.teamB;
+  if (!court || !team?.includes(LIBERO) || !state.queue.includes(playerId)) return state;
+  const busy = new Set(state.courts.flatMap(item => item.status === "playing"
+    ? [...realMembers(item.teamA ?? [LIBERO, LIBERO]), ...realMembers(item.teamB ?? [LIBERO, LIBERO])]
+    : []));
+  if (busy.has(playerId)) return state;
+  return {
+    ...state,
+    courts: state.courts.map(item => item.id === courtId
+      ? { ...item, [side === "A" ? "liberoA" : "liberoB"]: playerId }
+      : item)
   };
 }
 
