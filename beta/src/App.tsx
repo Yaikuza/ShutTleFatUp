@@ -170,7 +170,6 @@ export default function App() {
             </div>
             {roomSync.configured && !roomSync.room && (
               <div className="room-actions">
-                <button className="ghost" onClick={() => void roomSync.createRoom()}>สร้างห้อง</button>
                 <input
                   value={roomCode}
                   maxLength={6}
@@ -179,6 +178,13 @@ export default function App() {
                   placeholder="รหัสตัวเลข 6 หลัก"
                   onChange={event => setRoomCode(event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
                 />
+                <button
+                  className="ghost"
+                  disabled={roomCode.length !== 6}
+                  onClick={() => void roomSync.createRoom(roomCode)}
+                >
+                  สร้างห้องนี้
+                </button>
                 <button
                   className="ghost"
                   disabled={roomCode.length !== 6}

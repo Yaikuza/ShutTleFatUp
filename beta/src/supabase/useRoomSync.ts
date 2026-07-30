@@ -27,10 +27,6 @@ function loadRoomMeta(): RoomMeta | null {
   }
 }
 
-function randomCode(): string {
-  return Array.from({ length: 6 }, () => Math.floor(Math.random() * 10)).join("");
-}
-
 export function useRoomSync(state: AppState, dispatch: Dispatch<AppAction>) {
   const [room, setRoom] = useState<RoomMeta | null>(loadRoomMeta);
   const [status, setStatus] = useState<SyncStatus>(room ? "connecting" : "local");
@@ -49,16 +45,21 @@ export function useRoomSync(state: AppState, dispatch: Dispatch<AppAction>) {
     setStatus("synced");
   };
 
-  const createRoom = async () => {
-    if (!isSupabaseConfigured) return;
+  const createRoom = async (code: string) => {
+    if (!isSupabaseConfigured || code.trim().length !== 6) return;
     setStatus("connecting");
     setMessage("");
     try {
-      const remote = await createRemoteRoom(randomCode(), state);
+      const remote = await createRemoteRoom(code, state);
       applyRemote(remote);
     } catch (error) {
       setStatus("error");
-      setMessage(error instanceof Error ? error.message : "สร้างห้องไม่สำเร็จ");
+      const detail = error instanceof Error ? error.message : "";
+      setMessage(
+        detail.toLowerCase().includes("duplicate") || detail.toLowerCase().includes("unique")
+          ? "ห้องนี้มีอยู่แล้ว กดเข้าห้องได้เลย"
+          : detail || "สร้างห้องไม่สำเร็จ"
+      );
     }
   };
 
