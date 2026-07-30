@@ -9,6 +9,7 @@ export type AppAction =
   | { type: "player/level"; id: string; level: PlayerLevel }
   | { type: "queue/shuffle" }
   | { type: "queue/move"; id: string; direction: -1 | 1 }
+  | { type: "queue/reorder"; fromId: string; toId: string }
   | { type: "queue/clear" }
   | { type: "player/remove"; id: string }
   | { type: "round/start" }
@@ -51,6 +52,15 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       [queue[from], queue[to]] = [queue[to], queue[from]];
       return { ...state, queue };
     }
+    case "queue/reorder": {
+      const from = state.queue.indexOf(action.fromId);
+      const to = state.queue.indexOf(action.toId);
+      if (from < 0 || to < 0 || from === to) return state;
+      const queue = [...state.queue];
+      const [moved] = queue.splice(from, 1);
+      queue.splice(to, 0, moved);
+      return { ...state, queue };
+    }
     case "queue/clear":
       return { ...state, queue: [] };
     case "player/remove":
@@ -86,7 +96,13 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, settings, courts };
     }
     case "session/reset":
-      return structuredClone(initialState);
+      return {
+        ...structuredClone(initialState),
+        players: state.players,
+        queue: state.players.filter(player => player.active).map(player => player.id),
+        courts: Array.from({ length: state.settings.courtCount }, (_, index) => createCourt(index + 1)),
+        settings: state.settings
+      };
     default:
       return state;
   }

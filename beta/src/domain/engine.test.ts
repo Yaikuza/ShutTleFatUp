@@ -134,4 +134,31 @@ describe("court safety", () => {
     expect(filled.courts[0].status).toBe("playing");
     expect(filled.schedule).toHaveLength(0);
   });
+
+  it("rotates away from the most recently borrowed Libero when possible", () => {
+    const base = stateWithPlayers([
+      "human", "human", "human", "human", "human", "human", "human", "human"
+    ]);
+    const state: AppState = {
+      ...base,
+      queue: ["A", "B", "C", "D", "E", "F", "G", "H"],
+      history: [{
+        id: "previous",
+        round: 1,
+        courtId: 1,
+        teamA: ["A", LIBERO],
+        teamB: ["B", "C"],
+        liberoA: "D",
+        winner: "A",
+        playedAt: "2026-07-31T00:00:00.000Z"
+      }],
+      schedule: [
+        { id: "A|LIBERO", members: ["A", LIBERO] },
+        { id: "B|C", members: ["B", "C"] }
+      ],
+      settings: { ...base.settings, lowPlayerMode: "off" }
+    };
+    const filled = fillCourt(state, 1);
+    expect(filled.courts[0].liberoA).not.toBe("D");
+  });
 });

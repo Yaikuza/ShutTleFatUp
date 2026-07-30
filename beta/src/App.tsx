@@ -52,6 +52,7 @@ export default function App() {
   const [liberoPicker, setLiberoPicker] = useState<{ courtId: number; side: "A" | "B" } | null>(null);
   const [statsTab, setStatsTab] = useState<"players" | "pairs" | "h2h" | "history">("players");
   const undoStack = useRef<AppState[]>([]);
+  const draggedQueueId = useRef<string | null>(null);
   const roomSync = useRoomSync(state, dispatch);
 
   useEffect(() => saveState(state), [state]);
@@ -355,7 +356,20 @@ export default function App() {
               const player = state.players.find(item => item.id === id);
               if (!player) return null;
               return (
-                <span className="queue-chip" key={id}>
+                <span
+                  className="queue-chip"
+                  key={id}
+                  draggable
+                  onDragStart={() => { draggedQueueId.current = id; }}
+                  onDragOver={event => event.preventDefault()}
+                  onDrop={() => {
+                    if (draggedQueueId.current) send({
+                      type: "queue/reorder", fromId: draggedQueueId.current, toId: id
+                    });
+                    draggedQueueId.current = null;
+                  }}
+                  onDragEnd={() => { draggedQueueId.current = null; }}
+                >
                   <button disabled={index === 0} onClick={() => send({ type: "queue/move", id, direction: -1 })}>↑</button>
                   <i>{index + 1}</i>
                   {state.settings.hellvenMode && levelMeta[player.level].icon}
@@ -522,9 +536,14 @@ export default function App() {
             <p className="eyebrow">Dynamic Libero</p>
             <h2>เลือกผู้เล่นที่ว่าง</h2>
             <div className="picker-list">
-              {state.queue.filter(id => !state.courts.some(court => court.status === "playing"
-                && [...(court.teamA ?? []), ...(court.teamB ?? [])].includes(id)
-              )).map(id => (
+              {state.players.filter(player => player.active && !state.courts.some(court => court.status === "playing"
+                && [
+                  ...(court.teamA ?? []),
+                  ...(court.teamB ?? []),
+                  court.liberoA,
+                  court.liberoB
+                ].includes(player.id)
+              )).map(player => player.id).map(id => (
                 <button key={id} onClick={() => {
                   send({ type: "court/libero", ...liberoPicker, playerId: id });
                   setLiberoPicker(null);

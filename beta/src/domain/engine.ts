@@ -125,7 +125,11 @@ export function assignLibero(state: AppState, court: Court, team: Team, side: "A
   const candidates = state.queue.slice(2).filter(id => !blocked.has(id));
   if (!candidates.length) return null;
   const previous = side === "A" ? court.liberoA : court.liberoB;
-  const alternatives = candidates.filter(id => id !== previous);
+  const latestBorrowed = state.history.length
+    ? [state.history[state.history.length - 1].liberoA, state.history[state.history.length - 1].liberoB]
+      .filter((id): id is PlayerId => Boolean(id))
+    : [];
+  const alternatives = candidates.filter(id => id !== previous && !latestBorrowed.includes(id));
   return shuffled(alternatives.length ? alternatives : candidates)[0];
 }
 
