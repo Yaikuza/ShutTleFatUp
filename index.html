@@ -429,7 +429,7 @@ const MAX_COURTS = 6;
 const MIN_COURTS = 1;
 
 function freshCourt(id) {
-  return { id, status: 'waiting', teamA: [], teamB: [], games: 0, consecutive: {}, startedRound: 1, liberoPlayerA: null, liberoPlayerB: null };
+  return { id, status: 'waiting', teamA: [], teamB: [], games: 0, consecutive: {}, startedRound: 1, liberoPlayerA: null, liberoPlayerB: null, liberoGamesA: 0, liberoGamesB: 0 };
 }
 
 function getDef() {
@@ -470,6 +470,8 @@ function migrate(d) {
       if (c.startedRound === undefined) c.startedRound = d.currentRound || 1;
       if (c.liberoPlayerA === undefined) c.liberoPlayerA = null;
       if (c.liberoPlayerB === undefined) c.liberoPlayerB = null;
+      if (c.liberoGamesA === undefined) c.liberoGamesA = 0;
+      if (c.liberoGamesB === undefined) c.liberoGamesB = 0;
     }
     d.nextCourtId = d.courts.length + 1;
   }
@@ -644,8 +646,8 @@ function closeConfirm(result) {
 function persist(immediate) {
   for (const c of data.courts) {
     if (c.status !== 'playing') continue;
-    if (!c.teamA.includes(LIBERO)) c.liberoPlayerA = null;
-    if (!c.teamB.includes(LIBERO)) c.liberoPlayerB = null;
+    if (!c.teamA.includes(LIBERO)) { c.liberoPlayerA = null; c.liberoGamesA = 0; }
+    if (!c.teamB.includes(LIBERO)) { c.liberoPlayerB = null; c.liberoGamesB = 0; }
     autoAssignLibero(c, c.teamA, 'A');
     autoAssignLibero(c, c.teamB, 'B');
   }
@@ -1118,6 +1120,8 @@ async function fillCourt(courtId) {
   court.teamB = teams[1];
   court.liberoPlayerA = null;
   court.liberoPlayerB = null;
+  court.liberoGamesA = 0;
+  court.liberoGamesB = 0;
   autoAssignLibero(court, court.teamA, 'A');
   autoAssignLibero(court, court.teamB, 'B');
   data.queue = data.queue.filter(p => !teams[0].includes(p) && !teams[1].includes(p));
@@ -1170,6 +1174,8 @@ async function declareWinner(courtId, winner) {
 
   recordStats(court);
   court.games++;
+  if (court.teamA.includes(LIBERO) && court.liberoPlayerA) court.liberoGamesA++;
+  if (court.teamB.includes(LIBERO) && court.liberoPlayerB) court.liberoGamesB++;
 
   for (const p of [...court.teamA, ...court.teamB])
     court.consecutive[p] = (court.consecutive[p] || 0) + 1;
@@ -1268,6 +1274,7 @@ async function swapBoth(courtId) {
     if (p !== LIBERO && !data.queue.includes(p)) data.queue.push(p);
   court.teamA = []; court.teamB = []; court.status = 'waiting'; court.consecutive = {};
   court.liberoPlayerA = null; court.liberoPlayerB = null;
+  court.liberoGamesA = 0; court.liberoGamesB = 0;
   court.startedRound = data.currentRound;
   saveData();
   await fillCourt(courtId);
@@ -2083,8 +2090,8 @@ function applyLiberoSelection(courtId, side, name) {
   const current = side === 'A' ? court?.liberoPlayerA : court?.liberoPlayerB;
   if (!court || !names.includes(name) || (courtNames.has(name) && name !== current) || team.includes(name) || other === name) { toast('ผู้เล่นนี้ไม่อยู่ใน pool แล้ว'); return; }
   pushSnapshot('เลือก Libero');
-  if (side === 'A') court.liberoPlayerA = name;
-  else court.liberoPlayerB = name;
+  if (side === 'A') { court.liberoPlayerA = name; court.liberoGamesA = 0; }
+  else { court.liberoPlayerB = name; court.liberoGamesB = 0; }
   const overlay = document.getElementById('liberoSelectOverlay');
   if (overlay) overlay.remove();
   persist();
@@ -2092,12 +2099,17 @@ function applyLiberoSelection(courtId, side, name) {
 
 function autoAssignLibero(court, team, side) {
   if (!team.includes(LIBERO)) return;
-  if (side === 'A' ? court.liberoPlayerA : court.liberoPlayerB) return;
+  const playerKey = side === 'A' ? 'liberoPlayerA' : 'liberoPlayerB';
+  const gamesKey = side === 'A' ? 'liberoGamesA' : 'liberoGamesB';
+  const previous = court[playerKey];
+  if (previous && court[gamesKey] < 1) return;
+  court[playerKey] = null;
+  court[gamesKey] = 0;
   const candidates = data.queue.slice(2).filter(p => p && !team.includes(p) && !isBorrowedLibero(p));
   if (!candidates.length) return;
-  const name = shuffle([...candidates])[0];
-  if (side === 'A') court.liberoPlayerA = name;
-  else court.liberoPlayerB = name;
+  const alternatives = candidates.filter(p => p !== previous);
+  const name = shuffle(alternatives.length ? alternatives : candidates)[0];
+  court[playerKey] = name;
 }
 
 function isBorrowedLibero(name) {
