@@ -454,7 +454,7 @@ function getDef() {
     roundSchedule: [],
     currentRound: 1,
     playerLevel,
-    settings: { gamesPerMatch: 2, courtColumns: 0, courtColor: '#2d8a4e', theme: 'light', hellvenMode: false }
+    settings: { gamesPerMatch: 2, courtColumns: 0, courtColor: '#2d8a4e', theme: 'light', hellvenMode: false, lowPlayerMode: 'auto', lowPlayerThreshold: 6 }
   };
 }
 
@@ -471,12 +471,14 @@ function migrate(d) {
     }
     d.nextCourtId = d.courts.length + 1;
   }
-  d.settings = d.settings || { gamesPerMatch: 2, courtColumns: 0, courtColor: '#2d8a4e', theme: 'light' };
+  d.settings = d.settings || { gamesPerMatch: 2, courtColumns: 0, courtColor: '#2d8a4e', theme: 'light', hellvenMode: false, lowPlayerMode: 'auto', lowPlayerThreshold: 6 };
   if (!d.settings.gamesPerMatch) d.settings.gamesPerMatch = 2;
   if (d.settings.courtColumns === undefined) d.settings.courtColumns = 0;
   if (!d.settings.courtColor) d.settings.courtColor = '#2d8a4e';
   if (!d.settings.theme) d.settings.theme = 'light';
   if (d.settings.hellvenMode === undefined) d.settings.hellvenMode = false;
+  if (!d.settings.lowPlayerMode) d.settings.lowPlayerMode = 'auto';
+  if (d.settings.lowPlayerThreshold === undefined) d.settings.lowPlayerThreshold = 6;
   d.playerLevel = d.playerLevel || {};
   for (const p of d.mainPlayers) if (!d.playerLevel[p]) d.playerLevel[p] = 'human';
   d.roundPairs = d.roundPairs || {};
@@ -571,7 +573,7 @@ function canMatchByLevel(teamA, teamB) {
   if (!data.settings.hellvenMode) return true;
   const lA = getTeamLevel(teamA);
   const lB = getTeamLevel(teamB);
-  if (lA === 'mixed' || lB === 'mixed') return true;
+  if (lA === 'mixed' || lB === 'mixed') return false;
   if (lA === 'hell' && lB === 'heaven') return false;
   if (lA === 'heaven' && lB === 'hell') return false;
   return true;
@@ -694,16 +696,52 @@ function pairByLevel(players) {
   const heavenPool = shuffle([...heaven, ...human.filter(p => !usedInHell.has(p))]);
   for (let i = 0; i + 1 < heavenPool.length; i += 2)
     pairs.push({ p1: heavenPool[i], p2: heavenPool[i + 1] });
-  // Fallback: leftover Hell+Heaven → mixed
   const hellLeft = hellPool.length % 2 === 1 ? [hellPool[hellPool.length - 1]] : [];
   const heavenLeft = heavenPool.length % 2 === 1 ? [heavenPool[heavenPool.length - 1]] : [];
   if (hellLeft.length && heavenLeft.length)
-    pairs.push({ p1: hellLeft[0], p2: heavenLeft[0] });
+    pairs.push({ p1: hellLeft[0], p2: LIBERO }, { p1: heavenLeft[0], p2: LIBERO });
   else if (hellLeft.length)
     pairs.push({ p1: hellLeft[0], p2: LIBERO });
   else if (heavenLeft.length)
     pairs.push({ p1: heavenLeft[0], p2: LIBERO });
   return pairs;
+}
+
+function isLowPlayerModeActive() {
+  const mode = data.settings.lowPlayerMode || 'auto';
+  if (mode === 'on') return true;
+  if (mode === 'off') return false;
+  const threshold = data.settings.lowPlayerThreshold || 6;
+  return data.queue.length <= threshold;
+}
+
+function pickDirectMatchFromQueue() {
+  const shuffled = shuffle([...data.queue]);
+  const pairs = pairByLevel(shuffled);
+  for (let i = 0; i < pairs.length - 1; i++) {
+    for (let j = i + 1; j < pairs.length; j++) {
+      const a = pairs[i];
+      const b = pairs[j];
+      if (!a.p1 || !a.p2 || !b.p1 || !b.p2) continue;
+      if (!isPairLevelValid(a.p1, a.p2)) continue;
+      if (!isPairLevelValid(b.p1, b.p2)) continue;
+      if (!canMatchByLevel([a.p1, a.p2], [b.p1, b.p2])) continue;
+      return [[a.p1, a.p2], [b.p1, b.p2]];
+    }
+  }
+  return null;
+}
+
+function findDirectOpponentForTeam(team) {
+  const shuffled = shuffle([...data.queue]);
+  const pairs = pairByLevel(shuffled);
+  for (const p of pairs) {
+    if (!p.p1 || !p.p2) continue;
+    if (!isPairLevelValid(p.p1, p.p2)) continue;
+    if (!canMatchByLevel(team, [p.p1, p.p2])) continue;
+    return [p.p1, p.p2];
+  }
+  return null;
 }
 
 // ===== UNDO SYSTEM =====
@@ -874,15 +912,13 @@ function renderCourtCount() {
   document.getElementById('courtCount').textContent = data.courts.length;
 }
 
-function isPairLevelValid(courtLevel, p1, p2) {
+function isPairLevelValid(p1, p2) {
   if (!data.settings.hellvenMode) return true;
-  if (courtLevel === 'human') return true;
-  // Mixed Hell+Heaven pair (fallback) can play on any court
   const l1 = data.playerLevel[p1] || 'human';
   const l2 = data.playerLevel[p2] || 'human';
   if ((l1 === 'hell' && l2 === 'heaven') || (l1 === 'heaven' && l2 === 'hell')) return true;
   if (!canPairByLevel(p1, p2)) return false;
-  return isLevelCompatible(courtLevel, l1) && isLevelCompatible(courtLevel, l2);
+  return true;
 }
 
 function findScheduledMatch(courtId) {
@@ -891,14 +927,13 @@ function findScheduledMatch(courtId) {
   const qSet = new Set(data.queue);
   qSet.add(LIBERO);
   const limit = data.settings.gamesPerMatch || 2;
-  const courtLevel = courtId ? getCourtLevel(courtId) : 'human';
   const eligible = schedule
     .filter(p => {
       if (p.p2 === null) return false;
       const played = data.roundPairs[key(p.p1, p.p2)] || 0;
       if (played >= limit) return false;
       if (!qSet.has(p.p1) || !qSet.has(p.p2)) return false;
-      if (!isPairLevelValid(courtLevel, p.p1, p.p2)) return false;
+      if (!isPairLevelValid(p.p1, p.p2)) return false;
       return true;
     })
     .sort((a, b) => {
@@ -934,7 +969,8 @@ function anyCourtCanMatch() {
 let _autoRounding = false;
 async function checkAndAutoRound() {
   if (_autoRounding) return;
-  if (data.queue.length < 4) return;
+  if (isLowPlayerModeActive()) return;
+  if (data.queue.length < 2) return;
   if (!data.courts.some(c => c.status !== 'playing')) return;
   if (anyCourtCanMatch()) return;
   if (pairRemainingQueueIntoSchedule() > 0 && anyCourtCanMatch()) return;
@@ -954,7 +990,6 @@ function findScheduledOpponents(winTeam, exclude, courtId) {
   const qSet = new Set(data.queue);
   qSet.add(LIBERO);
   const excludeKey = exclude ? key(exclude[0], exclude[1]) : null;
-  const courtLevel = courtId ? getCourtLevel(courtId) : 'human';
   let best = null;
   let bestIdx = Infinity;
   for (const p of data.roundSchedule) {
@@ -964,7 +999,7 @@ function findScheduledOpponents(winTeam, exclude, courtId) {
     if (excludeKey && key(p.p1, p.p2) === excludeKey) continue;
     if (!qSet.has(p.p1) || !qSet.has(p.p2)) continue;
     if ((data.roundPairs[key(p.p1, p.p2)] || 0) >= limit) continue;
-    if (!isPairLevelValid(courtLevel, p.p1, p.p2)) continue;
+    if (!isPairLevelValid(p.p1, p.p2)) continue;
     if (!canMatchByLevel(winTeam, [p.p1, p.p2])) continue;
     const idx = Math.min(
       p.p1 === LIBERO ? Infinity : data.queue.indexOf(p.p1),
@@ -981,6 +1016,7 @@ async function fillCourt(courtId) {
   const court = data.courts.find(c => c.id === courtId);
   if (!court) return;
   if (court.status === 'playing') { toast('สนามนี้กำลังเล่นอยู่'); return; }
+  const lowMode = isLowPlayerModeActive();
 
   const hasTeamA = court.teamA.length === 2;
   const hasTeamB = court.teamB.length === 2;
@@ -990,30 +1026,66 @@ async function fillCourt(courtId) {
     if (data.queue.length < 2) { toast('คิวต้องมีอย่างน้อย 2 คน'); return; }
   } else {
     // Empty or full court
-    if (data.queue.length < 4) { toast('คิวต้องมีอย่างน้อย 4 คน'); return; }
+    if (data.queue.length < 2) { toast('คิวต้องมีอย่างน้อย 2 คน'); return; }
   }
 
   // Auto-create initial schedule if empty (first round / after reset)
-  if (!data.roundSchedule || data.roundSchedule.length === 0) {
+  if (!lowMode && (!data.roundSchedule || data.roundSchedule.length === 0)) {
     data.roundSchedule = pairByLevel(shuffle([...data.queue]));
   }
 
   let teams = null;
 
+  if (lowMode && hasTeamA === hasTeamB) {
+    teams = pickDirectMatchFromQueue();
+    if (!teams && data.queue.length >= 2 && data.queue.length < 4) {
+      const partialPairs = pairByLevel(shuffle([...data.queue]));
+      const partial = partialPairs.find(p => p.p1 && p.p2 && p.p2 !== LIBERO);
+      if (partial) {
+        pushSnapshot('จัดคอร์ทแบบคนน้อย');
+        court.teamA = [partial.p1, partial.p2];
+        court.teamB = [];
+        court.status = 'waiting';
+        court.games = 0;
+        court.consecutive = {};
+        court.startedRound = data.currentRound;
+        data.queue = data.queue.filter(p => p !== partial.p1 && p !== partial.p2);
+        persist();
+        return;
+      }
+    }
+  }
+
   if (hasTeamA && !hasTeamB) {
-    let opp = findScheduledOpponents(court.teamA, null, courtId);
-    if (!opp && pairRemainingQueueIntoSchedule() > 0) opp = findScheduledOpponents(court.teamA, null, courtId);
+    let opp = lowMode ? findDirectOpponentForTeam(court.teamA) : findScheduledOpponents(court.teamA, null, courtId);
+    if (!lowMode && !opp && pairRemainingQueueIntoSchedule() > 0) opp = findScheduledOpponents(court.teamA, null, courtId);
     if (opp) teams = [court.teamA, opp];
   } else if (!hasTeamA && hasTeamB) {
-    let opp = findScheduledOpponents(court.teamB, null, courtId);
-    if (!opp && pairRemainingQueueIntoSchedule() > 0) opp = findScheduledOpponents(court.teamB, null, courtId);
+    let opp = lowMode ? findDirectOpponentForTeam(court.teamB) : findScheduledOpponents(court.teamB, null, courtId);
+    if (!lowMode && !opp && pairRemainingQueueIntoSchedule() > 0) opp = findScheduledOpponents(court.teamB, null, courtId);
     if (opp) teams = [opp, court.teamB];
   } else {
     // Empty court — find full match
-    teams = findScheduledMatch(courtId);
-    if (!teams) {
+    teams = lowMode ? pickDirectMatchFromQueue() : findScheduledMatch(courtId);
+    if (!lowMode && !teams) {
       const added = pairRemainingQueueIntoSchedule();
       if (added >= 2) teams = findScheduledMatch(courtId);
+    }
+    if (!teams && data.queue.length >= 2 && data.queue.length < 4) {
+      const partialPairs = pairByLevel(shuffle([...data.queue]));
+      const partial = partialPairs.find(p => p.p1 && p.p2 && p.p2 !== LIBERO);
+      if (partial) {
+        pushSnapshot(lowMode ? 'จัดคอร์ทแบบคนน้อย' : 'จัดคอร์ทแบบรอคู่');
+        court.teamA = [partial.p1, partial.p2];
+        court.teamB = [];
+        court.status = 'waiting';
+        court.games = 0;
+        court.consecutive = {};
+        court.startedRound = data.currentRound;
+        data.queue = data.queue.filter(p => p !== partial.p1 && p !== partial.p2);
+        persist();
+        return;
+      }
     }
   }
 
@@ -1286,14 +1358,18 @@ function closeCustomMatchPicker() {
 }
 
 function getPlayerLocation(name) {
+  const currentCourt = picker.courtId ? data.courts.find(c => c.id === picker.courtId) : null;
+  if (currentCourt && (currentCourt.teamA.includes(name) || currentCourt.teamB.includes(name))) {
+    return { busy: false, courtId: picker.courtId, here: true };
+  }
   for (const c of data.courts) {
     if (c.id === picker.courtId) continue;
     if (c.status !== 'playing') continue;
     if (c.teamA.includes(name) || c.teamB.includes(name)) {
-      return { busy: true, courtId: c.id };
+      return { busy: true, courtId: c.id, here: false };
     }
   }
-  return { busy: false, courtId: null };
+  return { busy: false, courtId: null, here: false };
 }
 
 function togglePick(name) {
@@ -1327,24 +1403,8 @@ function clearPicker() {
   renderPicker();
 }
 
-function renderPicker() {
-  const body = document.getElementById('pickerBody');
-  if (!body) return;
-
-  const pLevel = picker.courtId ? getCourtLevel(picker.courtId) : 'human';
-  const allNames = picker.courtId && data.settings.hellvenMode
-    ? data.queue.filter(n => isLevelCompatible(pLevel, data.playerLevel[n] || 'human'))
-    : [...data.queue];
-  const slot = (idx, team) => {
-    const arr = team === 'A' ? picker.teamA : picker.teamB;
-    const name = arr[idx];
-    if (name) {
-      return `<div class="picker-slot filled ${team === 'B' ? 'team-b-filled' : ''}" onclick="movePick('${escHtml(name)}','${team === 'A' ? 'B' : 'A'}')" title="ย้ายไปอีกฝั่ง">${escHtml(name)} ✕</div>`;
-    }
-    return `<div class="picker-slot">ว่าง</div>`;
-  };
-
-  const chips = allNames.map(name => {
+function renderPickerChips(names) {
+  return names.map(name => {
     const loc = getPlayerLocation(name);
     const inA = picker.teamA.includes(name);
     const inB = picker.teamB.includes(name);
@@ -1354,14 +1414,43 @@ function renderPicker() {
     let cls = 'picker-chip';
     if (inA) cls += ' in-a';
     else if (inB) cls += ' in-b';
+    else if (loc.here) cls += ' in-a';
     const actions = (inA || inB)
       ? `<span class="chip-actions"><button onclick="event.stopPropagation();movePick('${escHtml(name)}','${inA ? 'B' : 'A'}')" title="ย้าย">⇄</button><button onclick="event.stopPropagation();togglePick('${escHtml(name)}')" title="เอาออก">✕</button></span>`
       : '';
-    return `<span class="${cls}" onclick="${loc.busy ? 'event.stopPropagation()' : `togglePick('${escHtml(name)}')`}">${escHtml(name)}${actions}</span>`;
+    const badge = loc.here ? '<span class="chip-court">🏟️ คอร์ทนี้</span> ' : '';
+    return `<span class="${cls}" onclick="${loc.busy ? 'event.stopPropagation()' : `togglePick('${escHtml(name)}')`}">${badge}${escHtml(name)}${actions}</span>`;
   }).join('');
+}
+
+function renderPicker() {
+  const body = document.getElementById('pickerBody');
+  if (!body) return;
+
+  const currentCourt = picker.courtId ? data.courts.find(c => c.id === picker.courtId) : null;
+  const courtPlayers = currentCourt
+    ? [...new Set([...currentCourt.teamA, ...currentCourt.teamB])].filter(n => n && n !== LIBERO)
+    : [];
+  const queuePlayers = picker.courtId && data.settings.hellvenMode
+    ? data.queue.filter(n => {
+        const lvl = data.playerLevel[n] || 'human';
+        return lvl === 'human' || lvl === 'hell' || lvl === 'heaven';
+      })
+    : [...data.queue];
+  const allNames = [...new Set([...courtPlayers, ...queuePlayers])];
+  const slot = (idx, team) => {
+    const arr = team === 'A' ? picker.teamA : picker.teamB;
+    const name = arr[idx];
+    if (name) {
+      return `<div class="picker-slot filled ${team === 'B' ? 'team-b-filled' : ''}" onclick="movePick('${escHtml(name)}','${team === 'A' ? 'B' : 'A'}')" title="ย้ายไปอีกฝั่ง">${escHtml(name)} ✕</div>`;
+    }
+    return `<div class="picker-slot">ว่าง</div>`;
+  };
 
   const ready = picker.teamA.length === 2 && picker.teamB.length === 2;
   const totalCount = allNames.length;
+  const courtCount = courtPlayers.length;
+  const queueCount = queuePlayers.length;
   const hasSchedule = data.roundSchedule && data.roundSchedule.some(p => p.p1 && p.p2 && p.p1 !== LIBERO && p.p2 !== LIBERO);
   const page = picker.page || 0;
 
@@ -1374,7 +1463,7 @@ function renderPicker() {
       if (!p.p1 || !p.p2) continue;
       const isBye = p.p1 === LIBERO || p.p2 === LIBERO;
       if (isBye) continue;
-      if (data.settings.hellvenMode && pLevel !== 'human' && !isPairLevelValid(pLevel, p.p1, p.p2)) continue;
+      if (data.settings.hellvenMode && !isPairLevelValid(p.p1, p.p2)) continue;
       const key = [p.p1, p.p2].sort().join('|');
       if (usedPairKeys.has(key)) continue;
       usedPairKeys.add(key);
@@ -1420,8 +1509,10 @@ function renderPicker() {
           : `<div class="picker-empty-msg">⚠️ ตารางรอบนี้ยังไม่ได้สร้าง<br><br>กรุณาใช้ "👥 จัดอัตโนมัติ" ก่อน หรือเลือกผู้เล่นจากหน้า "👤 เลือกเอง"</div>`}
       </div>
       <div class="picker-page ${page === 1 ? 'active' : ''}">
-        <div class="picker-pool-title">👤 เลือกผู้เล่น (${totalCount} คน)</div>
-        <div class="picker-pool">${chips || '<div class="queue-empty">ไม่มีผู้เล่น</div>'}</div>
+        <div class="picker-pool-title">🏟️ คนในคอร์ทนี้ (${courtCount} คน)</div>
+        <div class="picker-pool">${courtPlayers.length ? renderPickerChips(courtPlayers) : '<div class="queue-empty">ไม่มีคนในคอร์ทนี้</div>'}</div>
+        <div class="picker-pool-title" style="margin-top:12px">👤 คนในคิว (${queueCount} คน)</div>
+        <div class="picker-pool">${queuePlayers.length ? renderPickerChips(queuePlayers) : '<div class="queue-empty">ไม่มีผู้เล่น</div>'}</div>
       </div>
     </div>
     <div class="picker-footer">
@@ -1439,7 +1530,10 @@ function confirmCustomMatch() {
   // Validate no duplicates
   const all = [...picker.teamA, ...picker.teamB];
   if (new Set(all).size !== 4) { toast('ชื่อซ้ำ'); return; }
-  if (!canMatchByLevel(picker.teamA, picker.teamB)) { toast('🔥 Hell vs 😇 Heaven ไม่ได้'); return; }
+  if (!isPairLevelValid(picker.teamA[0], picker.teamA[1]) || !isPairLevelValid(picker.teamB[0], picker.teamB[1])) {
+    toast('🔥 Hell vs 😇 Heaven ไม่ได้');
+    return;
+  }
   pushSnapshot('เลือกคู่เอง');
 
   // Return current court's old players to queue (they're being replaced)
@@ -1941,8 +2035,7 @@ function renderCourtBody(c) {
   const empty = hasTeamA
     ? `<div class="court-waiting-msg" style="color:rgba(255,255,255,.9);font-weight:600">⏳ รอคู่: ${escHtml(c.teamA.join(' + '))}</div>`
     : `<div class="court-empty-sub">👥 คิว ${data.queue.length} คน</div>`;
-  const hasMatchForCourt = !data.roundSchedule || data.roundSchedule.length === 0 || !!findScheduledMatch(c.id);
-  const disabled = data.queue.length < 4 || !hasMatchForCourt;
+  const disabled = data.queue.length < 4;
   return `<div class="court-floor"><div class="court-empty">${empty}
     <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px">
       <button class="big-btn" onclick="fillCourt(${c.id})" ${disabled ? 'disabled' : ''} style="max-width:160px;margin:0;font-weight:700">👥 จัดอัตโนมัติ</button>
@@ -1958,11 +2051,9 @@ function renderCourts() {
   el.className = 'courts' + (cols === 0 ? ' cols-auto' : '');
   el.style.gridTemplateColumns = cols > 0 ? 'repeat(' + cols + ',1fr)' : '';
   el.innerHTML = data.courts.map(c => {
-    const noSchedule = !data.roundSchedule || data.roundSchedule.length === 0;
-    const hasMatch = noSchedule || !!findScheduledMatch(c.id);
     let cls = 'court-card';
     if (c.status === 'playing') cls += ' status-playing';
-    else if (data.queue.length >= 4 && hasMatch) cls += ' status-waiting queue-full';
+    else if (data.queue.length >= 4) cls += ' status-waiting queue-full';
     const cLevel = getCourtLevel(c.id);
     const levelIconH = data.settings.hellvenMode
       ? ` <span class="badge" style="background:${cLevel === 'hell' ? '#dc2626' : cLevel === 'heaven' ? '#2563eb' : '#6b7280'};font-size:10px">${levelBadge(cLevel)}</span>`
@@ -2243,6 +2334,20 @@ function renderSettingsContent() {
       '<div class="setting-row">' +
         '<div><div class="setting-label">🔥 Hellven Mode</div><div class="setting-desc">แยกสนามตามระดับผู้เล่น</div></div>' +
         '<button class="pool-toggle ' + (s.hellvenMode ? 'active' : '') + '" onclick="data.settings.hellvenMode=!data.settings.hellvenMode;saveData();render()" style="flex-shrink:0"></button>' +
+      '</div>' +
+      '<div class="setting-row">' +
+        '<div><div class="setting-label">โหมดคนน้อย</div><div class="setting-desc">จับคู่ตรงจากคิวเมื่อคนยังไม่เยอะ</div></div>' +
+        '<select class="setting-input" onchange="data.settings.lowPlayerMode=this.value;saveData();render()">' +
+          '<option value="auto"' + (s.lowPlayerMode === 'auto' ? ' selected' : '') + '>อัตโนมัติ (แนะนำ)</option>' +
+          '<option value="on"' + (s.lowPlayerMode === 'on' ? ' selected' : '') + '>เปิดตลอด</option>' +
+          '<option value="off"' + (s.lowPlayerMode === 'off' ? ' selected' : '') + '>ปิด</option>' +
+        '</select>' +
+      '</div>' +
+      '<div class="setting-row">' +
+        '<div><div class="setting-label">เกณฑ์คนน้อย</div><div class="setting-desc">จำนวนคนคิวสูงสุดที่ยังถือว่าเป็นโหมดคนน้อย</div></div>' +
+        '<select class="setting-input" onchange="data.settings.lowPlayerThreshold=parseInt(this.value);saveData();render()">' +
+          [4, 6, 8, 10].map(n => '<option value="' + n + '" ' + (s.lowPlayerThreshold === n ? 'selected' : '') + '>' + n + ' คน</option>').join('') +
+        '</select>' +
       '</div>' +
       '<div class="setting-row">' +
         '<div><div class="setting-label">จำนวนเกม/คู่</div><div class="setting-desc">เล่นกี่เกมแล้วพัก</div></div>' +
