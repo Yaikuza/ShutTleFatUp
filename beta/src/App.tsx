@@ -2,6 +2,7 @@ import { useEffect, useReducer, useRef, useState } from "react";
 import { appReducer, type AppAction } from "./app/appReducer";
 import { LevelSlider, levelMeta } from "./components/LevelSlider";
 import { StatsPanel } from "./components/StatsPanel";
+import { SettingsPanel } from "./components/SettingsPanel";
 import { LIBERO, teamFlag } from "./domain/engine";
 import type { AppState, Team } from "./domain/types";
 import { loadState, saveState } from "./storage";
@@ -12,7 +13,6 @@ export default function App() {
   const [state, dispatch] = useReducer(appReducer, undefined, loadState);
   const [name, setName] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [roomCode, setRoomCode] = useState("");
   const [customCourtId, setCustomCourtId] = useState<number | null>(null);
   const [customPlayers, setCustomPlayers] = useState<string[]>(["", "", "", ""]);
   const [liberoPicker, setLiberoPicker] = useState<{ courtId: number; side: "A" | "B" } | null>(null);
@@ -165,130 +165,27 @@ export default function App() {
       </header>
 
       {settingsOpen && (
-        <section className="settings-panel">
-          <label>
-            <span>จำนวนเกมต่อคู่</span>
-            <select
-              value={state.settings.gamesPerPair}
-              onChange={event => send({ type: "settings/update", patch: { gamesPerPair: Number(event.target.value) } })}
-            >
-              {[1, 2, 3, 4].map(value => <option key={value} value={value}>{value} เกม</option>)}
-            </select>
-          </label>
-          <label>
-            <span>จำนวนคอร์ท</span>
-            <select
-              value={state.settings.courtCount}
-              onChange={event => send({ type: "settings/update", patch: { courtCount: Number(event.target.value) } })}
-            >
-              {[1, 2, 3, 4, 5, 6].map(value => <option key={value} value={value}>{value} คอร์ท</option>)}
-            </select>
-          </label>
-          <label className="toggle-row">
-            <span>Hellven Mode</span>
-            <input
-              type="checkbox"
-              checked={state.settings.hellvenMode}
-              onChange={event => send({ type: "settings/update", patch: { hellvenMode: event.target.checked } })}
-            />
-          </label>
-          <label>
-            <span>โหมดคนน้อย</span>
-            <select value={state.settings.lowPlayerMode} onChange={event => send({
-              type: "settings/update",
-              patch: { lowPlayerMode: event.target.value as AppState["settings"]["lowPlayerMode"] }
-            })}>
-              <option value="auto">อัตโนมัติ</option>
-              <option value="on">เปิดตลอด</option>
-              <option value="off">ปิด</option>
-            </select>
-          </label>
-          <label>
-            <span>เกณฑ์คนน้อย</span>
-            <select value={state.settings.lowPlayerThreshold} onChange={event => send({
-              type: "settings/update", patch: { lowPlayerThreshold: Number(event.target.value) }
-            })}>
-              {[4, 6, 8, 10].map(value => <option key={value} value={value}>{value} คน</option>)}
-            </select>
-          </label>
-          <label>
-            <span>ธีม</span>
-            <select value={state.settings.theme} onChange={event => send({
-              type: "settings/update", patch: { theme: event.target.value as AppState["settings"]["theme"] }
-            })}>
-              <option value="light">สว่าง</option><option value="dark">มืด</option>
-              <option value="pastel">Pastel</option><option value="sepia">Sepia</option>
-            </select>
-          </label>
-          <label>
-            <span>สีสนาม</span>
-            <input type="color" value={state.settings.courtColor} onChange={event => send({
-              type: "settings/update", patch: { courtColor: event.target.value }
-            })} />
-          </label>
-          <label>
-            <span>คอลัมน์สนาม</span>
-            <select value={state.settings.courtColumns} onChange={event => send({
-              type: "settings/update", patch: { courtColumns: Number(event.target.value) as 0 | 1 | 2 | 3 }
-            })}>
-              <option value="0">อัตโนมัติ</option><option value="1">1</option>
-              <option value="2">2</option><option value="3">3</option>
-            </select>
-          </label>
-          <div className="data-actions">
-            <button className="ghost" onClick={exportData}>Export</button>
-            <label className="ghost file-button">Import<input type="file" accept=".json" onChange={event => void importData(event.target.files?.[0])} /></label>
-            <button className="ghost danger" onClick={() => askConfirm(
-              "รีเซตรอบ คิว สนาม และประวัติของ Session นี้? รายชื่อผู้เล่นและสถิติถาวรจะยังอยู่",
-              () => {
-                send({ type: "session/reset" });
-                setNotice("รีเซต Session เรียบร้อย");
-              }
-            )}>รีเซต Session</button>
-          </div>
-          <div className="room-settings">
-            <div>
-              <strong>ห้อง Realtime</strong>
-              <small>
-                {roomSync.configured
-                  ? roomSync.room ? `เชื่อมต่อห้อง ${roomSync.room.code}` : "สร้างหรือเข้าห้องเพื่อ sync หลายเครื่อง"
-                  : "ยังไม่ได้ตั้งค่า Supabase"}
-              </small>
-            </div>
-            {roomSync.configured && !roomSync.room && (
-              <div className="room-actions">
-                <input
-                  value={roomCode}
-                  maxLength={6}
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  placeholder="รหัสตัวเลข 6 หลัก"
-                  onChange={event => setRoomCode(event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
-                />
-                <button
-                  className="ghost"
-                  disabled={roomCode.length !== 6}
-                  onClick={() => void roomSync.createRoom(roomCode)}
-                >
-                  สร้างห้องนี้
-                </button>
-                <button
-                  className="ghost"
-                  disabled={roomCode.length !== 6}
-                  onClick={() => void roomSync.joinRoom(roomCode)}
-                >
-                  เข้าห้อง
-                </button>
-              </div>
-            )}
-            {roomSync.room && (
-              <button className="ghost" onClick={roomSync.leaveRoom}>ออกจากห้อง</button>
-            )}
-            {roomSync.message && <p role="alert">{roomSync.message}</p>}
-          </div>
-        </section>
+        <SettingsPanel
+          settings={state.settings}
+          configured={roomSync.configured}
+          roomCode={roomSync.room?.code}
+          syncStatus={roomSync.status}
+          syncMessage={roomSync.message}
+          onSettingsChange={patch => send({ type: "settings/update", patch })}
+          onExport={exportData}
+          onImport={file => void importData(file)}
+          onReset={() => askConfirm(
+            "รีเซตรอบ คิว สนาม และประวัติของ Session นี้? รายชื่อผู้เล่นและสถิติถาวรจะยังอยู่",
+            () => {
+              send({ type: "session/reset" });
+              setNotice("รีเซต Session เรียบร้อย");
+            }
+          )}
+          onCreateRoom={code => void roomSync.createRoom(code)}
+          onJoinRoom={code => void roomSync.joinRoom(code)}
+          onLeaveRoom={roomSync.leaveRoom}
+        />
       )}
-
       <section className="summary">
         <div><span>รอบ</span><strong>{state.round}</strong></div>
         <div><span>ผู้เล่น active</span><strong>{activeCount}</strong></div>
