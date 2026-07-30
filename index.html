@@ -2012,13 +2012,16 @@ function renderQueue() {
 
 function availableLiberoNames(courtId) {
   const busy = new Set();
+  const currentCourt = data.courts.find(c => c.id === courtId);
   for (const c of data.courts) {
     if (c.status !== 'playing') continue;
+    if (c.id === courtId) continue;
     for (const p of [...c.teamA, ...c.teamB]) if (p !== LIBERO) busy.add(p);
     if (c.liberoPlayerA) busy.add(c.liberoPlayerA);
     if (c.liberoPlayerB) busy.add(c.liberoPlayerB);
   }
   const names = [...data.queue];
+  if (currentCourt) names.push(...currentCourt.teamA, ...currentCourt.teamB);
   for (const c of data.courts) {
     if (c.id === courtId || c.status === 'playing') continue;
     names.push(...c.teamA, ...c.teamB);
@@ -2032,7 +2035,7 @@ function chooseLibero(courtId, side) {
   const team = side === 'A' ? court.teamA : court.teamB;
   if (!team.includes(LIBERO)) { toast('คู่นี้ไม่มีช่อง Libero'); return; }
   const current = side === 'A' ? court.liberoPlayerA : court.liberoPlayerB;
-  const names = availableLiberoNames(courtId).filter(p => p !== current);
+  const names = availableLiberoNames(courtId).filter(p => p !== current && !team.includes(p));
   if (current) names.unshift(current);
   if (!names.length) { toast('ยังไม่มีผู้เล่นว่างสำหรับ Libero'); return; }
   const selected = window.prompt('เลือกชื่อ Libero:\n' + names.map((n, i) => (i + 1) + '. ' + n).join('\n'), current || '');
@@ -2052,7 +2055,7 @@ function renderCourtBody(c) {
       const libero = p === LIBERO;
       const selected = libero ? (c.teamA.includes(p) ? c.liberoPlayerA : c.liberoPlayerB) : null;
       return '<div class="p-entry"' + (libero ? ' onclick="event.stopPropagation();chooseLibero(' + c.id + ',\'' + (c.teamA.includes(p) ? 'A' : 'B') + '\')"' : '') + '>' +
-        '<span class="p-name">' + escHtml(selected || p) + (libero ? ' <small>(Libero)</small>' : '') + '</span>' +
+        '<span class="p-name">' + escHtml(selected || (libero ? 'เลือกผู้เล่น' : p)) + (libero ? ' <small>(Libero)</small>' : '') + '</span>' +
         '</div>';
     };
     const gameLabelA = '<div class="mid-game-label">เกม' + ((data.roundPairs[key(c.teamA[0], c.teamA[1])] || 0) + 1) + '</div>';
