@@ -1,0 +1,141 @@
+:root {
+  font-family: "Tahoma", "Noto Sans Thai", sans-serif;
+  color: #f7f3e8;
+  background: #102d26;
+  font-synthesis: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 12% 8%, rgba(245, 181, 69, 0.2), transparent 28rem),
+    linear-gradient(145deg, #123c31, #071c18 72%);
+}
+
+button,
+a {
+  font: inherit;
+}
+
+.app-shell {
+  width: min(1080px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 56px 0 80px;
+}
+
+.hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 32px;
+}
+
+.eyebrow {
+  margin: 0;
+  color: #f2b84b;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+h1 {
+  margin: 8px 0 12px;
+  font-size: clamp(2.6rem, 8vw, 6.4rem);
+  line-height: 0.92;
+}
+
+h1 span {
+  color: #f2b84b;
+}
+
+.lede {
+  max-width: 680px;
+  margin: 0;
+  color: #bad0c9;
+  line-height: 1.7;
+}
+
+.legacy-link {
+  flex: 0 0 auto;
+  padding: 12px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 999px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-top: 56px;
+}
+
+.status-grid article,
+.beta-note {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(14px);
+}
+
+.status-grid article {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 22px;
+  border-radius: 18px;
+}
+
+.status-grid span {
+  color: #9db6ae;
+}
+
+.status-grid strong {
+  color: #f2b84b;
+  font-size: 2rem;
+}
+
+.beta-note {
+  margin-top: 14px;
+  padding: clamp(24px, 5vw, 48px);
+  border-radius: 24px;
+}
+
+.beta-note p:first-child {
+  color: #f2b84b;
+  font-weight: 800;
+}
+
+.beta-note h2 {
+  max-width: 720px;
+  margin: 10px 0;
+  font-size: clamp(1.6rem, 4vw, 3rem);
+}
+
+.beta-note p:last-child {
+  color: #bad0c9;
+}
+
+@media (max-width: 720px) {
+  .app-shell {
+    padding-top: 32px;
+  }
+
+  .hero {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .status-grid {
+    grid-template-columns: 1fr;
+    margin-top: 36px;
+  }
+}
