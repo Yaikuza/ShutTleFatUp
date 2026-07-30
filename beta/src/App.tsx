@@ -110,6 +110,18 @@ export default function App() {
     setCustomCourtId(null);
   };
 
+  const chooseScheduledPair = (members: Team, side: "A" | "B") => {
+    if (members.includes(LIBERO)) return;
+    setCustomPlayers(values => {
+      if (side === "A") {
+        const other = values.slice(2).map(id => members.includes(id) ? "" : id);
+        return [members[0], members[1], other[0], other[1]];
+      }
+      const other = values.slice(0, 2).map(id => members.includes(id) ? "" : id);
+      return [other[0], other[1], members[0], members[1]];
+    });
+  };
+
   const exportData = () => {
     const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
     const link = document.createElement("a");
@@ -148,6 +160,11 @@ export default function App() {
   const playerStats = buildPlayerStats(visibleHistory);
   const pairStats = buildPairStats(visibleHistory);
   const headToHeadStats = buildHeadToHeadStats(visibleHistory);
+  const customBusyIds = new Set(state.courts.flatMap(court =>
+    customCourtId !== null && court.id !== customCourtId && court.status === "playing"
+      ? [...(court.teamA ?? []), ...(court.teamB ?? [])]
+      : []
+  ));
 
   return (
     <main className="app-shell">
@@ -500,6 +517,22 @@ export default function App() {
           <section className="modal" role="dialog" aria-modal="true" aria-label="เลือกคู่เอง">
             <p className="eyebrow">คอร์ท {customCourtId}</p>
             <h2>เลือกผู้เล่น 2 + 2</h2>
+            {!!state.schedule.filter(pair =>
+              !pair.members.includes(LIBERO) && !pair.members.some(id => customBusyIds.has(id))
+            ).length && (
+              <div className="scheduled-picker">
+                <strong>คู่จากตาราง</strong>
+                {state.schedule.filter(pair =>
+                  !pair.members.includes(LIBERO) && !pair.members.some(id => customBusyIds.has(id))
+                ).map(pair => (
+                  <div className="scheduled-pair" key={pair.id}>
+                    <span>{pair.members.map(playerName).join(" + ")}</span>
+                    <button onClick={() => chooseScheduledPair(pair.members, "A")}>→ A</button>
+                    <button onClick={() => chooseScheduledPair(pair.members, "B")}>→ B</button>
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="custom-grid">
               {customPlayers.map((selected, index) => (
                 <label key={index}>
