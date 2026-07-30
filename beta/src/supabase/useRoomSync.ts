@@ -32,13 +32,18 @@ export function useRoomSync(state: AppState, dispatch: Dispatch<AppAction>) {
   const [status, setStatus] = useState<SyncStatus>(room ? "connecting" : "local");
   const [message, setMessage] = useState("");
   const [remoteHistory, setRemoteHistory] = useState<MatchHistory[]>([]);
+  const [saveSignal, setSaveSignal] = useState(0);
   const versionRef = useRef(room?.version ?? 0);
   const lastRemoteState = useRef("");
+  const connectedRoomId = useRef<string | null>(null);
+  const saveInFlight = useRef(false);
+  const savePending = useRef(false);
 
   const applyRemote = (remote: RemoteRoom) => {
     versionRef.current = remote.version;
     lastRemoteState.current = JSON.stringify(remote.state);
     const meta = { id: remote.id, code: remote.code, version: remote.version };
+    connectedRoomId.current = remote.id;
     setRoom(meta);
     localStorage.setItem(ROOM_KEY, JSON.stringify(meta));
     dispatch({ type: "state/replace", state: remote.state });
@@ -80,6 +85,9 @@ export function useRoomSync(state: AppState, dispatch: Dispatch<AppAction>) {
     setRoom(null);
     versionRef.current = 0;
     lastRemoteState.current = "";
+    connectedRoomId.current = null;
+    saveInFlight.current = false;
+    savePending.current = false;
     setStatus("local");
     setMessage("");
     setRemoteHistory([]);
@@ -124,7 +132,11 @@ export function useRoomSync(state: AppState, dispatch: Dispatch<AppAction>) {
   }, [room?.id]);
 
   useEffect(() => {
-    if (!room || !isSupabaseConfigured || status === "connecting") return;
+    if (!room || !isSupabaseConfigured || connectedRoomId.current !== room.id) return;
+    if (saveInFlight.current) {
+      savePending.current = true;
+      return;
+    }
     const serialized = JSON.stringify(state);
     if (!lastRemoteState.current) {
       lastRemoteState.current = serialized;
@@ -132,6 +144,8 @@ export function useRoomSync(state: AppState, dispatch: Dispatch<AppAction>) {
     }
     if (serialized === lastRemoteState.current) return;
     const timer = window.setTimeout(async () => {
+      if (saveInFlight.current) return;
+      saveInFlight.current = true;
       setStatus("saving");
       try {
         const saved = await saveRemoteRoom(room.id, state, versionRef.current);
@@ -149,10 +163,16 @@ export function useRoomSync(state: AppState, dispatch: Dispatch<AppAction>) {
       } catch {
         setStatus("offline");
         setMessage("บันทึกในเครื่องแล้ว รอเชื่อมต่อเพื่อ sync");
+      } finally {
+        saveInFlight.current = false;
+        if (savePending.current) {
+          savePending.current = false;
+          setSaveSignal(value => value + 1);
+        }
       }
     }, 450);
     return () => window.clearTimeout(timer);
-  }, [state, room?.id, status]);
+  }, [state, room?.id, room?.code, saveSignal]);
 
   return {
     configured: isSupabaseConfigured,
