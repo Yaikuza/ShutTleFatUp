@@ -213,7 +213,12 @@ export function setCustomMatch(state: AppState, courtId: number, members: [Playe
   if (!court || !members.every(id => state.players.some(player => player.id === id && player.active))) return state;
   const busyElsewhere = new Set(state.courts.flatMap(item =>
     item.id !== courtId && item.status === "playing"
-      ? [...realMembers(item.teamA ?? [LIBERO, LIBERO]), ...realMembers(item.teamB ?? [LIBERO, LIBERO])]
+      ? [
+          ...realMembers(item.teamA ?? [LIBERO, LIBERO]),
+          ...realMembers(item.teamB ?? [LIBERO, LIBERO]),
+          item.liberoA,
+          item.liberoB
+        ]
       : []
   ));
   if (members.some(id => busyElsewhere.has(id))) return state;
@@ -271,7 +276,12 @@ export function setCourtLibero(
     || !state.players.some(player => player.id === playerId && player.active)
   ) return state;
   const busy = new Set(state.courts.flatMap(item => item.status === "playing"
-    ? [...realMembers(item.teamA ?? [LIBERO, LIBERO]), ...realMembers(item.teamB ?? [LIBERO, LIBERO])]
+    ? [
+        ...realMembers(item.teamA ?? [LIBERO, LIBERO]),
+        ...realMembers(item.teamB ?? [LIBERO, LIBERO]),
+        item.liberoA,
+        item.liberoB
+      ]
     : []));
   if (busy.has(playerId)) return state;
   return {

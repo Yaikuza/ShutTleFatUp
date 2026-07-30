@@ -181,4 +181,49 @@ describe("court safety", () => {
     };
     expect(setCourtLibero(available, 1, "A", "C").courts[0].liberoA).toBe("C");
   });
+
+  it("does not use a Libero borrowed by another court in a custom match", () => {
+    const base = stateWithPlayers([
+      "human", "human", "human", "human", "human", "human", "human", "human", "human"
+    ]);
+    const state: AppState = {
+      ...base,
+      courts: [
+        {
+          ...base.courts[0],
+          status: "playing",
+          teamA: ["A", LIBERO],
+          teamB: ["B", "C"],
+          liberoA: "I"
+        },
+        { ...base.courts[1] }
+      ]
+    };
+    expect(setCustomMatch(state, 2, ["D", "E", "F", "I"])).toBe(state);
+  });
+
+  it("does not borrow the same Libero for two courts", () => {
+    const base = stateWithPlayers([
+      "human", "human", "human", "human", "human", "human", "human", "human", "human"
+    ]);
+    const state: AppState = {
+      ...base,
+      courts: [
+        {
+          ...base.courts[0],
+          status: "playing",
+          teamA: ["A", LIBERO],
+          teamB: ["B", "C"],
+          liberoA: "I"
+        },
+        {
+          ...base.courts[1],
+          status: "playing",
+          teamA: ["D", LIBERO],
+          teamB: ["E", "F"]
+        }
+      ]
+    };
+    expect(setCourtLibero(state, 2, "A", "I")).toBe(state);
+  });
 });
