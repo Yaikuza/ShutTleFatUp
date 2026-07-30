@@ -654,6 +654,7 @@ function persist(immediate) {
   saveData(immediate);
   render();
   syncQueueCount();
+  if (!_autoRounding) setTimeout(() => checkAndAutoRound(), 0);
 }
 
 function showLoading(courtId) {
@@ -988,15 +989,28 @@ function anyCourtCanMatch() {
   return false;
 }
 
+function isRoundCompleteIncludingActiveGames() {
+  const schedule = (data.roundSchedule || []).filter(p => p.p1 && p.p2);
+  if (!schedule.length) return false;
+  const limit = data.settings.gamesPerMatch || 2;
+  const activeTeams = new Set();
+  for (const court of data.courts) {
+    if (court.status !== 'playing') continue;
+    if (court.teamA.length === 2) activeTeams.add(key(court.teamA[0], court.teamA[1]));
+    if (court.teamB.length === 2) activeTeams.add(key(court.teamB[0], court.teamB[1]));
+  }
+  return schedule.every(pair => {
+    const pairKey = key(pair.p1, pair.p2);
+    const projectedGames = (data.roundPairs[pairKey] || 0) + (activeTeams.has(pairKey) ? 1 : 0);
+    return projectedGames >= limit;
+  });
+}
+
 let _autoRounding = false;
 async function checkAndAutoRound() {
   if (_autoRounding) return;
   if (isLowPlayerModeActive()) return;
-  if (data.queue.length < 2) return;
-  // Keep a round intact until every active court has finished its current game.
-  if (data.courts.some(c => c.status === 'playing')) return;
-  if (anyCourtCanMatch()) return;
-  if (pairRemainingQueueIntoSchedule() > 0 && anyCourtCanMatch()) return;
+  if (!isRoundCompleteIncludingActiveGames()) return;
   _autoRounding = true;
   startNewRound();
   for (const c of data.courts) {
