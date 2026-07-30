@@ -63,6 +63,7 @@ export default function App() {
 
   const send = (action: AppAction) => {
     if (roomSync.status === "saving" && action.type === "match/finish") return;
+    if (action.type === "match/finish") navigator.vibrate?.(35);
     undoStack.current.push(structuredClone(state));
     if (undoStack.current.length > 30) undoStack.current.shift();
     if (roomSync.room) roomSync.submitAction(action);
@@ -175,7 +176,7 @@ export default function App() {
           <h1>Court <span>Beta</span></h1>
         </div>
         <div className="top-actions">
-          <span className={`sync-badge sync-${roomSync.status}`}>
+          <span className={`sync-badge sync-${roomSync.status}`} role="status" aria-live="polite">
             {roomSync.room ? `${roomSync.room.code} · ` : ""}
             {roomSync.status}
           </span>
@@ -299,7 +300,7 @@ export default function App() {
             {roomSync.room && (
               <button className="ghost" onClick={roomSync.leaveRoom}>ออกจากห้อง</button>
             )}
-            {roomSync.message && <p>{roomSync.message}</p>}
+            {roomSync.message && <p role="alert">{roomSync.message}</p>}
           </div>
         </section>
       )}
@@ -331,6 +332,7 @@ export default function App() {
                   <button
                     className="team team-a"
                     disabled={roomSync.status === "saving"}
+                    aria-label={`${teamLabel(court.teamA!, court.liberoA).join(" และ ")} ชนะ`}
                     onClick={() => send({ type: "match/finish", courtId: court.id, winner: "A" })}
                   >
                     {teamLabel(court.teamA!, court.liberoA).map(member => <b key={member}>{member}</b>)}
@@ -343,6 +345,7 @@ export default function App() {
                   <button
                     className="team team-b"
                     disabled={roomSync.status === "saving"}
+                    aria-label={`${teamLabel(court.teamB!, court.liberoB).join(" และ ")} ชนะ`}
                     onClick={() => send({ type: "match/finish", courtId: court.id, winner: "B" })}
                   >
                     {teamLabel(court.teamB!, court.liberoB).map(member => <b key={member}>{member}</b>)}
