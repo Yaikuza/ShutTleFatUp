@@ -1,46 +1,12 @@
 import { useEffect, useReducer, useRef, useState } from "react";
 import { appReducer, type AppAction } from "./app/appReducer";
-import { LIBERO, pairKey, teamFlag } from "./domain/engine";
-import { buildHeadToHeadStats, buildPairStats, buildPlayerStats } from "./domain/stats";
-import type { AppState, PlayerLevel, Team } from "./domain/types";
+import { LevelSlider, levelMeta } from "./components/LevelSlider";
+import { StatsPanel } from "./components/StatsPanel";
+import { LIBERO, teamFlag } from "./domain/engine";
+import type { AppState, Team } from "./domain/types";
 import { loadState, saveState } from "./storage";
 import { useRoomSync } from "./supabase/useRoomSync";
 import "./styles.css";
-
-const levelMeta: Record<PlayerLevel, { icon: string; label: string }> = {
-  hell: { icon: "🔥", label: "Hell" },
-  human: { icon: "🧑", label: "Human" },
-  heaven: { icon: "😇", label: "Heaven" }
-};
-
-const levelOrder: PlayerLevel[] = ["hell", "human", "heaven"];
-
-function LevelSlider({
-  value,
-  onChange
-}: {
-  value: PlayerLevel;
-  onChange: (level: PlayerLevel) => void;
-}) {
-  const index = levelOrder.indexOf(value);
-  return (
-    <label className={`level-slider level-${value}`}>
-      <span className="level-labels" aria-hidden="true">
-        <i>🔥</i><i>🧑</i><i>😇</i>
-      </span>
-      <input
-        type="range"
-        min="0"
-        max="2"
-        step="1"
-        value={index}
-        aria-label={`ระดับ ${levelMeta[value].label}`}
-        onChange={event => onChange(levelOrder[Number(event.target.value)])}
-      />
-      <b>{levelMeta[value].label}</b>
-    </label>
-  );
-}
 
 export default function App() {
   const [state, dispatch] = useReducer(appReducer, undefined, loadState);
@@ -50,7 +16,6 @@ export default function App() {
   const [customCourtId, setCustomCourtId] = useState<number | null>(null);
   const [customPlayers, setCustomPlayers] = useState<string[]>(["", "", "", ""]);
   const [liberoPicker, setLiberoPicker] = useState<{ courtId: number; side: "A" | "B" } | null>(null);
-  const [statsTab, setStatsTab] = useState<"players" | "pairs" | "h2h" | "history">("players");
   const [notice, setNotice] = useState("");
   const [confirmAction, setConfirmAction] = useState<{ message: string; run: () => void } | null>(null);
   const undoStack = useRef<AppState[]>([]);
@@ -171,22 +136,6 @@ export default function App() {
 
   const activeCount = state.players.filter(player => player.active).length;
   const visibleHistory = roomSync.room ? roomSync.remoteHistory : state.history;
-  const wins = new Map<string, number>();
-  for (const match of visibleHistory) {
-    const key = pairKey(match.winner === "A" ? match.teamA : match.teamB);
-    wins.set(key, (wins.get(key) ?? 0) + 1);
-  }
-  const historyByDate = visibleHistory.reduce<Record<string, typeof visibleHistory>>((groups, match) => {
-    const date = new Intl.DateTimeFormat("th-TH", {
-      dateStyle: "long",
-      timeZone: "Asia/Bangkok"
-    }).format(new Date(match.playedAt));
-    (groups[date] ??= []).push(match);
-    return groups;
-  }, {});
-  const playerStats = buildPlayerStats(visibleHistory);
-  const pairStats = buildPairStats(visibleHistory);
-  const headToHeadStats = buildHeadToHeadStats(visibleHistory);
   const customBusyIds = new Set(state.courts.flatMap(court =>
     customCourtId !== null && court.id !== customCourtId && court.status === "playing"
       ? [...(court.teamA ?? []), ...(court.teamB ?? [])]
@@ -506,61 +455,11 @@ export default function App() {
         </div>
       </section>
 
-      <section className="panel history-panel">
-        <div className="panel-heading">
-          <div>
-            <p className="eyebrow">Match history</p>
-            <h2>ผลล่าสุด</h2>
-          </div>
-          <span>{visibleHistory.length} เกม{roomSync.room ? " · บันทึกถาวร" : ""}</span>
-        </div>
-        <div className="stats-tabs">
-          <button className={statsTab === "players" ? "active" : ""} onClick={() => setStatsTab("players")}>ผู้เล่น</button>
-          <button className={statsTab === "pairs" ? "active" : ""} onClick={() => setStatsTab("pairs")}>คู่</button>
-          <button className={statsTab === "h2h" ? "active" : ""} onClick={() => setStatsTab("h2h")}>H2H</button>
-          <button className={statsTab === "history" ? "active" : ""} onClick={() => setStatsTab("history")}>ประวัติ</button>
-        </div>
-        {statsTab === "players" && <div className="stats-list">{playerStats.map(item => (
-          <div className="stat-row" key={item.playerId}>
-            <strong>{playerName(item.playerId)}</strong>
-            <span>W {item.wins} · L {item.losses} · เล่นจริง {item.games}</span>
-            <small>Libero {item.liberoWins}W/{item.liberoLosses}L</small>
-          </div>
-        ))}</div>}
-        {statsTab === "pairs" && <div className="stats-list">{pairStats.map(item => (
-          <div className="stat-row" key={item.key}>
-            <strong>{item.members.map(playerName).join(" + ")}</strong><span>{item.wins}W · {item.losses}L</span>
-          </div>
-        ))}</div>}
-        {statsTab === "h2h" && <div className="stats-list">{headToHeadStats.map(item => (
-          <div className="stat-row" key={item.key}>
-            <strong>{playerName(item.players[0])} vs {playerName(item.players[1])}</strong>
-            <span>{item.firstWins} : {item.secondWins}</span>
-          </div>
-        ))}</div>}
-        {statsTab === "history" && !visibleHistory.length && <p className="muted">ยังไม่มีผลการแข่งขัน</p>}
-        {statsTab === "history" && Object.entries(historyByDate).reverse().map(([date, matches]) => (
-          <div className="history-day" key={date}>
-            <div className="history-date">
-              <strong>{date}</strong>
-              <span>{matches.length} เกม</span>
-            </div>
-            {[...matches].reverse().map(match => {
-              const winnerTeam = match.winner === "A" ? match.teamA : match.teamB;
-              return (
-                <div className="history-row" key={match.id}>
-                  <span>คอร์ท {match.courtId} · รอบ {match.round}</span>
-                  <strong>{teamLabel(
-                    winnerTeam,
-                    match.winner === "A" ? match.liberoA ?? null : match.liberoB ?? null
-                  ).join(" + ")} ชนะ</strong>
-                  <small>ชนะรวม {wins.get(pairKey(winnerTeam)) ?? 0}</small>
-                </div>
-              );
-            })}
-          </div>
-        ))}
-      </section>
+      <StatsPanel
+        history={visibleHistory}
+        playerName={playerName}
+        permanent={Boolean(roomSync.room)}
+      />
 
       {customCourtId !== null && (
         <div className="modal-backdrop" role="presentation">
