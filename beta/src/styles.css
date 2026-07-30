@@ -196,4 +196,7 @@ form button { background: #f2b84b; color: #18362e; border: 0; }
   .players-panel .panel-heading { display: grid; }
   .stat-row { grid-template-columns: 1fr auto; }
   .stat-row small { grid-column: 1 / -1; }
+  .court-corners button { min-height: 44px; padding-inline: 12px; }
+  .queue-chip button { min-width: 34px; min-height: 34px; margin-block: -6px; }
+  .stats-tabs button, .scheduled-pair button { min-height: 44px; }
 }
