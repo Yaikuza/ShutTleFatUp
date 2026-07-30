@@ -1989,7 +1989,7 @@ function renderRoundNumber() {
 }
 
 function renderQueueChips() {
-  const lvlIcon = (p) => levelIcon(data.playerLevel[p] || 'human') + ' ';
+  const lvlIcon = (p) => data.settings.hellvenMode ? levelIcon(data.playerLevel[p] || 'human') + ' ' : '';
   return '<div style="width:100%;margin-bottom:6px;display:flex;flex-wrap:wrap;gap:6px">' +
     data.queue.map((p, i) =>
       '<span class="queue-chip" draggable="true" ondragstart="dragStart(event,' + i + ')" ondragenter="dragEnter(event,' + i + ')" ondragleave="dragLeave(event)" ondrop="dragDrop(event,' + i + ')" ondragover="dragOver(event)" ondragend="dragEnd(event)">' +
@@ -2013,7 +2013,9 @@ function renderPairScoreTable() {
 
   const rows = schedule.map(p => {
     const played = p.games > 0;
-    const levelInfo = ' ' + levelIcon(data.playerLevel[p.p1] || 'human') + levelIcon(data.playerLevel[p.p2] || 'human');
+    const levelInfo = data.settings.hellvenMode
+      ? ' ' + levelIcon(data.playerLevel[p.p1] || 'human') + levelIcon(data.playerLevel[p.p2] || 'human')
+      : '';
     return '<tr>' +
       '<td class="td-name">' + escHtml(p.p1) + ' + ' + escHtml(p.p2) + levelInfo + '</td>' +
       '<td class="col-center ' + (played ? '' : 'q-pending') + '"><span class="win">' + p.wins + '</span>:<span class="lose">' + p.losses + '</span></td>' +
@@ -2438,7 +2440,7 @@ function renderSettingsContent() {
         '</select>' +
       '</div>' +
       '<div class="setting-row">' +
-        '<div><div class="setting-label">🔥 Hellven Mode</div><div class="setting-desc">แยกสนามตามระดับผู้เล่น</div></div>' +
+        '<div><div class="setting-label">🔥 Hellven Mode</div><div class="setting-desc">จำกัดการจับคู่ตาม tag ผู้เล่น</div></div>' +
         '<button class="pool-toggle ' + (s.hellvenMode ? 'active' : '') + '" onclick="data.settings.hellvenMode=!data.settings.hellvenMode;saveData();render()" style="flex-shrink:0"></button>' +
       '</div>' +
       '<div class="setting-row">' +
