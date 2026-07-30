@@ -736,7 +736,7 @@ function isLowPlayerModeActive() {
 }
 
 function pickDirectMatchFromQueue() {
-  const shuffled = shuffle([...data.queue]);
+  const shuffled = shuffle(data.queue.filter(p => !isBorrowedLibero(p)));
   const pairs = pairByLevel(shuffled);
   for (let i = 0; i < pairs.length - 1; i++) {
     for (let j = i + 1; j < pairs.length; j++) {
@@ -944,7 +944,7 @@ function isPairLevelValid(p1, p2) {
 function findScheduledMatch(courtId) {
   const schedule = data.roundSchedule;
   if (!schedule || schedule.length < 2) return null;
-  const qSet = new Set(data.queue);
+  const qSet = new Set(data.queue.filter(p => !isBorrowedLibero(p)));
   qSet.add(LIBERO);
   const limit = data.settings.gamesPerMatch || 2;
   const eligible = schedule
@@ -1007,7 +1007,7 @@ async function checkAndAutoRound() {
 
 function findScheduledOpponents(winTeam, exclude, courtId) {
   const limit = data.settings.gamesPerMatch || 2;
-  const qSet = new Set(data.queue);
+  const qSet = new Set(data.queue.filter(p => !isBorrowedLibero(p)));
   qSet.add(LIBERO);
   const excludeKey = exclude ? key(exclude[0], exclude[1]) : null;
   let best = null;
@@ -1284,7 +1284,7 @@ function pairRemainingQueueIntoSchedule() {
     if (p.p1) scheduled.add(p.p1);
     if (p.p2) scheduled.add(p.p2);
   }
-  const remaining = data.queue.filter(n => n !== LIBERO && !scheduled.has(n));
+  const remaining = data.queue.filter(n => n !== LIBERO && !isBorrowedLibero(n) && !scheduled.has(n));
   if (remaining.length < 2) return 0;
   const matchKey = (a, b) => [a, b].sort().join('|');
   const existing = new Set(
@@ -2092,12 +2092,16 @@ function applyLiberoSelection(courtId, side, name) {
 
 function autoAssignLibero(court, team, side) {
   if (!team.includes(LIBERO)) return;
-  const candidates = data.queue.slice(2).filter(p => p && !team.includes(p));
+  const candidates = data.queue.slice(2).filter(p => p && !team.includes(p) && !isBorrowedLibero(p));
   if (!candidates.length) return;
   const name = shuffle([...candidates])[0];
   if (side === 'A') court.liberoPlayerA = name;
   else court.liberoPlayerB = name;
-  data.queue = data.queue.filter(p => p !== name);
+}
+
+function isBorrowedLibero(name) {
+  return data.courts.some(c => c.status === 'playing' &&
+    (c.liberoPlayerA === name || c.liberoPlayerB === name));
 }
 
 function renderCourtBody(c) {
