@@ -1298,10 +1298,7 @@ async function openCustomMatchPicker(courtId) {
   }
   document.getElementById('pickerCourtId').textContent = courtId;
   const lvlEl = document.getElementById('pickerCourtLevel');
-  if (lvlEl) {
-    const cl = getCourtLevel(courtId);
-    lvlEl.textContent = data.settings.hellvenMode ? ' ' + levelBadge(cl) : '';
-  }
+  if (lvlEl) lvlEl.textContent = '';
   renderPicker();
   document.body.style.overflow = 'hidden';
   document.body.style.position = 'fixed';
@@ -2054,14 +2051,9 @@ function renderCourts() {
     let cls = 'court-card';
     if (c.status === 'playing') cls += ' status-playing';
     else if (data.queue.length >= 4) cls += ' status-waiting queue-full';
-    const cLevel = getCourtLevel(c.id);
-    const levelIconH = data.settings.hellvenMode
-      ? ` <span class="badge" style="background:${cLevel === 'hell' ? '#dc2626' : cLevel === 'heaven' ? '#2563eb' : '#6b7280'};font-size:10px">${levelBadge(cLevel)}</span>`
-      : '';
     return `<div class="${cls}" data-court-id="${c.id}">
       <div class="court-header">
         <span class="court-title">🏟️ สนาม ${c.id}
-          ${levelIconH}
           ${c.status === 'waiting' && c.teamA.length === 0 ? '<span class="badge badge-empty">ว่าง</span>' : ''}
           ${c.status === 'waiting' && c.teamA.length > 0 ? '<span class="badge badge-waiting">รอคู่</span>' : ''}
         </span>
