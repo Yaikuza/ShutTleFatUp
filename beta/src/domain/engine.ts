@@ -121,7 +121,16 @@ export function assignLibero(state: AppState, court: Court, team: Team, side: "A
       ? [...(item.teamA ?? []), ...(item.teamB ?? [])]
       : [])
   );
-  const blocked = new Set([...realMembers(team), ...borrowedIds(state), ...busy]);
+  const borrowedElsewhere = state.courts.flatMap(item =>
+    item.id === court.id ? [] : [item.liberoA, item.liberoB]
+  ).filter((id): id is PlayerId => Boolean(id));
+  const otherSideLibero = side === "A" ? court.liberoB : court.liberoA;
+  const blocked = new Set([
+    ...realMembers(team),
+    ...borrowedElsewhere,
+    ...busy,
+    ...(otherSideLibero ? [otherSideLibero] : [])
+  ]);
   const candidates = state.queue.slice(2).filter(id => !blocked.has(id));
   if (!candidates.length) return null;
   const previous = side === "A" ? court.liberoA : court.liberoB;

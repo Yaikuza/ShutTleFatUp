@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createPairs, fillCourt, finishMatch, LIBERO, projectedRoundComplete, setCourtLibero, setCustomMatch, teamsCanPlay } from "./engine";
+import { assignLibero, createPairs, fillCourt, finishMatch, LIBERO, projectedRoundComplete, setCourtLibero, setCustomMatch, teamsCanPlay } from "./engine";
 import { initialState } from "./initialState";
 import type { AppState, Pair, Player, Team } from "./types";
 
@@ -225,5 +225,39 @@ describe("court safety", () => {
       ]
     };
     expect(setCourtLibero(state, 2, "A", "I")).toBe(state);
+  });
+
+  it("keeps the previous Libero when no alternative is available", () => {
+    const base = stateWithPlayers(["human", "human", "human", "human"]);
+    const court = {
+      ...base.courts[0],
+      status: "playing" as const,
+      teamA: ["A", LIBERO] as Team,
+      teamB: ["B", "C"] as Team,
+      liberoA: "D"
+    };
+    const state: AppState = {
+      ...base,
+      queue: ["A", "B", "D"],
+      courts: [court]
+    };
+    expect(assignLibero(state, court, court.teamA, "A")).toBe("D");
+  });
+
+  it("does not assign one player as Libero on both sides of a court", () => {
+    const base = stateWithPlayers(["human", "human", "human", "human", "human"]);
+    const court = {
+      ...base.courts[0],
+      status: "playing" as const,
+      teamA: ["A", LIBERO] as Team,
+      teamB: ["B", LIBERO] as Team,
+      liberoA: "D"
+    };
+    const state: AppState = {
+      ...base,
+      queue: ["A", "B", "D", "E"],
+      courts: [court]
+    };
+    expect(assignLibero(state, court, court.teamB, "B")).toBe("E");
   });
 });
