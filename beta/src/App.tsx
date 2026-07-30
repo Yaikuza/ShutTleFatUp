@@ -5,8 +5,9 @@ import { SettingsPanel } from "./components/SettingsPanel";
 import { CourtsGrid } from "./components/CourtsGrid";
 import { QueueSchedule } from "./components/QueueSchedule";
 import { PlayersPanel } from "./components/PlayersPanel";
+import { CustomMatchPicker, LiberoPicker } from "./components/MatchPickers";
 import { LIBERO } from "./domain/engine";
-import type { AppState, Team } from "./domain/types";
+import type { AppState } from "./domain/types";
 import { loadState, saveState } from "./storage";
 import { useRoomSync } from "./supabase/useRoomSync";
 import "./styles.css";
@@ -85,18 +86,6 @@ export default function App() {
     setCustomCourtId(null);
   };
 
-  const chooseScheduledPair = (members: Team, side: "A" | "B") => {
-    if (members.includes(LIBERO)) return;
-    setCustomPlayers(values => {
-      if (side === "A") {
-        const other = values.slice(2).map(id => members.includes(id) ? "" : id);
-        return [members[0], members[1], other[0], other[1]];
-      }
-      const other = values.slice(0, 2).map(id => members.includes(id) ? "" : id);
-      return [other[0], other[1], members[0], members[1]];
-    });
-  };
-
   const exportData = () => {
     const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
     const link = document.createElement("a");
@@ -123,11 +112,6 @@ export default function App() {
 
   const activeCount = state.players.filter(player => player.active).length;
   const visibleHistory = roomSync.room ? roomSync.remoteHistory : state.history;
-  const customBusyIds = new Set(state.courts.flatMap(court =>
-    customCourtId !== null && court.id !== customCourtId && court.status === "playing"
-      ? [...(court.teamA ?? []), ...(court.teamB ?? [])]
-      : []
-  ));
   const allBusyIds = new Set(state.courts.flatMap(court => court.status === "playing"
     ? [...(court.teamA ?? []), ...(court.teamB ?? []), court.liberoA, court.liberoB]
     : []
@@ -209,84 +193,27 @@ export default function App() {
       />
 
       {customCourtId !== null && (
-        <div className="modal-backdrop" role="presentation">
-          <section className="modal" role="dialog" aria-modal="true" aria-label="เลือกคู่เอง">
-            <p className="eyebrow">คอร์ท {customCourtId}</p>
-            <h2>เลือกผู้เล่น 2 + 2</h2>
-            {!!state.schedule.filter(pair =>
-              !pair.members.includes(LIBERO) && !pair.members.some(id => customBusyIds.has(id))
-            ).length && (
-              <div className="scheduled-picker">
-                <strong>คู่จากตาราง</strong>
-                {state.schedule.filter(pair =>
-                  !pair.members.includes(LIBERO) && !pair.members.some(id => customBusyIds.has(id))
-                ).map(pair => (
-                  <div className="scheduled-pair" key={pair.id}>
-                    <span>{pair.members.map(playerName).join(" + ")}</span>
-                    <button onClick={() => chooseScheduledPair(pair.members, "A")}>→ A</button>
-                    <button onClick={() => chooseScheduledPair(pair.members, "B")}>→ B</button>
-                  </div>
-                ))}
-              </div>
-            )}
-            <div className="custom-grid">
-              {customPlayers.map((selected, index) => (
-                <label key={index}>
-                  <span>{index < 2 ? "ทีม A" : "ทีม B"} · คนที่ {(index % 2) + 1}</span>
-                  <select
-                    value={selected}
-                    onChange={event => setCustomPlayers(values =>
-                      values.map((value, position) => position === index ? event.target.value : value)
-                    )}
-                  >
-                    <option value="">เลือกผู้เล่น</option>
-                    {state.players.filter(player => player.active && !state.courts.some(court =>
-                      court.id !== customCourtId && court.status === "playing"
-                      && [...(court.teamA ?? []), ...(court.teamB ?? [])].includes(player.id)
-                    )).map(player => (
-                      <option
-                        key={player.id}
-                        value={player.id}
-                        disabled={customPlayers.some((value, position) => position !== index && value === player.id)}
-                      >
-                        {player.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              ))}
-            </div>
-            <div className="modal-actions">
-              <button className="ghost" onClick={() => setCustomCourtId(null)}>ยกเลิก</button>
-              <button className="round-button" onClick={confirmCustom}>ยืนยันคู่</button>
-            </div>
-          </section>
-        </div>
+        <CustomMatchPicker
+          state={state}
+          courtId={customCourtId}
+          selectedPlayers={customPlayers}
+          playerName={playerName}
+          onSelectedPlayersChange={setCustomPlayers}
+          onConfirm={confirmCustom}
+          onClose={() => setCustomCourtId(null)}
+        />
       )}
 
       {liberoPicker && (
-        <div className="modal-backdrop">
-          <section className="modal">
-            <p className="eyebrow">Dynamic Libero</p>
-            <h2>เลือกผู้เล่นที่ว่าง</h2>
-            <div className="picker-list">
-              {state.players.filter(player => player.active && !state.courts.some(court => court.status === "playing"
-                && [
-                  ...(court.teamA ?? []),
-                  ...(court.teamB ?? []),
-                  court.liberoA,
-                  court.liberoB
-                ].includes(player.id)
-              )).map(player => player.id).map(id => (
-                <button key={id} onClick={() => {
-                  send({ type: "court/libero", ...liberoPicker, playerId: id });
-                  setLiberoPicker(null);
-                }}>{playerName(id)}</button>
-              ))}
-            </div>
-            <div className="modal-actions"><button className="ghost" onClick={() => setLiberoPicker(null)}>รอต่อไป</button></div>
-          </section>
-        </div>
+        <LiberoPicker
+          state={state}
+          playerName={playerName}
+          onChoose={playerId => {
+            send({ type: "court/libero", ...liberoPicker, playerId });
+            setLiberoPicker(null);
+          }}
+          onClose={() => setLiberoPicker(null)}
+        />
       )}
 
       {confirmAction && (
