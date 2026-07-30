@@ -429,7 +429,7 @@ const MAX_COURTS = 6;
 const MIN_COURTS = 1;
 
 function freshCourt(id) {
-  return { id, status: 'waiting', teamA: [], teamB: [], games: 0, consecutive: {}, startedRound: 1 };
+  return { id, status: 'waiting', teamA: [], teamB: [], games: 0, consecutive: {}, startedRound: 1, liberoPlayerA: null, liberoPlayerB: null };
 }
 
 function getDef() {
@@ -468,6 +468,8 @@ function migrate(d) {
       if (c.games === undefined) c.games = 0;
       if (!c.consecutive) c.consecutive = {};
       if (c.startedRound === undefined) c.startedRound = d.currentRound || 1;
+      if (c.liberoPlayerA === undefined) c.liberoPlayerA = null;
+      if (c.liberoPlayerB === undefined) c.liberoPlayerB = null;
     }
     d.nextCourtId = d.courts.length + 1;
   }
@@ -1096,6 +1098,8 @@ async function fillCourt(courtId) {
   pushSnapshot('จัดคู่อัตโนมัติ');
   court.teamA = teams[0];
   court.teamB = teams[1];
+  court.liberoPlayerA = null;
+  court.liberoPlayerB = null;
   data.queue = data.queue.filter(p => !teams[0].includes(p) && !teams[1].includes(p));
   court.status = 'playing';
   court.games = 0;
@@ -1243,6 +1247,7 @@ async function swapBoth(courtId) {
   for (const p of [...court.teamA, ...court.teamB])
     if (p !== LIBERO && !data.queue.includes(p)) data.queue.push(p);
   court.teamA = []; court.teamB = []; court.status = 'waiting'; court.consecutive = {};
+  court.liberoPlayerA = null; court.liberoPlayerB = null;
   court.startedRound = data.currentRound;
   saveData();
   await fillCourt(courtId);
@@ -2005,12 +2010,49 @@ function renderQueue() {
   }
 }
 
+function availableLiberoNames(courtId) {
+  const busy = new Set();
+  for (const c of data.courts) {
+    if (c.status !== 'playing') continue;
+    for (const p of [...c.teamA, ...c.teamB]) if (p !== LIBERO) busy.add(p);
+    if (c.liberoPlayerA) busy.add(c.liberoPlayerA);
+    if (c.liberoPlayerB) busy.add(c.liberoPlayerB);
+  }
+  const names = [...data.queue];
+  for (const c of data.courts) {
+    if (c.id === courtId || c.status === 'playing') continue;
+    names.push(...c.teamA, ...c.teamB);
+  }
+  return [...new Set(names)].filter(p => p && p !== LIBERO && !busy.has(p));
+}
+
+function chooseLibero(courtId, side) {
+  const court = data.courts.find(c => c.id === courtId);
+  if (!court || court.status !== 'playing') return;
+  const team = side === 'A' ? court.teamA : court.teamB;
+  if (!team.includes(LIBERO)) { toast('คู่นี้ไม่มีช่อง Libero'); return; }
+  const current = side === 'A' ? court.liberoPlayerA : court.liberoPlayerB;
+  const names = availableLiberoNames(courtId).filter(p => p !== current);
+  if (current) names.unshift(current);
+  if (!names.length) { toast('ยังไม่มีผู้เล่นว่างสำหรับ Libero'); return; }
+  const selected = window.prompt('เลือกชื่อ Libero:\n' + names.map((n, i) => (i + 1) + '. ' + n).join('\n'), current || '');
+  const idx = Number.parseInt(selected, 10);
+  const name = Number.isInteger(idx) && idx >= 1 && idx <= names.length ? names[idx - 1] : selected;
+  if (!name || !names.includes(name)) { toast('ไม่ได้เลือกผู้เล่นที่อยู่ใน pool'); return; }
+  pushSnapshot('เลือก Libero');
+  if (side === 'A') court.liberoPlayerA = name;
+  else court.liberoPlayerB = name;
+  persist();
+}
+
 function renderCourtBody(c) {
   const isPlaying = c.status === 'playing' && c.teamA.length === 2 && c.teamB.length === 2;
   if (isPlaying) {
     const pEntry = (p) => {
-      return '<div class="p-entry">' +
-        '<span class="p-name">' + escHtml(p) + '</span>' +
+      const libero = p === LIBERO;
+      const selected = libero ? (c.teamA.includes(p) ? c.liberoPlayerA : c.liberoPlayerB) : null;
+      return '<div class="p-entry"' + (libero ? ' onclick="event.stopPropagation();chooseLibero(' + c.id + ',\'' + (c.teamA.includes(p) ? 'A' : 'B') + '\')"' : '') + '>' +
+        '<span class="p-name">' + escHtml(selected || p) + (libero ? ' <small>(Libero)</small>' : '') + '</span>' +
         '</div>';
     };
     const gameLabelA = '<div class="mid-game-label">เกม' + ((data.roundPairs[key(c.teamA[0], c.teamA[1])] || 0) + 1) + '</div>';
