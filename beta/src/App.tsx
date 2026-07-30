@@ -1,6 +1,7 @@
 import { useEffect, useReducer, useRef, useState } from "react";
 import { appReducer, type AppAction } from "./app/appReducer";
 import { LIBERO, pairKey, teamFlag } from "./domain/engine";
+import { buildHeadToHeadStats, buildPairStats, buildPlayerStats } from "./domain/stats";
 import type { AppState, PlayerLevel, Team } from "./domain/types";
 import { loadState, saveState } from "./storage";
 import { useRoomSync } from "./supabase/useRoomSync";
@@ -49,6 +50,7 @@ export default function App() {
   const [customCourtId, setCustomCourtId] = useState<number | null>(null);
   const [customPlayers, setCustomPlayers] = useState<string[]>(["", "", "", ""]);
   const [liberoPicker, setLiberoPicker] = useState<{ courtId: number; side: "A" | "B" } | null>(null);
+  const [statsTab, setStatsTab] = useState<"players" | "pairs" | "h2h" | "history">("players");
   const undoStack = useRef<AppState[]>([]);
   const roomSync = useRoomSync(state, dispatch);
 
@@ -137,6 +139,9 @@ export default function App() {
     (groups[date] ??= []).push(match);
     return groups;
   }, {});
+  const playerStats = buildPlayerStats(visibleHistory);
+  const pairStats = buildPairStats(visibleHistory);
+  const headToHeadStats = buildHeadToHeadStats(visibleHistory);
 
   return (
     <main className="app-shell">
@@ -423,8 +428,32 @@ export default function App() {
           </div>
           <span>{visibleHistory.length} เกม{roomSync.room ? " · บันทึกถาวร" : ""}</span>
         </div>
-        {!visibleHistory.length && <p className="muted">ยังไม่มีผลการแข่งขัน</p>}
-        {Object.entries(historyByDate).reverse().map(([date, matches]) => (
+        <div className="stats-tabs">
+          <button className={statsTab === "players" ? "active" : ""} onClick={() => setStatsTab("players")}>ผู้เล่น</button>
+          <button className={statsTab === "pairs" ? "active" : ""} onClick={() => setStatsTab("pairs")}>คู่</button>
+          <button className={statsTab === "h2h" ? "active" : ""} onClick={() => setStatsTab("h2h")}>H2H</button>
+          <button className={statsTab === "history" ? "active" : ""} onClick={() => setStatsTab("history")}>ประวัติ</button>
+        </div>
+        {statsTab === "players" && <div className="stats-list">{playerStats.map(item => (
+          <div className="stat-row" key={item.playerId}>
+            <strong>{playerName(item.playerId)}</strong>
+            <span>W {item.wins} · L {item.losses} · เล่นจริง {item.games}</span>
+            <small>Libero {item.liberoWins}W/{item.liberoLosses}L</small>
+          </div>
+        ))}</div>}
+        {statsTab === "pairs" && <div className="stats-list">{pairStats.map(item => (
+          <div className="stat-row" key={item.key}>
+            <strong>{item.members.map(playerName).join(" + ")}</strong><span>{item.wins}W · {item.losses}L</span>
+          </div>
+        ))}</div>}
+        {statsTab === "h2h" && <div className="stats-list">{headToHeadStats.map(item => (
+          <div className="stat-row" key={item.key}>
+            <strong>{playerName(item.players[0])} vs {playerName(item.players[1])}</strong>
+            <span>{item.firstWins} : {item.secondWins}</span>
+          </div>
+        ))}</div>}
+        {statsTab === "history" && !visibleHistory.length && <p className="muted">ยังไม่มีผลการแข่งขัน</p>}
+        {statsTab === "history" && Object.entries(historyByDate).reverse().map(([date, matches]) => (
           <div className="history-day" key={date}>
             <div className="history-date">
               <strong>{date}</strong>

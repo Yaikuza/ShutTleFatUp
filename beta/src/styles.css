@@ -148,6 +148,12 @@ form button { background: #f2b84b; color: #18362e; border: 0; }
   padding: 10px 12px; border-radius: 12px; background: rgba(242,184,75,.1); color: #f2b84b;
 }
 .history-date span { color: #a9c0b8; font-size: .82rem; }
+.stats-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 18px; }
+.stats-tabs button { border: 0; border-radius: 10px; padding: 9px; background: rgba(255,255,255,.07); color: inherit; }
+.stats-tabs button.active { background: #f2b84b; color: #18362e; font-weight: 900; }
+.stats-list { display: grid; gap: 8px; margin-top: 12px; }
+.stat-row { display: grid; grid-template-columns: 1fr auto auto; gap: 12px; padding: 11px 12px; border-bottom: 1px solid rgba(255,255,255,.08); }
+.stat-row span, .stat-row small { color: #91aaa2; }
 .inline-actions, .data-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .data-actions { grid-column: 1 / -1; }
 .danger { color: #ff8a7f !important; }
