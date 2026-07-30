@@ -831,6 +831,10 @@ function shuffleQueue() {
 
 function startNewRound() {
   pushSnapshot('รอบใหม่');
+  const liberoAnchors = data.roundSchedule
+    .filter(p => p.p1 === LIBERO || p.p2 === LIBERO)
+    .map(p => p.p1 === LIBERO ? p.p2 : p.p1)
+    .filter(p => p && p !== LIBERO);
   // Clean stale Libero/null pairs from schedule
   data.roundSchedule = data.roundSchedule.filter(p => p.p1 !== LIBERO && p.p2 !== LIBERO && p.p1 !== null && p.p2 !== null);
 
@@ -844,6 +848,7 @@ function startNewRound() {
     if (p.p1 !== null && p.p1 !== LIBERO) allActive.add(p.p1);
     if (p.p2 !== null && p.p2 !== LIBERO) allActive.add(p.p2);
   }
+  for (const p of liberoAnchors) allActive.add(p);
   const hadOdd = allActive.size % 2 === 1;
   if (hadOdd) data.queue.push(LIBERO);
 
@@ -873,7 +878,11 @@ function startNewRound() {
       }
     }
   }
-  const remaining = shuffle([...data.queue.filter(p => !used.has(p))]).concat(shuffle(courtPlayers));
+  const remaining = shuffle([...new Set([
+    ...data.queue.filter(p => !used.has(p)),
+    ...liberoAnchors.filter(p => !used.has(p)),
+    ...courtPlayers
+  ])]);
   let schedulePairs = [...firstPairs, ...pairByLevel(remaining)];
 
   // Re-pair ALL Step B players if any pair is in noRepeat
