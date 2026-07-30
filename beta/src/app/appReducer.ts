@@ -28,6 +28,9 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     case "player/add":
       return addPlayer(state, action.name);
     case "player/toggle": {
+      if (state.courts.some(court =>
+        [...(court.teamA ?? []), ...(court.teamB ?? []), court.liberoA, court.liberoB].includes(action.id)
+      )) return state;
       const active = !state.players.find(player => player.id === action.id)?.active;
       return {
         ...state,
@@ -90,10 +93,19 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     }
     case "settings/update": {
       const settings = { ...state.settings, ...action.patch };
+      const removedCourts = state.courts.slice(settings.courtCount);
+      const returned = removedCourts.flatMap(court => [
+        ...(court.teamA ?? []), ...(court.teamB ?? [])
+      ]).filter((id): id is string => id !== "LIBERO" && Boolean(id));
       const courts = Array.from({ length: settings.courtCount }, (_, index) =>
         state.courts[index] ?? createCourt(index + 1)
       );
-      return { ...state, settings, courts };
+      return {
+        ...state,
+        settings,
+        courts,
+        queue: [...state.queue, ...returned.filter(id => !state.queue.includes(id))]
+      };
     }
     case "session/reset":
       return {

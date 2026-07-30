@@ -27,4 +27,26 @@ describe("appReducer session controls", () => {
     const moved = appReducer(state, { type: "queue/reorder", fromId: "A", toId: "C" });
     expect(moved.queue).toEqual(["C", "A"]);
   });
+
+  it("does not pause a player who is currently on court", () => {
+    const playing: AppState = {
+      ...state,
+      courts: [{ ...state.courts[0], status: "playing", teamA: ["A", "C"], teamB: ["B", "A"] }]
+    };
+    expect(appReducer(playing, { type: "player/toggle", id: "A" })).toBe(playing);
+  });
+
+  it("returns players when reducing the number of courts", () => {
+    const playing: AppState = {
+      ...state,
+      settings: { ...state.settings, courtCount: 2 },
+      queue: [],
+      courts: [
+        state.courts[0],
+        { ...state.courts[1], status: "playing", teamA: ["A", "C"], teamB: ["B", "A"] }
+      ]
+    };
+    const reduced = appReducer(playing, { type: "settings/update", patch: { courtCount: 1 } });
+    expect(reduced.queue).toEqual(expect.arrayContaining(["A", "B", "C"]));
+  });
 });

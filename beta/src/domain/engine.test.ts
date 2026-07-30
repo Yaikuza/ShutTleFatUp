@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createPairs, fillCourt, finishMatch, LIBERO, projectedRoundComplete, setCustomMatch, teamsCanPlay } from "./engine";
+import { createPairs, fillCourt, finishMatch, LIBERO, projectedRoundComplete, setCourtLibero, setCustomMatch, teamsCanPlay } from "./engine";
 import { initialState } from "./initialState";
 import type { AppState, Pair, Player, Team } from "./types";
 
@@ -160,5 +160,25 @@ describe("court safety", () => {
     };
     const filled = fillCourt(state, 1);
     expect(filled.courts[0].liberoA).not.toBe("D");
+  });
+
+  it("allows an active off-queue player to be selected manually as Libero", () => {
+    const base = stateWithPlayers(["human", "human", "human"]);
+    const state: AppState = {
+      ...base,
+      queue: ["B"],
+      courts: [{
+        ...base.courts[0],
+        status: "playing",
+        teamA: ["A", LIBERO],
+        teamB: ["B", "C"]
+      }]
+    };
+    expect(setCourtLibero(state, 1, "A", "C").courts[0].liberoA).toBeNull();
+    const available: AppState = {
+      ...state,
+      courts: [{ ...state.courts[0], status: "playing", teamA: ["A", LIBERO], teamB: null }]
+    };
+    expect(setCourtLibero(available, 1, "A", "C").courts[0].liberoA).toBe("C");
   });
 });

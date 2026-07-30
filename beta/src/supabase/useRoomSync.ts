@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type Dispatch } from "react";
 import type { AppAction } from "../app/appReducer";
 import { appReducer } from "../app/appReducer";
 import type { AppState, MatchHistory } from "../domain/types";
+import { normalizeState } from "../storage";
 import { isSupabaseConfigured } from "./client";
 import {
   createRemoteRoom,
@@ -42,14 +43,15 @@ export function useRoomSync(state: AppState, dispatch: Dispatch<AppAction>) {
   stateRef.current = state;
 
   const applyRemote = (remote: RemoteRoom) => {
+    const normalizedState = normalizeState(remote.state);
     versionRef.current = remote.version;
-    lastRemoteState.current = JSON.stringify(remote.state);
-    stateRef.current = remote.state;
+    lastRemoteState.current = JSON.stringify(normalizedState);
+    stateRef.current = normalizedState;
     const meta = { id: remote.id, code: remote.code, version: remote.version };
     connectedRoomId.current = remote.id;
     setRoom(meta);
     localStorage.setItem(ROOM_KEY, JSON.stringify(meta));
-    dispatch({ type: "state/replace", state: remote.state });
+    dispatch({ type: "state/replace", state: normalizedState });
     setStatus("synced");
   };
 

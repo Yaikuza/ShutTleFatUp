@@ -265,7 +265,11 @@ export function setCourtLibero(
 ): AppState {
   const court = state.courts.find(item => item.id === courtId);
   const team = side === "A" ? court?.teamA : court?.teamB;
-  if (!court || !team?.includes(LIBERO) || !state.queue.includes(playerId)) return state;
+  if (
+    !court
+    || !team?.includes(LIBERO)
+    || !state.players.some(player => player.id === playerId && player.active)
+  ) return state;
   const busy = new Set(state.courts.flatMap(item => item.status === "playing"
     ? [...realMembers(item.teamA ?? [LIBERO, LIBERO]), ...realMembers(item.teamB ?? [LIBERO, LIBERO])]
     : []));
