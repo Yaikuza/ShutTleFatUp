@@ -4,11 +4,26 @@ import type { AppState, PlayerLevel } from "./domain/types";
 const BETA_KEY = "bdm_rotation_beta_v2";
 const LEGACY_KEY = "bdm_rotation";
 
+function repairState(state: AppState): AppState {
+  const validActive = new Set(state.players.filter(player => player.active).map(player => player.id));
+  const onCourt = new Set(
+    state.courts.flatMap(court => [...(court.teamA ?? []), ...(court.teamB ?? [])])
+      .filter(id => id !== "LIBERO")
+  );
+  const queue = [...new Set([
+    ...state.queue.filter(id => validActive.has(id) && !onCourt.has(id)),
+    ...state.players
+      .filter(player => player.active && !onCourt.has(player.id))
+      .map(player => player.id)
+  ])];
+  return { ...state, queue };
+}
+
 export function loadState(): AppState {
   const beta = localStorage.getItem(BETA_KEY);
   if (beta) {
     try {
-      return { ...structuredClone(initialState), ...JSON.parse(beta) } as AppState;
+      return repairState({ ...structuredClone(initialState), ...JSON.parse(beta) } as AppState);
     } catch {
       localStorage.removeItem(BETA_KEY);
     }
@@ -24,7 +39,7 @@ export function loadState(): AppState {
       level: (source.playerLevel?.[name] ?? "human") as PlayerLevel,
       active: source.pool?.[name] !== false
     }));
-    return {
+    return repairState({
       ...structuredClone(initialState),
       players,
       queue: Array.isArray(source.queue) ? source.queue.filter((name: string) => name !== "Libero") : [],
@@ -34,7 +49,7 @@ export function loadState(): AppState {
         hellvenMode: Boolean(source.settings?.hellvenMode),
         courtCount: Math.max(1, source.courts?.length || 2)
       }
-    };
+    });
   } catch {
     return structuredClone(initialState);
   }
