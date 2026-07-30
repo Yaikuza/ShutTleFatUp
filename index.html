@@ -993,7 +993,8 @@ async function checkAndAutoRound() {
   if (_autoRounding) return;
   if (isLowPlayerModeActive()) return;
   if (data.queue.length < 2) return;
-  if (!data.courts.some(c => c.status !== 'playing')) return;
+  // Keep a round intact until every active court has finished its current game.
+  if (data.courts.some(c => c.status === 'playing')) return;
   if (anyCourtCanMatch()) return;
   if (pairRemainingQueueIntoSchedule() > 0 && anyCourtCanMatch()) return;
   _autoRounding = true;
