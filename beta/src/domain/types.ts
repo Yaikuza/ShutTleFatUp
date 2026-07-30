@@ -1,35 +1,54 @@
 export type PlayerLevel = "hell" | "human" | "heaven";
+export type PlayerId = string;
+export type TeamMember = PlayerId | "LIBERO";
+export type Team = [TeamMember, TeamMember];
 
 export type Player = {
-  id: string;
+  id: PlayerId;
   name: string;
   level: PlayerLevel;
+  active: boolean;
 };
 
 export type Pair = {
   id: string;
-  playerIds: [string, string | "LIBERO"];
+  members: Team;
 };
 
-export type LiberoAssignment = {
-  pairId: string;
-  borrowedPlayerId: string;
-  gamesPlayed: number;
-};
-
-export type CourtMatch = {
-  courtId: number;
-  pairAId: string;
-  pairBId: string;
+export type Court = {
+  id: number;
+  status: "waiting" | "playing";
+  teamA: Team | null;
+  teamB: Team | null;
+  liberoA: PlayerId | null;
+  liberoB: PlayerId | null;
   startedRound: number;
-  liberoAssignments: LiberoAssignment[];
+};
+
+export type MatchHistory = {
+  id: string;
+  round: number;
+  courtId: number;
+  teamA: Team;
+  teamB: Team;
+  winner: "A" | "B";
+  playedAt: string;
+};
+
+export type Settings = {
+  gamesPerPair: number;
+  hellvenMode: boolean;
+  courtCount: number;
 };
 
 export type AppState = {
   schemaVersion: 2;
   players: Player[];
-  queue: string[];
+  queue: PlayerId[];
+  courts: Court[];
   round: number;
-  pairs: Pair[];
-  matches: CourtMatch[];
+  schedule: Pair[];
+  pairGames: Record<string, number>;
+  history: MatchHistory[];
+  settings: Settings;
 };
