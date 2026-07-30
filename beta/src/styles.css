@@ -94,10 +94,28 @@ form input { min-width: 0; border: 1px solid rgba(255,255,255,.15); border-radiu
 form button { background: #f2b84b; color: #18362e; border: 0; }
 .player-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .player-row.inactive { opacity: .45; }
-.level { border: 0; border-radius: 999px; padding: 7px 9px; color: white; }
-.level-hell { background: #a9362c; }
-.level-human { background: #546b64; }
-.level-heaven { background: #2c64a9; }
+.level-slider {
+  width: 118px; display: grid; grid-template-columns: 1fr; gap: 2px; position: relative;
+  padding: 5px 8px 4px; border-radius: 12px; background: rgba(0,0,0,.18);
+}
+.level-labels { display: flex; justify-content: space-between; padding: 0 2px; font-size: .72rem; }
+.level-labels i { font-style: normal; opacity: .58; }
+.level-slider input {
+  width: 100%; height: 5px; margin: 0; padding: 0; appearance: none; border-radius: 999px;
+  background: linear-gradient(90deg, #c94236, #71827c 50%, #4380ca);
+}
+.level-slider input::-webkit-slider-thumb {
+  width: 17px; height: 17px; appearance: none; border: 3px solid white; border-radius: 50%;
+  background: currentColor; box-shadow: 0 2px 8px rgba(0,0,0,.35);
+}
+.level-slider input::-moz-range-thumb {
+  width: 12px; height: 12px; border: 3px solid white; border-radius: 50%;
+  background: currentColor; box-shadow: 0 2px 8px rgba(0,0,0,.35);
+}
+.level-slider b { text-align: center; font-size: .65rem; line-height: 1; text-transform: uppercase; }
+.level-hell { color: #ff7569; }
+.level-human { color: #b9c8c3; }
+.level-heaven { color: #77aff2; }
 .history-row { padding: 13px 0; border-bottom: 1px solid rgba(255,255,255,.08); }
 .history-row span, .history-row small, .muted { color: #91aaa2; }
 .modal-backdrop {

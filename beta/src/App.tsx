@@ -11,10 +11,33 @@ const levelMeta: Record<PlayerLevel, { icon: string; label: string }> = {
   heaven: { icon: "😇", label: "Heaven" }
 };
 
-function nextLevel(level: PlayerLevel): PlayerLevel {
-  if (level === "hell") return "human";
-  if (level === "human") return "heaven";
-  return "hell";
+const levelOrder: PlayerLevel[] = ["hell", "human", "heaven"];
+
+function LevelSlider({
+  value,
+  onChange
+}: {
+  value: PlayerLevel;
+  onChange: (level: PlayerLevel) => void;
+}) {
+  const index = levelOrder.indexOf(value);
+  return (
+    <label className={`level-slider level-${value}`}>
+      <span className="level-labels" aria-hidden="true">
+        <i>🔥</i><i>🧑</i><i>😇</i>
+      </span>
+      <input
+        type="range"
+        min="0"
+        max="2"
+        step="1"
+        value={index}
+        aria-label={`ระดับ ${levelMeta[value].label}`}
+        onChange={event => onChange(levelOrder[Number(event.target.value)])}
+      />
+      <b>{levelMeta[value].label}</b>
+    </label>
+  );
 }
 
 export default function App() {
@@ -229,12 +252,10 @@ export default function App() {
         <div className="player-grid">
           {state.players.map(player => (
             <div className={`player-row ${player.active ? "" : "inactive"}`} key={player.id}>
-              <button
-                className={`level level-${player.level}`}
-                onClick={() => send({ type: "player/level", id: player.id, level: nextLevel(player.level) })}
-              >
-                {levelMeta[player.level].icon} {levelMeta[player.level].label}
-              </button>
+              <LevelSlider
+                value={player.level}
+                onChange={level => send({ type: "player/level", id: player.id, level })}
+              />
               <strong>{player.name}</strong>
               <button className="ghost compact" onClick={() => send({ type: "player/toggle", id: player.id })}>
                 {player.active ? "พัก" : "เปิด"}
