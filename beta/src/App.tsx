@@ -1,10 +1,10 @@
 import { useEffect, useReducer, useRef, useState } from "react";
 import { appReducer, type AppAction } from "./app/appReducer";
-import { LevelSlider } from "./components/LevelSlider";
 import { StatsPanel } from "./components/StatsPanel";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { CourtsGrid } from "./components/CourtsGrid";
 import { QueueSchedule } from "./components/QueueSchedule";
+import { PlayersPanel } from "./components/PlayersPanel";
 import { LIBERO } from "./domain/engine";
 import type { AppState, Team } from "./domain/types";
 import { loadState, saveState } from "./storage";
@@ -13,7 +13,6 @@ import "./styles.css";
 
 export default function App() {
   const [state, dispatch] = useReducer(appReducer, undefined, loadState);
-  const [name, setName] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [customCourtId, setCustomCourtId] = useState<number | null>(null);
   const [customPlayers, setCustomPlayers] = useState<string[]>(["", "", "", ""]);
@@ -68,13 +67,6 @@ export default function App() {
 
   const playerName = (id: string) =>
     id === LIBERO ? "Libero" : state.players.find(player => player.id === id)?.name ?? id;
-
-  const submitPlayer = (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!name.trim()) return;
-    send({ type: "player/add", name });
-    setName("");
-  };
 
   const openCustom = (courtId: number) => {
     const court = state.courts.find(item => item.id === courtId);
@@ -200,38 +192,15 @@ export default function App() {
 
       <QueueSchedule state={state} playerName={playerName} onAction={send} />
 
-      <section className="panel players-panel">
-        <div className="panel-heading">
-          <div>
-            <p className="eyebrow">Player pool</p>
-            <h2>ผู้เล่น</h2>
-          </div>
-          <form onSubmit={submitPlayer}>
-            <input value={name} onChange={event => setName(event.target.value)} placeholder="ชื่อผู้เล่นใหม่" />
-            <button>เพิ่ม</button>
-          </form>
-        </div>
-        <div className="player-grid">
-          {state.players.map(player => (
-            <div className={`player-row ${player.active ? "" : "inactive"}`} key={player.id}>
-              <LevelSlider
-                value={player.level}
-                onChange={level => send({ type: "player/level", id: player.id, level })}
-              />
-              <strong>{player.name}</strong>
-              <button className="ghost compact" onClick={() => send({ type: "player/toggle", id: player.id })}>
-                {player.active ? "พัก" : "เปิด"}
-              </button>
-              <button className="ghost compact danger" disabled={allBusyIds.has(player.id)} onClick={() =>
-                askConfirm(`ลบ ${player.name} ออกจากรายชื่อผู้เล่น?`, () => {
-                  send({ type: "player/remove", id: player.id });
-                  setNotice(`ลบ ${player.name} แล้ว`);
-                })
-              }>ลบ</button>
-            </div>
-          ))}
-        </div>
-      </section>
+      <PlayersPanel
+        players={state.players}
+        busyIds={allBusyIds}
+        onAction={send}
+        onDelete={player => askConfirm(`ลบ ${player.name} ออกจากรายชื่อผู้เล่น?`, () => {
+          send({ type: "player/remove", id: player.id });
+          setNotice(`ลบ ${player.name} แล้ว`);
+        })}
+      />
 
       <StatsPanel
         history={visibleHistory}
