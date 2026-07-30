@@ -916,7 +916,7 @@ function isPairLevelValid(p1, p2) {
   if (!data.settings.hellvenMode) return true;
   const l1 = data.playerLevel[p1] || 'human';
   const l2 = data.playerLevel[p2] || 'human';
-  if ((l1 === 'hell' && l2 === 'heaven') || (l1 === 'heaven' && l2 === 'hell')) return true;
+  if ((l1 === 'hell' && l2 === 'heaven') || (l1 === 'heaven' && l2 === 'hell')) return false;
   if (!canPairByLevel(p1, p2)) return false;
   return true;
 }
