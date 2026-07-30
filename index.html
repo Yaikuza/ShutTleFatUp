@@ -642,6 +642,13 @@ function closeConfirm(result) {
 }
 
 function persist(immediate) {
+  for (const c of data.courts) {
+    if (c.status !== 'playing') continue;
+    if (!c.teamA.includes(LIBERO)) c.liberoPlayerA = null;
+    if (!c.teamB.includes(LIBERO)) c.liberoPlayerB = null;
+    autoAssignLibero(c, c.teamA, 'A');
+    autoAssignLibero(c, c.teamB, 'B');
+  }
   saveData(immediate);
   render();
   syncQueueCount();
@@ -1100,6 +1107,8 @@ async function fillCourt(courtId) {
   court.teamB = teams[1];
   court.liberoPlayerA = null;
   court.liberoPlayerB = null;
+  autoAssignLibero(court, court.teamA, 'A');
+  autoAssignLibero(court, court.teamB, 'B');
   data.queue = data.queue.filter(p => !teams[0].includes(p) && !teams[1].includes(p));
   court.status = 'playing';
   court.games = 0;
@@ -2063,6 +2072,16 @@ function applyLiberoSelection(courtId, side, name) {
   const overlay = document.getElementById('liberoSelectOverlay');
   if (overlay) overlay.remove();
   persist();
+}
+
+function autoAssignLibero(court, team, side) {
+  if (!team.includes(LIBERO)) return;
+  const candidates = data.queue.slice(2).filter(p => p && !team.includes(p));
+  if (!candidates.length) return;
+  const name = shuffle([...candidates])[0];
+  if (side === 'A') court.liberoPlayerA = name;
+  else court.liberoPlayerB = name;
+  data.queue = data.queue.filter(p => p !== name);
 }
 
 function renderCourtBody(c) {
