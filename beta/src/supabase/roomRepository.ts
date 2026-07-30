@@ -1,5 +1,6 @@
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import type { AppState, MatchHistory } from "../domain/types";
+import type { AppAction } from "../app/appReducer";
 import { supabase } from "./client";
 
 export type RemoteRoom = {
@@ -56,6 +57,23 @@ export async function saveRemoteRoom(
     .eq("version", expectedVersion)
     .select()
     .maybeSingle();
+  if (error) throw error;
+  return data as RemoteRoom | null;
+}
+
+export async function submitRemoteAction(
+  roomId: string,
+  state: AppState,
+  action: AppAction,
+  expectedVersion: number
+): Promise<RemoteRoom | null> {
+  if (!supabase) return null;
+  const { data, error } = await supabase.rpc("submit_room_action", {
+    p_room_id: roomId,
+    p_expected_version: expectedVersion,
+    p_state: state,
+    p_action: action
+  }).maybeSingle();
   if (error) throw error;
   return data as RemoteRoom | null;
 }

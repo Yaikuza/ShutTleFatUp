@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type Dispatch } from "react";
 import type { AppAction } from "../app/appReducer";
+import { appReducer } from "../app/appReducer";
 import type { AppState, MatchHistory } from "../domain/types";
 import { isSupabaseConfigured } from "./client";
 import {
@@ -9,6 +10,7 @@ import {
   leaveRoomChannel,
   saveRemoteMatches,
   saveRemoteRoom,
+  submitRemoteAction,
   subscribeToRoom,
   type RemoteRoom
 } from "./roomRepository";
@@ -32,16 +34,17 @@ export function useRoomSync(state: AppState, dispatch: Dispatch<AppAction>) {
   const [status, setStatus] = useState<SyncStatus>(room ? "connecting" : "local");
   const [message, setMessage] = useState("");
   const [remoteHistory, setRemoteHistory] = useState<MatchHistory[]>([]);
-  const [saveSignal, setSaveSignal] = useState(0);
   const versionRef = useRef(room?.version ?? 0);
   const lastRemoteState = useRef("");
   const connectedRoomId = useRef<string | null>(null);
-  const saveInFlight = useRef(false);
-  const savePending = useRef(false);
+  const stateRef = useRef(state);
+  const actionQueue = useRef<Promise<void>>(Promise.resolve());
+  stateRef.current = state;
 
   const applyRemote = (remote: RemoteRoom) => {
     versionRef.current = remote.version;
     lastRemoteState.current = JSON.stringify(remote.state);
+    stateRef.current = remote.state;
     const meta = { id: remote.id, code: remote.code, version: remote.version };
     connectedRoomId.current = remote.id;
     setRoom(meta);
@@ -86,11 +89,52 @@ export function useRoomSync(state: AppState, dispatch: Dispatch<AppAction>) {
     versionRef.current = 0;
     lastRemoteState.current = "";
     connectedRoomId.current = null;
-    saveInFlight.current = false;
-    savePending.current = false;
     setStatus("local");
     setMessage("");
     setRemoteHistory([]);
+  };
+
+  const submitAction = (action: AppAction) => {
+    if (!room || !isSupabaseConfigured) {
+      dispatch(action);
+      return;
+    }
+    actionQueue.current = actionQueue.current.then(async () => {
+      setStatus("saving");
+      let base = stateRef.current;
+      for (let attempt = 0; attempt < 4; attempt++) {
+        const next = appReducer(base, action);
+        try {
+          let saved: RemoteRoom | null;
+          let usedLegacySync = false;
+          try {
+            saved = await submitRemoteAction(room.id, next, action, versionRef.current);
+          } catch (error) {
+            const detail = error instanceof Error ? error.message.toLowerCase() : "";
+            if (!detail.includes("submit_room_action") && !detail.includes("schema cache")) throw error;
+            saved = await saveRemoteRoom(room.id, next, versionRef.current);
+            usedLegacySync = true;
+            setMessage("กำลังใช้ sync แบบเดิม กรุณารัน realtime-actions migration");
+          }
+          if (saved) {
+            applyRemote(saved);
+            if (!usedLegacySync) setMessage("");
+            return;
+          }
+          const latest = await joinRemoteRoom(room.code);
+          versionRef.current = latest.version;
+          base = latest.state;
+          stateRef.current = latest.state;
+        } catch {
+          dispatch(action);
+          setStatus("offline");
+          setMessage("บันทึก action ในเครื่องแล้ว แต่ยังส่งเข้าห้องไม่สำเร็จ");
+          return;
+        }
+      }
+      setStatus("error");
+      setMessage("มีการแก้พร้อมกันหลายครั้ง กรุณาลอง action นี้อีกครั้ง");
+    });
   };
 
   useEffect(() => {
@@ -131,49 +175,6 @@ export function useRoomSync(state: AppState, dispatch: Dispatch<AppAction>) {
     };
   }, [room?.id]);
 
-  useEffect(() => {
-    if (!room || !isSupabaseConfigured || connectedRoomId.current !== room.id) return;
-    if (saveInFlight.current) {
-      savePending.current = true;
-      return;
-    }
-    const serialized = JSON.stringify(state);
-    if (!lastRemoteState.current) {
-      lastRemoteState.current = serialized;
-      return;
-    }
-    if (serialized === lastRemoteState.current) return;
-    const timer = window.setTimeout(async () => {
-      if (saveInFlight.current) return;
-      saveInFlight.current = true;
-      setStatus("saving");
-      try {
-        const saved = await saveRemoteRoom(room.id, state, versionRef.current);
-        if (!saved) {
-          applyRemote(await joinRemoteRoom(room.code));
-          setMessage("มีการแก้จากอีกเครื่อง ระบบโหลดข้อมูลล่าสุดแล้ว");
-          return;
-        }
-        versionRef.current = saved.version;
-        lastRemoteState.current = JSON.stringify(saved.state);
-        const meta = { id: saved.id, code: saved.code, version: saved.version };
-        setRoom(meta);
-        localStorage.setItem(ROOM_KEY, JSON.stringify(meta));
-        setStatus("synced");
-      } catch {
-        setStatus("offline");
-        setMessage("บันทึกในเครื่องแล้ว รอเชื่อมต่อเพื่อ sync");
-      } finally {
-        saveInFlight.current = false;
-        if (savePending.current) {
-          savePending.current = false;
-          setSaveSignal(value => value + 1);
-        }
-      }
-    }, 450);
-    return () => window.clearTimeout(timer);
-  }, [state, room?.id, room?.code, saveSignal]);
-
   return {
     configured: isSupabaseConfigured,
     room,
@@ -182,6 +183,7 @@ export function useRoomSync(state: AppState, dispatch: Dispatch<AppAction>) {
     remoteHistory,
     createRoom,
     joinRoom,
-    leaveRoom
+    leaveRoom,
+    submitAction
   };
 }

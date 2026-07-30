@@ -64,12 +64,17 @@ export default function App() {
   const send = (action: AppAction) => {
     undoStack.current.push(structuredClone(state));
     if (undoStack.current.length > 30) undoStack.current.shift();
-    dispatch(action);
+    if (roomSync.room) roomSync.submitAction(action);
+    else dispatch(action);
   };
 
   const undo = () => {
     const previous = undoStack.current.pop();
-    if (previous) dispatch({ type: "state/replace", state: previous });
+    if (previous) {
+      const action = { type: "state/replace", state: previous } as const;
+      if (roomSync.room) roomSync.submitAction(action);
+      else dispatch(action);
+    }
   };
 
   const playerName = (id: string) =>
