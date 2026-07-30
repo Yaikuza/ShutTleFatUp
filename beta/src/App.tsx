@@ -62,6 +62,7 @@ export default function App() {
   }, [state.settings.theme, state.settings.courtColor]);
 
   const send = (action: AppAction) => {
+    if (roomSync.status === "saving" && action.type === "match/finish") return;
     undoStack.current.push(structuredClone(state));
     if (undoStack.current.length > 30) undoStack.current.shift();
     if (roomSync.room) roomSync.submitAction(action);
@@ -327,7 +328,11 @@ export default function App() {
               </header>
               {playing ? (
                 <div className="match">
-                  <button className="team team-a" onClick={() => send({ type: "match/finish", courtId: court.id, winner: "A" })}>
+                  <button
+                    className="team team-a"
+                    disabled={roomSync.status === "saving"}
+                    onClick={() => send({ type: "match/finish", courtId: court.id, winner: "A" })}
+                  >
                     {teamLabel(court.teamA!, court.liberoA).map(member => <b key={member}>{member}</b>)}
                     <small>{teamFlag(state, court.teamA!)}</small>
                     {court.teamA!.includes(LIBERO) && <span className="libero-select" onClick={event => {
@@ -335,7 +340,11 @@ export default function App() {
                     }}>เปลี่ยน Libero</span>}
                   </button>
                   <span className="versus">VS</span>
-                  <button className="team team-b" onClick={() => send({ type: "match/finish", courtId: court.id, winner: "B" })}>
+                  <button
+                    className="team team-b"
+                    disabled={roomSync.status === "saving"}
+                    onClick={() => send({ type: "match/finish", courtId: court.id, winner: "B" })}
+                  >
                     {teamLabel(court.teamB!, court.liberoB).map(member => <b key={member}>{member}</b>)}
                     <small>{teamFlag(state, court.teamB!)}</small>
                     {court.teamB!.includes(LIBERO) && <span className="libero-select" onClick={event => {

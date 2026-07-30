@@ -101,11 +101,23 @@ export function useRoomSync(state: AppState, dispatch: Dispatch<AppAction>) {
       dispatch(action);
       return;
     }
+    setStatus("saving");
     actionQueue.current = actionQueue.current.then(async () => {
       setStatus("saving");
       let base = stateRef.current;
       for (let attempt = 0; attempt < 4; attempt++) {
         const next = appReducer(base, action);
+        if (next === base) {
+          applyRemote({
+            id: room.id,
+            code: room.code,
+            state: base,
+            version: versionRef.current,
+            updated_at: new Date().toISOString()
+          });
+          setMessage("คำสั่งนี้ไม่ถูกใช้ เพราะข้อมูลในห้องเปลี่ยนไปแล้ว");
+          return;
+        }
         try {
           let saved: RemoteRoom | null;
           let usedLegacySync = false;
