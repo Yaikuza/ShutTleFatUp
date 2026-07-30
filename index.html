@@ -694,28 +694,36 @@ function pairByLevel(players) {
     else if (lvl === 'heaven') heaven.push(p);
     else human.push(p);
   }
-  shuffle(hell); shuffle(heaven); shuffle(human);
   const pairs = [];
-  const pairSame = pool => {
-    while (pool.length >= 2) pairs.push({ p1: pool.pop(), p2: pool.pop() });
-  };
-  shuffle(hell); shuffle(heaven); shuffle(human);
+  const hellPool = shuffle([...hell, ...human]);
+  const hellLeft = [];
+  while (hellPool.some(p => (data.playerLevel[p] || 'human') === 'hell')) {
+    const hellIdx = hellPool.findIndex(p => (data.playerLevel[p] || 'human') === 'hell');
+    if (hellPool.length < 2) { hellLeft.push(hellPool.splice(hellIdx, 1)[0]); break; }
+    const partnerIdx = Math.floor(Math.random() * (hellPool.length - 1));
+    const actualPartnerIdx = partnerIdx >= hellIdx ? partnerIdx + 1 : partnerIdx;
+    pairs.push({ p1: hellPool[hellIdx], p2: hellPool[actualPartnerIdx] });
+    hellPool.splice(Math.max(hellIdx, actualPartnerIdx), 1);
+    hellPool.splice(Math.min(hellIdx, actualPartnerIdx), 1);
+  }
 
-  // Keep same-level players together first, preserving Human as a flexible pool.
-  pairSame(hell);
-  pairSame(heaven);
+  const heavenPool = shuffle([...heaven, ...hellPool]);
+  const heavenLeft = [];
+  while (heavenPool.some(p => (data.playerLevel[p] || 'human') === 'heaven')) {
+    const heavenIdx = heavenPool.findIndex(p => (data.playerLevel[p] || 'human') === 'heaven');
+    if (heavenPool.length < 2) { heavenLeft.push(heavenPool.splice(heavenIdx, 1)[0]); break; }
+    const partnerIdx = Math.floor(Math.random() * (heavenPool.length - 1));
+    const actualPartnerIdx = partnerIdx >= heavenIdx ? partnerIdx + 1 : partnerIdx;
+    pairs.push({ p1: heavenPool[heavenIdx], p2: heavenPool[actualPartnerIdx] });
+    heavenPool.splice(Math.max(heavenIdx, actualPartnerIdx), 1);
+    heavenPool.splice(Math.min(heavenIdx, actualPartnerIdx), 1);
+  }
 
-  // Use Human players to complete an unmatched Hell/Heaven player.
-  if (hell.length && human.length) pairs.push({ p1: hell.pop(), p2: human.pop() });
-  if (heaven.length && human.length) pairs.push({ p1: heaven.pop(), p2: human.pop() });
-
-  // Any remaining Human players can safely pair with each other.
-  pairSame(human);
-
-  // At most one leftover player becomes the dynamic Libero slot.
-  if (hell.length) pairs.push({ p1: hell.pop(), p2: LIBERO });
-  if (heaven.length) pairs.push({ p1: heaven.pop(), p2: LIBERO });
-  if (human.length) pairs.push({ p1: human.pop(), p2: LIBERO });
+  while (heavenPool.length >= 2)
+    pairs.push({ p1: heavenPool.pop(), p2: heavenPool.pop() });
+  if (hellLeft.length) pairs.push({ p1: hellLeft[0], p2: LIBERO });
+  if (heavenLeft.length) pairs.push({ p1: heavenLeft[0], p2: LIBERO });
+  if (heavenPool.length) pairs.push({ p1: heavenPool.pop(), p2: LIBERO });
   return pairs;
 }
 
