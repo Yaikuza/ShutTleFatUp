@@ -1,5 +1,5 @@
 import type { RealtimeChannel } from "@supabase/supabase-js";
-import type { AppState } from "../domain/types";
+import type { AppState, MatchHistory } from "../domain/types";
 import { supabase } from "./client";
 
 export type RemoteRoom = {
@@ -58,6 +58,45 @@ export async function saveRemoteRoom(
     .maybeSingle();
   if (error) throw error;
   return data as RemoteRoom | null;
+}
+
+export async function saveRemoteMatches(roomId: string, matches: MatchHistory[]): Promise<void> {
+  if (!supabase || !matches.length) return;
+  const rows = matches.map(match => ({
+    id: match.id,
+    room_id: roomId,
+    round: match.round,
+    court_id: match.courtId,
+    team_a: match.teamA,
+    team_b: match.teamB,
+    libero_a: match.liberoA ?? null,
+    libero_b: match.liberoB ?? null,
+    winner: match.winner,
+    played_at: match.playedAt
+  }));
+  const { error } = await supabase.from("room_matches").upsert(rows, { onConflict: "id" });
+  if (error) throw error;
+}
+
+export async function listRemoteMatches(roomId: string): Promise<MatchHistory[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("room_matches")
+    .select("id, round, court_id, team_a, team_b, libero_a, libero_b, winner, played_at")
+    .eq("room_id", roomId)
+    .order("played_at", { ascending: true });
+  if (error) throw error;
+  return (data ?? []).map(row => ({
+    id: row.id,
+    round: row.round,
+    courtId: row.court_id,
+    teamA: row.team_a,
+    teamB: row.team_b,
+    liberoA: row.libero_a,
+    liberoB: row.libero_b,
+    winner: row.winner,
+    playedAt: row.played_at
+  })) as MatchHistory[];
 }
 
 export function subscribeToRoom(

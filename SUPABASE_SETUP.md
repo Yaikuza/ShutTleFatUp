@@ -3,6 +3,7 @@
 1. Create a Supabase project.
 2. Open **Authentication > Providers > Anonymous** and enable anonymous sign-ins.
 3. Open **SQL Editor** and run [`supabase/schema.sql`](supabase/schema.sql).
+   - Existing project: run only [`supabase/stats-migration.sql`](supabase/stats-migration.sql) to add permanent daily and round statistics.
 4. Copy the Project URL and Publishable Key from **Project Settings > API**.
 5. For local development, copy `.env.example` to `.env.local` and fill both values.
 6. In GitHub, open **Settings > Secrets and variables > Actions > Variables** and add:

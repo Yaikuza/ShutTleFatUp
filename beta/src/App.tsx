@@ -98,11 +98,20 @@ export default function App() {
   };
 
   const activeCount = state.players.filter(player => player.active).length;
+  const visibleHistory = roomSync.room ? roomSync.remoteHistory : state.history;
   const wins = new Map<string, number>();
-  for (const match of state.history) {
+  for (const match of visibleHistory) {
     const key = pairKey(match.winner === "A" ? match.teamA : match.teamB);
     wins.set(key, (wins.get(key) ?? 0) + 1);
   }
+  const historyByDate = visibleHistory.reduce<Record<string, typeof visibleHistory>>((groups, match) => {
+    const date = new Intl.DateTimeFormat("th-TH", {
+      dateStyle: "long",
+      timeZone: "Asia/Bangkok"
+    }).format(new Date(match.playedAt));
+    (groups[date] ??= []).push(match);
+    return groups;
+  }, {});
 
   return (
     <main className="app-shell">
@@ -310,18 +319,30 @@ export default function App() {
             <p className="eyebrow">Match history</p>
             <h2>ผลล่าสุด</h2>
           </div>
-          <span>{state.history.length} เกม</span>
+          <span>{visibleHistory.length} เกม{roomSync.room ? " · บันทึกถาวร" : ""}</span>
         </div>
-        {state.history.slice(-8).reverse().map(match => {
-          const winnerTeam = match.winner === "A" ? match.teamA : match.teamB;
-          return (
-            <div className="history-row" key={match.id}>
-              <span>คอร์ท {match.courtId} · รอบ {match.round}</span>
-              <strong>{winnerTeam.map(playerName).join(" + ")} ชนะ</strong>
-              <small>ชนะรวม {wins.get(pairKey(winnerTeam)) ?? 0}</small>
+        {!visibleHistory.length && <p className="muted">ยังไม่มีผลการแข่งขัน</p>}
+        {Object.entries(historyByDate).reverse().map(([date, matches]) => (
+          <div className="history-day" key={date}>
+            <div className="history-date">
+              <strong>{date}</strong>
+              <span>{matches.length} เกม</span>
             </div>
-          );
-        })}
+            {[...matches].reverse().map(match => {
+              const winnerTeam = match.winner === "A" ? match.teamA : match.teamB;
+              return (
+                <div className="history-row" key={match.id}>
+                  <span>คอร์ท {match.courtId} · รอบ {match.round}</span>
+                  <strong>{teamLabel(
+                    winnerTeam,
+                    match.winner === "A" ? match.liberoA ?? null : match.liberoB ?? null
+                  ).join(" + ")} ชนะ</strong>
+                  <small>ชนะรวม {wins.get(pairKey(winnerTeam)) ?? 0}</small>
+                </div>
+              );
+            })}
+          </div>
+        ))}
       </section>
 
       {customCourtId !== null && (

@@ -58,6 +58,22 @@ describe("court rotation", () => {
     expect([nextCourt.teamA, nextCourt.teamB].some(team => team?.includes(LIBERO))).toBe(true);
   });
 
+  it("keeps the borrowed Libero player in match history", () => {
+    const base = stateWithPlayers(["human", "human", "human", "human", "human"]);
+    const state: AppState = {
+      ...base,
+      courts: [{
+        ...base.courts[0],
+        status: "playing",
+        teamA: ["A", LIBERO],
+        teamB: ["B", "C"],
+        liberoA: "D"
+      }]
+    };
+    const finished = finishMatch(state, 1, "A");
+    expect(finished.history[0].liberoA).toBe("D");
+  });
+
   it("counts an active final game when projecting round completion", () => {
     const base = stateWithPlayers(["human", "human", "human", "human"]);
     const teamA: Team = ["A", "B"];

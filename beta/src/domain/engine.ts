@@ -236,6 +236,8 @@ export function finishMatch(state: AppState, courtId: number, winner: "A" | "B")
     courtId,
     teamA: court.teamA,
     teamB: court.teamB,
+    liberoA: court.liberoA,
+    liberoB: court.liberoB,
     winner,
     playedAt: new Date().toISOString()
   } as const;

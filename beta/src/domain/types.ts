@@ -31,6 +31,8 @@ export type MatchHistory = {
   courtId: number;
   teamA: Team;
   teamB: Team;
+  liberoA?: PlayerId | null;
+  liberoB?: PlayerId | null;
   winner: "A" | "B";
   playedAt: string;
 };

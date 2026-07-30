@@ -136,6 +136,12 @@ form button { background: #f2b84b; color: #18362e; border: 0; }
 .level-heaven { color: #77aff2; }
 .history-row { padding: 13px 0; border-bottom: 1px solid rgba(255,255,255,.08); }
 .history-row span, .history-row small, .muted { color: #91aaa2; }
+.history-day { margin-top: 18px; }
+.history-date {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px 12px; border-radius: 12px; background: rgba(242,184,75,.1); color: #f2b84b;
+}
+.history-date span { color: #a9c0b8; font-size: .82rem; }
 .modal-backdrop {
   position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 18px;
   background: rgba(3,15,12,.76); backdrop-filter: blur(8px);

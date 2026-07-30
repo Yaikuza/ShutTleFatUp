@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState, type Dispatch } from "react";
 import type { AppAction } from "../app/appReducer";
-import type { AppState } from "../domain/types";
+import type { AppState, MatchHistory } from "../domain/types";
 import { isSupabaseConfigured } from "./client";
 import {
   createRemoteRoom,
   joinRemoteRoom,
+  listRemoteMatches,
   leaveRoomChannel,
+  saveRemoteMatches,
   saveRemoteRoom,
   subscribeToRoom,
   type RemoteRoom
@@ -34,6 +36,7 @@ export function useRoomSync(state: AppState, dispatch: Dispatch<AppAction>) {
   const [room, setRoom] = useState<RoomMeta | null>(loadRoomMeta);
   const [status, setStatus] = useState<SyncStatus>(room ? "connecting" : "local");
   const [message, setMessage] = useState("");
+  const [remoteHistory, setRemoteHistory] = useState<MatchHistory[]>([]);
   const versionRef = useRef(room?.version ?? 0);
   const lastRemoteState = useRef("");
 
@@ -79,7 +82,30 @@ export function useRoomSync(state: AppState, dispatch: Dispatch<AppAction>) {
     lastRemoteState.current = "";
     setStatus("local");
     setMessage("");
+    setRemoteHistory([]);
   };
+
+  useEffect(() => {
+    if (!room || !isSupabaseConfigured) return;
+    let active = true;
+    listRemoteMatches(room.id)
+      .then(matches => { if (active) setRemoteHistory(matches); })
+      .catch(() => { if (active) setMessage("โหลดสถิติถาวรไม่สำเร็จ กรุณาตรวจ schema Supabase"); });
+    return () => { active = false; };
+  }, [room?.id]);
+
+  useEffect(() => {
+    if (!room || !isSupabaseConfigured || !state.history.length) return;
+    const missing = state.history.filter(match => !remoteHistory.some(saved => saved.id === match.id));
+    if (!missing.length) return;
+    const timer = window.setTimeout(() => {
+      saveRemoteMatches(room.id, missing)
+        .then(() => listRemoteMatches(room.id))
+        .then(setRemoteHistory)
+        .catch(() => setMessage("ผลเกมเก็บในเครื่องแล้ว แต่ยังบันทึกสถิติถาวรไม่สำเร็จ"));
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [state.history, room?.id, remoteHistory]);
 
   useEffect(() => {
     if (!room || !isSupabaseConfigured) return;
@@ -133,6 +159,7 @@ export function useRoomSync(state: AppState, dispatch: Dispatch<AppAction>) {
     room,
     status,
     message,
+    remoteHistory,
     createRoom,
     joinRoom,
     leaveRoom
