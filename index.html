@@ -2038,13 +2038,30 @@ function chooseLibero(courtId, side) {
   const names = availableLiberoNames(courtId).filter(p => p !== current && !team.includes(p));
   if (current) names.unshift(current);
   if (!names.length) { toast('ยังไม่มีผู้เล่นว่างสำหรับ Libero'); return; }
-  const selected = window.prompt('เลือกชื่อ Libero:\n' + names.map((n, i) => (i + 1) + '. ' + n).join('\n'), current || '');
-  const idx = Number.parseInt(selected, 10);
-  const name = Number.isInteger(idx) && idx >= 1 && idx <= names.length ? names[idx - 1] : selected;
-  if (!name || !names.includes(name)) { toast('ไม่ได้เลือกผู้เล่นที่อยู่ใน pool'); return; }
+  const old = document.getElementById('liberoSelectOverlay');
+  if (old) old.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'liberoSelectOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.innerHTML = '<div style="width:min(420px,100%);max-height:80vh;overflow:auto;background:var(--surface,#fff);color:var(--text,#222);border-radius:16px;padding:18px;box-shadow:0 20px 60px rgba(0,0,0,.3)">' +
+    '<div style="font-size:18px;font-weight:800;margin-bottom:12px">เลือกผู้เล่นเป็น Libero</div>' +
+    '<div style="display:grid;gap:8px">' + names.map(name => '<button type="button" style="padding:12px;border:1px solid var(--border,#ddd);border-radius:10px;background:transparent;color:inherit;text-align:left;font-size:16px" onclick="applyLiberoSelection(' + courtId + ',\'' + side + '\',\'' + jsStr(name) + '\')">' + escHtml(name) + '</button>').join('') + '</div>' +
+    '<button type="button" style="width:100%;margin-top:12px;padding:10px;border:0;border-radius:10px;background:var(--muted,#eee);color:inherit" onclick="document.getElementById(\'liberoSelectOverlay\').remove()">ยกเลิก</button>' +
+    '</div>';
+  document.body.appendChild(overlay);
+}
+
+function applyLiberoSelection(courtId, side, name) {
+  const court = data.courts.find(c => c.id === courtId);
+  const names = availableLiberoNames(courtId);
+  const team = side === 'A' ? court?.teamA : court?.teamB;
+  const other = side === 'A' ? court?.liberoPlayerB : court?.liberoPlayerA;
+  if (!court || !names.includes(name) || team.includes(name) || other === name) { toast('ผู้เล่นนี้ไม่อยู่ใน pool แล้ว'); return; }
   pushSnapshot('เลือก Libero');
   if (side === 'A') court.liberoPlayerA = name;
   else court.liberoPlayerB = name;
+  const overlay = document.getElementById('liberoSelectOverlay');
+  if (overlay) overlay.remove();
   persist();
 }
 
