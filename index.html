@@ -696,23 +696,26 @@ function pairByLevel(players) {
   }
   shuffle(hell); shuffle(heaven); shuffle(human);
   const pairs = [];
-  // Hell pool: shuffle Hell + Human together, pair sequentially
-  const hellPool = shuffle([...hell, ...human]);
-  for (let i = 0; i + 1 < hellPool.length; i += 2)
-    pairs.push({ p1: hellPool[i], p2: hellPool[i + 1] });
-  // Heaven pool: remaining Heaven + leftover Human (partner from odd hellPool)
-  const usedInHell = new Set(hellPool);
-  const heavenPool = shuffle([...heaven, ...human.filter(p => !usedInHell.has(p))]);
-  for (let i = 0; i + 1 < heavenPool.length; i += 2)
-    pairs.push({ p1: heavenPool[i], p2: heavenPool[i + 1] });
-  const hellLeft = hellPool.length % 2 === 1 ? [hellPool[hellPool.length - 1]] : [];
-  const heavenLeft = heavenPool.length % 2 === 1 ? [heavenPool[heavenPool.length - 1]] : [];
-  if (hellLeft.length && heavenLeft.length)
-    pairs.push({ p1: hellLeft[0], p2: LIBERO }, { p1: heavenLeft[0], p2: LIBERO });
-  else if (hellLeft.length)
-    pairs.push({ p1: hellLeft[0], p2: LIBERO });
-  else if (heavenLeft.length)
-    pairs.push({ p1: heavenLeft[0], p2: LIBERO });
+  const pairSame = pool => {
+    while (pool.length >= 2) pairs.push({ p1: pool.pop(), p2: pool.pop() });
+  };
+  shuffle(hell); shuffle(heaven); shuffle(human);
+
+  // Keep same-level players together first, preserving Human as a flexible pool.
+  pairSame(hell);
+  pairSame(heaven);
+
+  // Use Human players to complete an unmatched Hell/Heaven player.
+  if (hell.length && human.length) pairs.push({ p1: hell.pop(), p2: human.pop() });
+  if (heaven.length && human.length) pairs.push({ p1: heaven.pop(), p2: human.pop() });
+
+  // Any remaining Human players can safely pair with each other.
+  pairSame(human);
+
+  // At most one leftover player becomes the dynamic Libero slot.
+  if (hell.length) pairs.push({ p1: hell.pop(), p2: LIBERO });
+  if (heaven.length) pairs.push({ p1: heaven.pop(), p2: LIBERO });
+  if (human.length) pairs.push({ p1: human.pop(), p2: LIBERO });
   return pairs;
 }
 
