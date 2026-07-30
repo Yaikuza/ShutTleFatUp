@@ -12,3 +12,5 @@
 7. Push to `master` or manually run the Pages workflow.
 
 Never add a secret key or service-role key to the repository, Vite variables, or GitHub Pages.
+
+New rooms use a six-digit numeric code for easier entry on mobile. Existing alphanumeric room codes remain valid.

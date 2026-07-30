@@ -174,7 +174,9 @@ export default function App() {
                 <input
                   value={roomCode}
                   maxLength={6}
-                  placeholder="รหัส 6 ตัว"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  placeholder="รหัสตัวเลข 6 หลัก"
                   onChange={event => setRoomCode(event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
                 />
                 <button

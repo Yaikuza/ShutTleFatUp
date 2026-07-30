@@ -28,8 +28,7 @@ function loadRoomMeta(): RoomMeta | null {
 }
 
 function randomCode(): string {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+  return Array.from({ length: 6 }, () => Math.floor(Math.random() * 10)).join("");
 }
 
 export function useRoomSync(state: AppState, dispatch: Dispatch<AppAction>) {
