@@ -2044,7 +2044,10 @@ function chooseLibero(courtId, side) {
   const team = side === 'A' ? court.teamA : court.teamB;
   if (!team.includes(LIBERO)) { toast('คู่นี้ไม่มีช่อง Libero'); return; }
   const current = side === 'A' ? court.liberoPlayerA : court.liberoPlayerB;
-  const names = availableLiberoNames(courtId).filter(p => p !== current && !team.includes(p));
+  const courtNames = new Set([...court.teamA, ...court.teamB].filter(p => p !== LIBERO));
+  const names = availableLiberoNames(courtId).filter(p =>
+    p !== current && !courtNames.has(p) && !team.includes(p)
+  );
   if (current) names.unshift(current);
   if (!names.length) { toast('ยังไม่มีผู้เล่นว่างสำหรับ Libero'); return; }
   const old = document.getElementById('liberoSelectOverlay');
@@ -2065,7 +2068,9 @@ function applyLiberoSelection(courtId, side, name) {
   const names = availableLiberoNames(courtId);
   const team = side === 'A' ? court?.teamA : court?.teamB;
   const other = side === 'A' ? court?.liberoPlayerB : court?.liberoPlayerA;
-  if (!court || !names.includes(name) || team.includes(name) || other === name) { toast('ผู้เล่นนี้ไม่อยู่ใน pool แล้ว'); return; }
+  const courtNames = new Set([...(court?.teamA || []), ...(court?.teamB || [])].filter(p => p !== LIBERO));
+  const current = side === 'A' ? court?.liberoPlayerA : court?.liberoPlayerB;
+  if (!court || !names.includes(name) || (courtNames.has(name) && name !== current) || team.includes(name) || other === name) { toast('ผู้เล่นนี้ไม่อยู่ใน pool แล้ว'); return; }
   pushSnapshot('เลือก Libero');
   if (side === 'A') court.liberoPlayerA = name;
   else court.liberoPlayerB = name;
