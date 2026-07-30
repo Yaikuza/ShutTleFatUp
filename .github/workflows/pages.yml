@@ -27,6 +27,9 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build:beta
+        env:
+          VITE_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
       - run: cp index.html dist/index.html
       - run: touch dist/.nojekyll
       - uses: actions/configure-pages@v5

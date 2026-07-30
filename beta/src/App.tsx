@@ -3,6 +3,7 @@ import { appReducer, type AppAction } from "./app/appReducer";
 import { LIBERO, pairKey, teamFlag } from "./domain/engine";
 import type { AppState, PlayerLevel, Team } from "./domain/types";
 import { loadState, saveState } from "./storage";
+import { useRoomSync } from "./supabase/useRoomSync";
 import "./styles.css";
 
 const levelMeta: Record<PlayerLevel, { icon: string; label: string }> = {
@@ -44,9 +45,11 @@ export default function App() {
   const [state, dispatch] = useReducer(appReducer, undefined, loadState);
   const [name, setName] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [roomCode, setRoomCode] = useState("");
   const [customCourtId, setCustomCourtId] = useState<number | null>(null);
   const [customPlayers, setCustomPlayers] = useState<string[]>(["", "", "", ""]);
   const undoStack = useRef<AppState[]>([]);
+  const roomSync = useRoomSync(state, dispatch);
 
   useEffect(() => saveState(state), [state]);
 
@@ -109,6 +112,10 @@ export default function App() {
           <h1>Court <span>Beta</span></h1>
         </div>
         <div className="top-actions">
+          <span className={`sync-badge sync-${roomSync.status}`}>
+            {roomSync.room ? `${roomSync.room.code} · ` : ""}
+            {roomSync.status}
+          </span>
           <button className="ghost" onClick={undo} disabled={!undoStack.current.length}>↩ ย้อนกลับ</button>
           <button className="ghost" onClick={() => setSettingsOpen(value => !value)}>⚙ ตั้งค่า</button>
           <a className="ghost link" href="../">แอปเดิม</a>
@@ -143,6 +150,38 @@ export default function App() {
               onChange={event => send({ type: "settings/update", patch: { hellvenMode: event.target.checked } })}
             />
           </label>
+          <div className="room-settings">
+            <div>
+              <strong>ห้อง Realtime</strong>
+              <small>
+                {roomSync.configured
+                  ? roomSync.room ? `เชื่อมต่อห้อง ${roomSync.room.code}` : "สร้างหรือเข้าห้องเพื่อ sync หลายเครื่อง"
+                  : "ยังไม่ได้ตั้งค่า Supabase"}
+              </small>
+            </div>
+            {roomSync.configured && !roomSync.room && (
+              <div className="room-actions">
+                <button className="ghost" onClick={() => void roomSync.createRoom()}>สร้างห้อง</button>
+                <input
+                  value={roomCode}
+                  maxLength={6}
+                  placeholder="รหัส 6 ตัว"
+                  onChange={event => setRoomCode(event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
+                />
+                <button
+                  className="ghost"
+                  disabled={roomCode.length !== 6}
+                  onClick={() => void roomSync.joinRoom(roomCode)}
+                >
+                  เข้าห้อง
+                </button>
+              </div>
+            )}
+            {roomSync.room && (
+              <button className="ghost" onClick={roomSync.leaveRoom}>ออกจากห้อง</button>
+            )}
+            {roomSync.message && <p>{roomSync.message}</p>}
+          </div>
         </section>
       )}
 
