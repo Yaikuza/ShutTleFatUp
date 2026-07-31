@@ -53,9 +53,11 @@ export function CourtsGrid({
               <>
                 <div className="court-floor">
                   <svg className="court-lines" viewBox="0 0 1340 610" preserveAspectRatio="none" aria-hidden="true">
-                    <rect x="26" y="26" width="1288" height="558" rx="8" />
-                    <path d="M670 26V584M26 115H1314M26 495H1314M405 26V584M935 26V584" />
-                    <path className="court-net" d="M670 0V610" />
+                    <rect x="4" y="4" width="1332" height="602" rx="5" />
+                    <path d="M4 46H1336M4 564H1336" />
+                    <path d="M76 4V606M472 4V606M868 4V606M1264 4V606" />
+                    <path d="M4 305H472M868 305H1336" />
+                    <path className="court-net" d="M670 4V606" />
                   </svg>
                   <div className="match">
                     <div className="team team-a">
