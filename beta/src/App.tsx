@@ -12,7 +12,7 @@ import { loadState, saveState } from "./storage";
 import { useRoomSync } from "./supabase/useRoomSync";
 import "./styles.css";
 
-type MobileSheet = "queue" | "players" | "stats";
+type MobileSheet = "queue" | "players" | "stats" | "settings";
 
 export default function App() {
   const [state, dispatch] = useReducer(appReducer, undefined, loadState);
@@ -184,13 +184,41 @@ export default function App() {
   const modalOpen = customCourtId !== null || Boolean(liberoPicker) || Boolean(confirmAction);
   const scrollTo = (id: string) =>
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-  const toggleSettings = () => setSettingsOpen(open => {
-    const next = !open;
-    if (next && headerCompact) {
-      window.requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" }));
+  const toggleSettings = () => {
+    if (isMobile) {
+      toggleMobileSheet("settings");
+      return;
     }
-    return next;
-  });
+    setSettingsOpen(open => {
+      const next = !open;
+      if (next && headerCompact) {
+        window.requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" }));
+      }
+      return next;
+    });
+  };
+  const settingsPanel = (
+    <SettingsPanel
+      settings={state.settings}
+      configured={roomSync.configured}
+      roomCode={roomSync.room?.code}
+      syncStatus={roomSync.status}
+      syncMessage={roomSync.message}
+      onSettingsChange={patch => send({ type: "settings/update", patch })}
+      onExport={exportData}
+      onImport={file => void importData(file)}
+      onReset={() => askConfirm(
+        "รีเซตรอบ คิว สนาม และประวัติของ Session นี้? รายชื่อผู้เล่นและสถิติถาวรจะยังอยู่",
+        () => {
+          send({ type: "session/reset" });
+          setNotice("รีเซต Session เรียบร้อย");
+        }
+      )}
+      onCreateRoom={code => void roomSync.createRoom(code)}
+      onJoinRoom={code => void roomSync.joinRoom(code)}
+      onLeaveRoom={roomSync.leaveRoom}
+    />
+  );
 
   return (
     <main className="app-shell">
@@ -198,6 +226,7 @@ export default function App() {
         <button className="brand-home" onClick={() => scrollTo("courts")} aria-label="กลับไปสนาม">
           <p className="eyebrow">ShutTle Fat Up</p>
           <h1>Court <span>Beta</span></h1>
+          <span className="mobile-brand">SFU</span>
         </button>
         <div className="top-actions">
           <span className={`sync-badge sync-${roomSync.status}`} role="status" aria-live="polite">
@@ -206,7 +235,6 @@ export default function App() {
           </span>
           <button className="ghost" onClick={undo} disabled={!undoStack.current.length}>↩ ย้อนกลับ</button>
           <button className="ghost" onClick={toggleSettings}>⚙ ตั้งค่า</button>
-          <a className="ghost link" href="../">แอปเดิม</a>
         </div>
         <div className="mini-header" aria-hidden={!headerCompact}>
           <span>รอบ <b>{state.round}</b></span>
@@ -217,30 +245,21 @@ export default function App() {
           <button onClick={() => send({ type: "round/start" })}>สร้างรอบ</button>
           <button className="mini-settings" onClick={toggleSettings} aria-label="ตั้งค่า">⚙</button>
         </div>
+        <div className="mobile-header">
+          <span
+            className={`mobile-room sync-${roomSync.status}`}
+            title={`สถานะ ${roomSync.status}`}
+          >
+            <i aria-hidden="true" />
+            <b>{roomSync.room?.code ?? "LOCAL"}</b>
+            {roomSync.status !== "synced" && <small>{roomSync.status}</small>}
+          </span>
+          <button onClick={undo} disabled={!undoStack.current.length} aria-label="ย้อนกลับ" title="ย้อนกลับ">↩</button>
+          <button onClick={toggleSettings} aria-label="ตั้งค่า" title="ตั้งค่า">⚙</button>
+        </div>
       </header>
 
-      {settingsOpen && (
-        <SettingsPanel
-          settings={state.settings}
-          configured={roomSync.configured}
-          roomCode={roomSync.room?.code}
-          syncStatus={roomSync.status}
-          syncMessage={roomSync.message}
-          onSettingsChange={patch => send({ type: "settings/update", patch })}
-          onExport={exportData}
-          onImport={file => void importData(file)}
-          onReset={() => askConfirm(
-            "รีเซตรอบ คิว สนาม และประวัติของ Session นี้? รายชื่อผู้เล่นและสถิติถาวรจะยังอยู่",
-            () => {
-              send({ type: "session/reset" });
-              setNotice("รีเซต Session เรียบร้อย");
-            }
-          )}
-          onCreateRoom={code => void roomSync.createRoom(code)}
-          onJoinRoom={code => void roomSync.joinRoom(code)}
-          onLeaveRoom={roomSync.leaveRoom}
-        />
-      )}
+      {settingsOpen && !isMobile && settingsPanel}
       <section className="summary">
         <div><span>รอบ</span><strong>{state.round}</strong></div>
         <div><span>ผู้เล่น active</span><strong>{activeCount}</strong></div>
@@ -331,7 +350,8 @@ export default function App() {
           <section className={`mobile-sheet ${sheetClosing ? "is-closing" : ""}`} role="dialog" aria-modal="true" aria-label={
             activeSheet === "queue" ? "คิวและตารางรอบ"
               : activeSheet === "players" ? "รายชื่อผู้เล่น"
-                : "สถิติ"
+                : activeSheet === "stats" ? "สถิติ"
+                  : "ตั้งค่า"
           }>
             <div className="mobile-sheet-handle" />
             <div className="mobile-sheet-body">
@@ -356,6 +376,7 @@ export default function App() {
                   permanent={Boolean(roomSync.room)}
                 />
               )}
+              {activeSheet === "settings" && settingsPanel}
             </div>
           </section>
         </>

@@ -110,6 +110,7 @@ export function SettingsPanel({
           <input type="file" accept=".json" onChange={event => onImport(event.target.files?.[0])} />
         </label>
         <button className="ghost danger" onClick={onReset}>รีเซต Session</button>
+        <a className="ghost link" href="../">เปิดแอปเดิม</a>
       </div>
       <div className="room-settings">
         <div>

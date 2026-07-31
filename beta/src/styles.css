@@ -60,6 +60,7 @@ button:disabled { cursor: default; opacity: .35; }
 .topbar h1 span, .eyebrow { color: #f2b84b; }
 .eyebrow { margin: 0; font-size: .72rem; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
 .top-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.mobile-brand, .mobile-header { display: none; }
 .mini-header { display: none; align-items: center; justify-content: flex-end; gap: 8px; min-width: 0; flex: 1; }
 .mini-header > span {
   white-space: nowrap; color: var(--muted-text); font-size: .74rem; font-weight: 700;
@@ -392,17 +393,35 @@ form button { background: #f2b84b; color: #18362e; border: 0; }
 @keyframes toast-in { from { opacity: 0; transform: translateY(12px); } }
 
 @media (max-width: 760px) {
-  .app-shell { padding-top: 22px; padding-bottom: calc(104px + env(safe-area-inset-bottom)); }
-  .topbar { align-items: flex-start; }
-  .top-actions { max-width: 180px; }
-  .topbar.is-compact { align-items: center; gap: 9px; }
-  .topbar.is-compact .brand-home h1 { width: 42px; white-space: normal; font-size: .85rem; }
-  .mini-header { gap: 5px; }
-  .mini-header > span { font-size: .65rem; }
-  .mini-header > span:nth-child(2) { display: none; }
-  .mini-header .mini-sync { max-width: 68px; padding-inline: 6px; font-size: .6rem; }
-  .mini-header button { min-height: 42px; padding-inline: 10px; font-size: .72rem; }
-  .mini-header .mini-settings { width: 42px; }
+  .app-shell { padding-top: 0; padding-bottom: calc(104px + env(safe-area-inset-bottom)); }
+  .topbar, .topbar.is-compact {
+    min-height: calc(58px + env(safe-area-inset-top)); margin-inline: -14px;
+    padding: env(safe-area-inset-top) 14px 0; border: 0; border-bottom: 1px solid var(--line);
+    border-radius: 0; background: color-mix(in srgb, #0c2821 92%, transparent);
+    box-shadow: 0 10px 32px rgba(0,0,0,.2); backdrop-filter: blur(18px);
+  }
+  .topbar .brand-home .eyebrow, .topbar .brand-home h1, .top-actions, .mini-header { display: none; }
+  .mobile-brand {
+    display: block; color: #f2b84b; font-size: 1rem; font-weight: 950; letter-spacing: .08em;
+  }
+  .mobile-header { display: flex; align-items: center; justify-content: flex-end; gap: 7px; min-width: 0; flex: 1; }
+  .mobile-header button {
+    display: grid; place-items: center; width: 42px; min-width: 42px; height: 42px; padding: 0;
+    border: 1px solid var(--line); border-radius: 14px; background: var(--surface-soft);
+    color: inherit; font-size: 1.08rem; font-weight: 900;
+  }
+  .mobile-room {
+    min-width: 0; display: flex; align-items: center; gap: 6px; margin-right: 2px;
+    padding: 7px 9px; border-radius: 999px; background: var(--surface-soft);
+  }
+  .mobile-room i { width: 7px; height: 7px; flex: 0 0 auto; border-radius: 50%; background: currentColor; }
+  .mobile-room b { overflow: hidden; color: var(--text); font-size: .73rem; text-overflow: ellipsis; }
+  .mobile-room small { color: currentColor; font-size: .58rem; text-transform: uppercase; }
+  [data-theme="light"] .topbar, [data-theme="light"] .topbar.is-compact,
+  [data-theme="pastel"] .topbar, [data-theme="pastel"] .topbar.is-compact,
+  [data-theme="sepia"] .topbar, [data-theme="sepia"] .topbar.is-compact {
+    background: color-mix(in srgb, var(--surface-strong) 94%, transparent); color: var(--text);
+  }
   .settings-panel, .courts-grid, .workspace-grid, .player-grid { grid-template-columns: 1fr !important; }
   .room-settings, .room-actions { align-items: stretch; flex-direction: column; }
   .room-actions input { width: 100%; }
@@ -473,6 +492,10 @@ form button { background: #f2b84b; color: #18362e; border: 0; }
   .mobile-sheet-body .panel {
     margin: 0; padding: 0; border: 0; border-radius: 0; background: transparent;
     box-shadow: none; backdrop-filter: none;
+  }
+  .mobile-sheet-body .settings-panel {
+    margin: 0; padding: 4px 0 24px; border: 0; border-radius: 0;
+    background: transparent; box-shadow: none; backdrop-filter: none;
   }
   .mobile-sheet-body .workspace-grid > .panel + .panel {
     padding-top: 18px; border-top: 1px solid rgba(255,255,255,.1);
