@@ -22,6 +22,12 @@ export function CourtsGrid({
       ? `${libero ? playerName(libero) : "เลือกผู้เล่น"} (Libero)`
       : playerName(member)
     );
+  const flagLabel = {
+    hell: "Hell",
+    human: "Human",
+    heaven: "Heaven",
+    mixed: "Mixed"
+  } as const;
 
   return (
     <section className="courts-grid" style={{
@@ -34,56 +40,91 @@ export function CourtsGrid({
         return (
           <article className={`court-card ${playing ? "playing" : ""}`} key={court.id}>
             <header>
-              <span>คอร์ท {court.id}</span>
-              <small>{playing ? `รอบ ${court.startedRound}` : "ว่าง"}</small>
+              <div className="court-title">
+                <small>COURT</small>
+                <span>{court.id}</span>
+              </div>
+              <span className={`court-status ${playing ? "is-playing" : ""}`}>
+                <i aria-hidden="true" />
+                {playing ? `กำลังเล่น · รอบ ${court.startedRound}` : "ว่าง พร้อมจัดคู่"}
+              </span>
             </header>
             {playing ? (
-              <div className="match">
-                <button
-                  className="team team-a"
-                  disabled={saving}
-                  aria-label={`${teamLabel(court.teamA!, court.liberoA).join(" และ ")} ชนะ`}
-                  onClick={() => onAction({ type: "match/finish", courtId: court.id, winner: "A" })}
-                >
-                  {teamLabel(court.teamA!, court.liberoA).map(member => <b key={member}>{member}</b>)}
-                  <small>{teamFlag(state, court.teamA!)}</small>
-                  {court.teamA!.includes(LIBERO) && (
-                    <span className="libero-select" onClick={event => {
-                      event.stopPropagation();
-                      onLibero(court.id, "A");
-                    }}>เปลี่ยน Libero</span>
-                  )}
-                </button>
-                <span className="versus">VS</span>
-                <button
-                  className="team team-b"
-                  disabled={saving}
-                  aria-label={`${teamLabel(court.teamB!, court.liberoB).join(" และ ")} ชนะ`}
-                  onClick={() => onAction({ type: "match/finish", courtId: court.id, winner: "B" })}
-                >
-                  {teamLabel(court.teamB!, court.liberoB).map(member => <b key={member}>{member}</b>)}
-                  <small>{teamFlag(state, court.teamB!)}</small>
-                  {court.teamB!.includes(LIBERO) && (
-                    <span className="libero-select" onClick={event => {
-                      event.stopPropagation();
-                      onLibero(court.id, "B");
-                    }}>เปลี่ยน Libero</span>
-                  )}
-                </button>
-              </div>
+              <>
+                <div className="court-floor">
+                  <svg className="court-lines" viewBox="0 0 1340 610" preserveAspectRatio="none" aria-hidden="true">
+                    <rect x="26" y="26" width="1288" height="558" rx="8" />
+                    <path d="M670 26V584M26 115H1314M26 495H1314M405 26V584M935 26V584" />
+                    <path className="court-net" d="M670 0V610" />
+                  </svg>
+                  <div className="match">
+                    <div className="team team-a">
+                      <button
+                        className="team-result"
+                        disabled={saving}
+                        aria-label={`${teamLabel(court.teamA!, court.liberoA).join(" และ ")} ชนะ`}
+                        onClick={() => onAction({ type: "match/finish", courtId: court.id, winner: "A" })}
+                      >
+                        <span className="team-side">ทีม A</span>
+                        <span className="team-players">
+                          {teamLabel(court.teamA!, court.liberoA).map((member, index) =>
+                            <b key={`${member}-${index}`}>{member}</b>
+                          )}
+                        </span>
+                        <span className={`level-badge level-${teamFlag(state, court.teamA!)}`}>
+                          {flagLabel[teamFlag(state, court.teamA!)]}
+                        </span>
+                        <span className="winner-hint">แตะเมื่อทีมนี้ชนะ</span>
+                      </button>
+                      {court.teamA!.includes(LIBERO) && (
+                        <button className="libero-select" onClick={() => onLibero(court.id, "A")}>
+                          เปลี่ยนผู้เล่น Libero
+                        </button>
+                      )}
+                    </div>
+                    <span className="versus" aria-hidden="true">VS</span>
+                    <div className="team team-b">
+                      <button
+                        className="team-result"
+                        disabled={saving}
+                        aria-label={`${teamLabel(court.teamB!, court.liberoB).join(" และ ")} ชนะ`}
+                        onClick={() => onAction({ type: "match/finish", courtId: court.id, winner: "B" })}
+                      >
+                        <span className="team-side">ทีม B</span>
+                        <span className="team-players">
+                          {teamLabel(court.teamB!, court.liberoB).map((member, index) =>
+                            <b key={`${member}-${index}`}>{member}</b>
+                          )}
+                        </span>
+                        <span className={`level-badge level-${teamFlag(state, court.teamB!)}`}>
+                          {flagLabel[teamFlag(state, court.teamB!)]}
+                        </span>
+                        <span className="winner-hint">แตะเมื่อทีมนี้ชนะ</span>
+                      </button>
+                      {court.teamB!.includes(LIBERO) && (
+                        <button className="libero-select" onClick={() => onLibero(court.id, "B")}>
+                          เปลี่ยนผู้เล่น Libero
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="court-toolbar">
+                  <button onClick={() => onAction({ type: "court/replace", courtId: court.id })}>
+                    ↻ เปลี่ยนทั้งคอร์ท
+                  </button>
+                  <button onClick={() => onCustomMatch(court.id)}>✦ เลือกคู่เอง</button>
+                </div>
+              </>
             ) : (
               <div className="empty-court">
-                <p>พร้อมรับคู่ถัดไป</p>
+                <span className="empty-court-mark" aria-hidden="true">↗</span>
+                <strong>สนามพร้อมใช้งาน</strong>
+                <p>จัดคู่ถัดไปลงสนาม หรือเลือกผู้เล่นด้วยตัวเอง</p>
                 <div className="court-actions">
-                  <button onClick={() => onAction({ type: "court/fill", courtId: court.id })}>จัดลงคอร์ท</button>
+                  <button onClick={() => onAction({ type: "court/fill", courtId: court.id })}>จัดคู่ถัดไป</button>
                   <button className="ghost" onClick={() => onCustomMatch(court.id)}>เลือกคู่เอง</button>
                 </div>
-              </div>
-            )}
-            {playing && (
-              <div className="court-corners">
-                <button onClick={() => onAction({ type: "court/replace", courtId: court.id })}>เปลี่ยนทั้งคอร์ท</button>
-                <button onClick={() => onCustomMatch(court.id)}>เลือกคู่เอง</button>
               </div>
             )}
           </article>
