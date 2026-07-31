@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { appReducer } from "../app/appReducer";
 import { assignLibero, createPairs, fillCourt, finishMatch, LIBERO, projectedRoundComplete, setCourtLibero, setCustomMatch, teamsCanPlay } from "./engine";
 import { initialState } from "./initialState";
 import type { AppState, Pair, Player, Team } from "./types";
@@ -120,6 +121,56 @@ describe("court rotation", () => {
       }]
     };
     expect(projectedRoundComplete(state)).toBe(true);
+  });
+
+  it("does not let a newly filled old-round match trigger the next round", () => {
+    const base = stateWithPlayers([
+      "human", "human", "human", "human", "human", "human",
+      "human", "human", "human", "human", "human", "human"
+    ]);
+    const state: AppState = {
+      ...base,
+      settings: { ...base.settings, gamesPerPair: 2, lowPlayerMode: "off" },
+      queue: ["I", "J", "K", "L"],
+      schedule: [
+        { id: "A|B", members: ["A", "B"] },
+        { id: "C|D", members: ["C", "D"] },
+        { id: "E|F", members: ["E", "F"] },
+        { id: "G|H", members: ["G", "H"] },
+        { id: "I|J", members: ["I", "J"] },
+        { id: "K|L", members: ["K", "L"] }
+      ],
+      pairGames: {
+        "A|B": 1, "C|D": 1, "E|F": 1,
+        "G|H": 1, "I|J": 1, "K|L": 1
+      },
+      courts: [
+        {
+          ...base.courts[0],
+          status: "playing",
+          teamA: ["A", "B"],
+          teamB: ["C", "D"],
+          startedRound: 1
+        },
+        {
+          ...base.courts[1],
+          status: "playing",
+          teamA: ["E", "F"],
+          teamB: ["G", "H"],
+          startedRound: 1
+        }
+      ]
+    };
+
+    const next = appReducer(state, { type: "match/finish", courtId: 1, winner: "A" });
+
+    expect(next.round).toBe(1);
+    expect(next.courts[0]).toMatchObject({
+      status: "playing",
+      teamA: ["I", "J"],
+      teamB: ["K", "L"],
+      startedRound: 1
+    });
   });
 });
 

@@ -87,9 +87,9 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     case "court/libero":
       return setCourtLibero(state, action.courtId, action.side, action.playerId);
     case "match/finish": {
-      let next = fillCourt(finishMatch(state, action.courtId, action.winner), action.courtId);
-      if (projectedRoundComplete(next)) next = startRound(next);
-      return next;
+      const finished = finishMatch(state, action.courtId, action.winner);
+      const nextRound = projectedRoundComplete(finished) ? startRound(finished) : finished;
+      return fillCourt(nextRound, action.courtId);
     }
     case "settings/update": {
       const settings = { ...state.settings, ...action.patch };
