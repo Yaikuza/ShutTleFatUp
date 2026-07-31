@@ -50,6 +50,7 @@ export type Settings = {
 
 export type AppState = {
   schemaVersion: 2;
+  playDate: string;
   players: Player[];
   queue: PlayerId[];
   courts: Court[];

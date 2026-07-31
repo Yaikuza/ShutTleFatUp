@@ -1,4 +1,5 @@
 import type { AppState, Court } from "./types";
+import { bangkokDateKey } from "./date";
 
 export function createCourt(id: number): Court {
   return {
@@ -14,6 +15,7 @@ export function createCourt(id: number): Court {
 
 export const initialState: AppState = {
   schemaVersion: 2,
+  playDate: bangkokDateKey(),
   players: [],
   queue: [],
   courts: [createCourt(1), createCourt(2)],

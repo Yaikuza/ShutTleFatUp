@@ -1,20 +1,37 @@
 import { initialState } from "./domain/initialState";
+import { bangkokDateKey } from "./domain/date";
 import type { AppState, PlayerLevel } from "./domain/types";
 
 const BETA_KEY = "bdm_rotation_beta_v2";
 const LEGACY_KEY = "bdm_rotation";
 
 export function normalizeState(state: AppState): AppState {
+  const today = bangkokDateKey();
+  const dayChanged = Boolean(state.playDate) && state.playDate !== today;
+  const settings = { ...initialState.settings, ...state.settings };
+  const courts = dayChanged
+    ? Array.from({ length: settings.courtCount }, (_, index) => ({
+        ...structuredClone(initialState.courts[0]),
+        id: index + 1
+      }))
+    : state.courts;
   const validActive = new Set(state.players.filter(player => player.active).map(player => player.id));
   const onCourt = new Set(
-    state.courts.flatMap(court => [...(court.teamA ?? []), ...(court.teamB ?? [])])
+    courts.flatMap(court => [...(court.teamA ?? []), ...(court.teamB ?? [])])
       .filter(id => id !== "LIBERO")
   );
-  const queue = [...new Set(state.queue.filter(id => validActive.has(id) && !onCourt.has(id)))];
+  const queue = dayChanged
+    ? [...validActive]
+    : [...new Set(state.queue.filter(id => validActive.has(id) && !onCourt.has(id)))];
   return {
     ...state,
+    playDate: today,
+    courts,
     queue,
-    settings: { ...initialState.settings, ...state.settings }
+    round: dayChanged ? 1 : state.round,
+    schedule: dayChanged ? [] : state.schedule,
+    pairGames: dayChanged ? {} : state.pairGames,
+    settings
   };
 }
 
