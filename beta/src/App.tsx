@@ -74,6 +74,10 @@ export default function App() {
     return () => window.removeEventListener("keydown", close);
   }, [activeSheet, confirmAction, customCourtId, liberoPicker]);
   useEffect(() => {
+    if (isMobile) {
+      setHeaderCompact(false);
+      return;
+    }
     let frame = 0;
     const update = () => {
       window.cancelAnimationFrame(frame);
@@ -87,7 +91,7 @@ export default function App() {
       window.cancelAnimationFrame(frame);
       window.removeEventListener("scroll", update);
     };
-  }, []);
+  }, [isMobile]);
   useEffect(() => {
     const media = window.matchMedia("(max-width: 760px)");
     const update = () => {

@@ -400,7 +400,8 @@ form button { background: #f2b84b; color: #18362e; border: 0; }
     border-radius: 0; background: color-mix(in srgb, #0c2821 92%, transparent);
     box-shadow: 0 10px 32px rgba(0,0,0,.2); backdrop-filter: blur(18px);
   }
-  .topbar .brand-home .eyebrow, .topbar .brand-home h1, .top-actions, .mini-header { display: none; }
+  .topbar .brand-home .eyebrow, .topbar .brand-home h1, .top-actions,
+  .mini-header, .topbar.is-compact .mini-header { display: none; }
   .mobile-brand {
     display: block; color: #f2b84b; font-size: 1rem; font-weight: 950; letter-spacing: .08em;
   }
