@@ -362,7 +362,7 @@ form button { background: #f2b84b; color: #18362e; border: 0; }
 .scheduled-pair { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 6px; }
 .scheduled-pair button { border: 0; border-radius: 8px; padding: 6px 9px; background: rgba(242,184,75,.16); color: #f2b84b; }
 .modal-backdrop {
-  position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 18px;
+  position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; padding: 18px;
   background: rgba(3,15,12,.76); backdrop-filter: blur(8px);
 }
 .modal {
