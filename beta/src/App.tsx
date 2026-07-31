@@ -25,8 +25,31 @@ export default function App() {
   const [headerCompact, setHeaderCompact] = useState(false);
   const [isMobile, setIsMobile] = useState(() => window.matchMedia("(max-width: 760px)").matches);
   const [activeSheet, setActiveSheet] = useState<MobileSheet | null>(null);
+  const [sheetClosing, setSheetClosing] = useState(false);
   const undoStack = useRef<AppState[]>([]);
+  const sheetCloseTimer = useRef<number | null>(null);
   const roomSync = useRoomSync(state, dispatch);
+
+  const closeMobileSheet = () => {
+    if (!activeSheet || sheetClosing) return;
+    setSheetClosing(true);
+    sheetCloseTimer.current = window.setTimeout(() => {
+      setActiveSheet(null);
+      setSheetClosing(false);
+      sheetCloseTimer.current = null;
+    }, 280);
+  };
+
+  const toggleMobileSheet = (sheet: MobileSheet) => {
+    if (activeSheet === sheet) {
+      closeMobileSheet();
+      return;
+    }
+    if (sheetCloseTimer.current !== null) window.clearTimeout(sheetCloseTimer.current);
+    sheetCloseTimer.current = null;
+    setSheetClosing(false);
+    setActiveSheet(sheet);
+  };
 
   useEffect(() => saveState(state), [state]);
   useEffect(() => {
@@ -45,7 +68,7 @@ export default function App() {
       setConfirmAction(null);
       setCustomCourtId(null);
       setLiberoPicker(null);
-      setActiveSheet(null);
+      closeMobileSheet();
     };
     window.addEventListener("keydown", close);
     return () => window.removeEventListener("keydown", close);
@@ -54,7 +77,9 @@ export default function App() {
     let frame = 0;
     const update = () => {
       window.cancelAnimationFrame(frame);
-      frame = window.requestAnimationFrame(() => setHeaderCompact(window.scrollY > 120));
+      frame = window.requestAnimationFrame(() => {
+        setHeaderCompact(compact => compact ? window.scrollY > 36 : window.scrollY > 140);
+      });
     };
     update();
     window.addEventListener("scroll", update, { passive: true });
@@ -67,7 +92,12 @@ export default function App() {
     const media = window.matchMedia("(max-width: 760px)");
     const update = () => {
       setIsMobile(media.matches);
-      if (!media.matches) setActiveSheet(null);
+      if (!media.matches) {
+        if (sheetCloseTimer.current !== null) window.clearTimeout(sheetCloseTimer.current);
+        sheetCloseTimer.current = null;
+        setActiveSheet(null);
+        setSheetClosing(false);
+      }
     };
     media.addEventListener("change", update);
     return () => media.removeEventListener("change", update);
@@ -76,6 +106,9 @@ export default function App() {
     document.body.classList.toggle("sheet-open", Boolean(activeSheet));
     return () => document.body.classList.remove("sheet-open");
   }, [activeSheet]);
+  useEffect(() => () => {
+    if (sheetCloseTimer.current !== null) window.clearTimeout(sheetCloseTimer.current);
+  }, []);
 
   const askConfirm = (message: string, run: () => void) =>
     setConfirmAction({ message, run });
@@ -291,11 +324,11 @@ export default function App() {
       {isMobile && activeSheet && (
         <>
           <button
-            className="mobile-sheet-backdrop"
+            className={`mobile-sheet-backdrop ${sheetClosing ? "is-closing" : ""}`}
             aria-label="ปิดหน้าต่าง"
-            onClick={() => setActiveSheet(null)}
+            onClick={closeMobileSheet}
           />
-          <section className="mobile-sheet" role="dialog" aria-modal="true" aria-label={
+          <section className={`mobile-sheet ${sheetClosing ? "is-closing" : ""}`} role="dialog" aria-modal="true" aria-label={
             activeSheet === "queue" ? "คิวและตารางรอบ"
               : activeSheet === "players" ? "รายชื่อผู้เล่น"
                 : "สถิติ"
@@ -310,7 +343,7 @@ export default function App() {
                       : "สถิติการแข่งขัน"}
                 </h2>
               </div>
-              <button onClick={() => setActiveSheet(null)} aria-label="ปิด">✕</button>
+              <button onClick={closeMobileSheet} aria-label="ปิด">✕</button>
             </header>
             <div className="mobile-sheet-body">
               {activeSheet === "queue" && (
@@ -339,11 +372,11 @@ export default function App() {
         </>
       )}
       {!modalOpen && (
-        <nav className="mobile-dock" aria-label="เมนูส่วนหลัก">
+        <nav className={`mobile-dock ${activeSheet ? "sheet-active" : ""}`} aria-label="เมนูส่วนหลัก">
           <button
             className={activeSheet === "queue" ? "active" : ""}
             aria-expanded={activeSheet === "queue"}
-            onClick={() => setActiveSheet(current => current === "queue" ? null : "queue")}
+            onClick={() => toggleMobileSheet("queue")}
           >
             <span>⌛</span>
             คิว
@@ -352,7 +385,7 @@ export default function App() {
           <button
             className={activeSheet === "players" ? "active" : ""}
             aria-expanded={activeSheet === "players"}
-            onClick={() => setActiveSheet(current => current === "players" ? null : "players")}
+            onClick={() => toggleMobileSheet("players")}
           >
             <span>♙</span>
             ผู้เล่น
@@ -361,7 +394,7 @@ export default function App() {
           <button
             className={activeSheet === "stats" ? "active" : ""}
             aria-expanded={activeSheet === "stats"}
-            onClick={() => setActiveSheet(current => current === "stats" ? null : "stats")}
+            onClick={() => toggleMobileSheet("stats")}
           >
             <span>▥</span>
             สถิติ
