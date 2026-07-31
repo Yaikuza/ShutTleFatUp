@@ -24,10 +24,58 @@ button:disabled { cursor: default; opacity: .35; }
 .topbar, .panel-heading, .court-card > header, .summary, .history-row {
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
 }
+.topbar {
+  position: sticky; top: 0; z-index: 40;
+  transition: min-height .2s ease, padding .2s ease, background .2s ease, box-shadow .2s ease;
+}
+.brand-home {
+  min-width: 0; border: 0; padding: 0; background: transparent; color: inherit; text-align: left;
+}
+.brand-home:focus-visible { outline: 3px solid #f2b84b; outline-offset: 5px; border-radius: 8px; }
 .topbar h1 { margin: 3px 0 0; font-size: clamp(2.3rem, 7vw, 5rem); line-height: .95; }
 .topbar h1 span, .eyebrow { color: #f2b84b; }
 .eyebrow { margin: 0; font-size: .72rem; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
 .top-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.mini-header { display: none; align-items: center; justify-content: flex-end; gap: 8px; min-width: 0; flex: 1; }
+.mini-header > span {
+  white-space: nowrap; color: #9db6ae; font-size: .74rem; font-weight: 700;
+}
+.mini-header b { color: #f2b84b; font-size: .95rem; }
+.mini-header .mini-sync {
+  max-width: 100px; overflow: hidden; text-overflow: ellipsis; padding: 6px 8px;
+  border-radius: 999px; background: rgba(255,255,255,.06); text-transform: uppercase;
+}
+.mini-header button {
+  min-height: 38px; border: 0; border-radius: 999px; padding: 8px 12px;
+  background: #f2b84b; color: #18362e; font-weight: 900;
+}
+.mini-header .mini-settings {
+  width: 38px; padding: 0; border: 1px solid rgba(255,255,255,.16);
+  background: rgba(255,255,255,.07); color: inherit;
+}
+.topbar.is-compact {
+  min-height: 64px; margin-inline: -12px; padding: max(8px, env(safe-area-inset-top)) 12px 8px;
+  border: 1px solid rgba(255,255,255,.1); border-top: 0; border-radius: 0 0 18px 18px;
+  background: color-mix(in srgb, #0c2821 88%, transparent);
+  box-shadow: 0 12px 40px rgba(0,0,0,.24); backdrop-filter: blur(18px);
+}
+.topbar.is-compact .brand-home .eyebrow, .topbar.is-compact .top-actions { display: none; }
+.topbar.is-compact .brand-home h1 { margin: 0; font-size: 1.12rem; line-height: 1; white-space: nowrap; }
+.topbar.is-compact .mini-header { display: flex; }
+[data-theme="light"] .topbar.is-compact,
+[data-theme="pastel"] .topbar.is-compact,
+[data-theme="sepia"] .topbar.is-compact {
+  border-color: rgba(23,55,46,.12); background: rgba(240,246,241,.92);
+  color: #17372e; box-shadow: 0 12px 40px rgba(23,55,46,.14);
+}
+[data-theme="light"] .topbar.is-compact .mini-header .mini-sync,
+[data-theme="pastel"] .topbar.is-compact .mini-header .mini-sync,
+[data-theme="sepia"] .topbar.is-compact .mini-header .mini-sync { background: rgba(23,55,46,.08); }
+[data-theme="light"] .topbar.is-compact .mini-settings,
+[data-theme="pastel"] .topbar.is-compact .mini-settings,
+[data-theme="sepia"] .topbar.is-compact .mini-settings {
+  border-color: rgba(23,55,46,.16); background: rgba(23,55,46,.06); color: #17372e;
+}
 .sync-badge {
   display: inline-flex; align-items: center; padding: 8px 11px; border-radius: 999px;
   background: rgba(255,255,255,.06); color: #abc1ba; font-size: .75rem; text-transform: uppercase;
@@ -257,12 +305,22 @@ form button { background: #f2b84b; color: #18362e; border: 0; }
   color: #18362e; box-shadow: 0 16px 50px rgba(0,0,0,.32); font-weight: 900;
   animation: toast-in .22s ease-out;
 }
+.mobile-dock { display: none; }
+#courts, #queue, #players, #stats { scroll-margin-top: 84px; }
 @keyframes toast-in { from { opacity: 0; transform: translateY(12px); } }
 
 @media (max-width: 760px) {
-  .app-shell { padding-top: 22px; }
+  .app-shell { padding-top: 22px; padding-bottom: calc(104px + env(safe-area-inset-bottom)); }
   .topbar { align-items: flex-start; }
   .top-actions { max-width: 180px; }
+  .topbar.is-compact { align-items: center; gap: 9px; }
+  .topbar.is-compact .brand-home h1 { width: 42px; white-space: normal; font-size: .85rem; }
+  .mini-header { gap: 5px; }
+  .mini-header > span { font-size: .65rem; }
+  .mini-header > span:nth-child(2) { display: none; }
+  .mini-header .mini-sync { max-width: 68px; padding-inline: 6px; font-size: .6rem; }
+  .mini-header button { min-height: 42px; padding-inline: 10px; font-size: .72rem; }
+  .mini-header .mini-settings { width: 42px; }
   .settings-panel, .courts-grid, .workspace-grid, .player-grid { grid-template-columns: 1fr !important; }
   .room-settings, .room-actions { align-items: stretch; flex-direction: column; }
   .room-actions input { width: 100%; }
@@ -285,6 +343,27 @@ form button { background: #f2b84b; color: #18362e; border: 0; }
   .stat-row small { grid-column: 1 / -1; }
   .queue-chip button { min-width: 34px; min-height: 34px; margin-block: -6px; }
   .stats-tabs button, .scheduled-pair button { min-height: 44px; }
+  .mobile-dock {
+    position: fixed; z-index: 45; left: 12px; right: 12px; bottom: max(10px, env(safe-area-inset-bottom));
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; padding: 7px;
+    border: 1px solid rgba(255,255,255,.13); border-radius: 20px;
+    background: color-mix(in srgb, #0c2821 90%, transparent);
+    box-shadow: 0 18px 55px rgba(0,0,0,.38); backdrop-filter: blur(20px);
+  }
+  .mobile-dock button {
+    position: relative; min-height: 54px; display: grid; grid-template-columns: auto auto; place-content: center;
+    align-items: center; gap: 1px 6px; border: 0; border-radius: 14px; background: transparent;
+    color: #dce9e4; font-size: .7rem; font-weight: 800;
+  }
+  .mobile-dock button:active { background: rgba(255,255,255,.1); }
+  .mobile-dock button > span { grid-row: 1 / 3; color: #f2b84b; font-size: 1.15rem; }
+  .mobile-dock button > b { color: #8fb0a5; font-size: .62rem; font-weight: 700; }
+  [data-theme="light"] .mobile-dock,
+  [data-theme="pastel"] .mobile-dock,
+  [data-theme="sepia"] .mobile-dock { background: rgba(240,246,241,.94); border-color: rgba(23,55,46,.12); }
+  [data-theme="light"] .mobile-dock button,
+  [data-theme="pastel"] .mobile-dock button,
+  [data-theme="sepia"] .mobile-dock button { color: #17372e; }
 }
 
 @media (prefers-reduced-motion: reduce) {

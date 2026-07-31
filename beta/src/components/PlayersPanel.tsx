@@ -21,7 +21,7 @@ export function PlayersPanel({ players, busyIds, onAction, onDelete }: PlayersPa
   };
 
   return (
-    <section className="panel players-panel">
+    <section id="players" className="panel players-panel">
       <div className="panel-heading">
         <div>
           <p className="eyebrow">Player pool</p>

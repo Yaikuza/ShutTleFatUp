@@ -31,7 +31,7 @@ export function StatsPanel({
     team.map(member => member === LIBERO ? libero ?? LIBERO : member) as Team;
 
   return (
-    <section className="panel history-panel">
+    <section id="stats" className="panel history-panel">
       <div className="panel-heading">
         <div><p className="eyebrow">Match history</p><h2>ผลล่าสุด</h2></div>
         <span>{history.length} เกม{permanent ? " · บันทึกถาวร" : ""}</span>

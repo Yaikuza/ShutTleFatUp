@@ -30,7 +30,7 @@ export function CourtsGrid({
   } as const;
 
   return (
-    <section className="courts-grid" style={{
+    <section id="courts" className="courts-grid" style={{
       gridTemplateColumns: state.settings.courtColumns
         ? `repeat(${state.settings.courtColumns}, minmax(0, 1fr))`
         : undefined

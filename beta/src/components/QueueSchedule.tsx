@@ -13,7 +13,7 @@ export function QueueSchedule({ state, playerName, onAction }: QueueScheduleProp
   const draggedQueueId = useRef<string | null>(null);
 
   return (
-    <div className="workspace-grid">
+    <div id="queue" className="workspace-grid">
       <section className="panel">
         <div className="panel-heading">
           <div>

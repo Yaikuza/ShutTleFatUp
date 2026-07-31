@@ -20,6 +20,7 @@ export default function App() {
   const [liberoPicker, setLiberoPicker] = useState<{ courtId: number; side: "A" | "B" } | null>(null);
   const [notice, setNotice] = useState("");
   const [confirmAction, setConfirmAction] = useState<{ message: string; run: () => void } | null>(null);
+  const [headerCompact, setHeaderCompact] = useState(false);
   const undoStack = useRef<AppState[]>([]);
   const roomSync = useRoomSync(state, dispatch);
 
@@ -44,6 +45,19 @@ export default function App() {
     window.addEventListener("keydown", close);
     return () => window.removeEventListener("keydown", close);
   }, [confirmAction, customCourtId, liberoPicker]);
+  useEffect(() => {
+    let frame = 0;
+    const update = () => {
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(() => setHeaderCompact(window.scrollY > 120));
+    };
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", update);
+    };
+  }, []);
 
   const askConfirm = (message: string, run: () => void) =>
     setConfirmAction({ message, run });
@@ -116,22 +130,41 @@ export default function App() {
     ? [...(court.teamA ?? []), ...(court.teamB ?? []), court.liberoA, court.liberoB]
     : []
   ));
+  const modalOpen = customCourtId !== null || Boolean(liberoPicker) || Boolean(confirmAction);
+  const scrollTo = (id: string) =>
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  const toggleSettings = () => setSettingsOpen(open => {
+    const next = !open;
+    if (next && headerCompact) {
+      window.requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" }));
+    }
+    return next;
+  });
 
   return (
     <main className="app-shell">
-      <header className="topbar">
-        <div>
+      <header className={`topbar ${headerCompact ? "is-compact" : ""}`}>
+        <button className="brand-home" onClick={() => scrollTo("courts")} aria-label="กลับไปสนาม">
           <p className="eyebrow">ShutTle Fat Up</p>
           <h1>Court <span>Beta</span></h1>
-        </div>
+        </button>
         <div className="top-actions">
           <span className={`sync-badge sync-${roomSync.status}`} role="status" aria-live="polite">
             {roomSync.room ? `${roomSync.room.code} · ` : ""}
             {roomSync.status}
           </span>
           <button className="ghost" onClick={undo} disabled={!undoStack.current.length}>↩ ย้อนกลับ</button>
-          <button className="ghost" onClick={() => setSettingsOpen(value => !value)}>⚙ ตั้งค่า</button>
+          <button className="ghost" onClick={toggleSettings}>⚙ ตั้งค่า</button>
           <a className="ghost link" href="../">แอปเดิม</a>
+        </div>
+        <div className="mini-header" aria-hidden={!headerCompact}>
+          <span>รอบ <b>{state.round}</b></span>
+          <span>คิว <b>{state.queue.length}</b></span>
+          <span className={`mini-sync sync-${roomSync.status}`}>
+            {roomSync.room ? roomSync.room.code : roomSync.status}
+          </span>
+          <button onClick={() => send({ type: "round/start" })}>สร้างรอบ</button>
+          <button className="mini-settings" onClick={toggleSettings} aria-label="ตั้งค่า">⚙</button>
         </div>
       </header>
 
@@ -235,6 +268,25 @@ export default function App() {
       )}
 
       {notice && <div className="toast" role="status" aria-live="polite">{notice}</div>}
+      {!modalOpen && (
+        <nav className="mobile-dock" aria-label="เมนูส่วนหลัก">
+          <button onClick={() => scrollTo("queue")}>
+            <span>⌛</span>
+            คิว
+            <b>{state.queue.length}</b>
+          </button>
+          <button onClick={() => scrollTo("players")}>
+            <span>♙</span>
+            ผู้เล่น
+            <b>{activeCount}</b>
+          </button>
+          <button onClick={() => scrollTo("stats")}>
+            <span>▥</span>
+            สถิติ
+            <b>{visibleHistory.length}</b>
+          </button>
+        </nav>
+      )}
     </main>
   );
 }
