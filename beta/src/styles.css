@@ -311,6 +311,45 @@ form button { background: #f2b84b; color: #18362e; border: 0; }
 .stats-list { display: grid; gap: 8px; margin-top: 12px; }
 .stat-row { display: grid; grid-template-columns: 1fr auto auto; gap: 12px; padding: 11px 12px; border-bottom: 1px solid rgba(255,255,255,.08); }
 .stat-row span, .stat-row small { color: var(--muted-text); }
+.stats-empty { margin-top: 18px; }
+.h2h-hint { margin: 14px 2px 8px; color: var(--muted-text); font-size: .78rem; }
+.h2h-scroll {
+  max-width: 100%; overflow: auto; border: 1px solid var(--line); border-radius: 14px;
+  background: var(--surface-soft); overscroll-behavior-inline: contain;
+}
+.h2h-matrix { min-width: 100%; border-collapse: separate; border-spacing: 0; font-size: .82rem; }
+.h2h-matrix th, .h2h-matrix td {
+  min-width: 62px; height: 48px; padding: 8px; border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line); text-align: center; white-space: nowrap;
+}
+.h2h-matrix thead th {
+  position: sticky; top: 0; z-index: 2; max-width: 88px; background: var(--surface-strong);
+  color: var(--muted-text); font-size: .72rem;
+}
+.h2h-matrix th span {
+  display: block; max-width: 78px; overflow: hidden; text-overflow: ellipsis;
+}
+.h2h-matrix tbody th {
+  position: sticky; left: 0; z-index: 1; min-width: 96px; max-width: 96px;
+  background: var(--surface-strong); text-align: left;
+}
+.h2h-matrix .h2h-corner { left: 0; z-index: 3; min-width: 96px; text-align: left; color: var(--text); }
+.h2h-matrix tr:last-child > * { border-bottom: 0; }
+.h2h-matrix tr > *:last-child { border-right: 0; }
+.h2h-matrix td { color: var(--text); font-weight: 900; font-variant-numeric: tabular-nums; }
+.h2h-matrix td.winning { color: #55d69b; background: rgba(44, 175, 119, .1); }
+.h2h-matrix td.losing { color: #ff8a7f; background: rgba(215, 73, 61, .08); }
+.h2h-matrix td.tied { color: #f2b84b; background: rgba(242, 184, 75, .08); }
+.h2h-matrix td.self, .h2h-matrix td.unplayed { color: var(--muted-text); font-weight: 500; }
+[data-theme="light"] .h2h-matrix td.winning,
+[data-theme="pastel"] .h2h-matrix td.winning,
+[data-theme="sepia"] .h2h-matrix td.winning { color: #087a4e; }
+[data-theme="light"] .h2h-matrix td.losing,
+[data-theme="pastel"] .h2h-matrix td.losing,
+[data-theme="sepia"] .h2h-matrix td.losing { color: #b52d28; }
+[data-theme="light"] .h2h-matrix td.tied,
+[data-theme="pastel"] .h2h-matrix td.tied,
+[data-theme="sepia"] .h2h-matrix td.tied { color: #8a5d00; }
 .inline-actions, .data-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .data-actions { grid-column: 1 / -1; }
 .danger { color: #ff8a7f !important; }

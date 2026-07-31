@@ -19,6 +19,9 @@ export function StatsPanel({
   const pairStats = buildPairStats(history);
   const headToHeadStats = buildHeadToHeadStats(history);
   const pairWins = new Map(pairStats.map(item => [item.key, item.wins]));
+  const headToHeadByKey = new Map(headToHeadStats.map(item => [item.key, item]));
+  const headToHeadPlayers = [...new Set(headToHeadStats.flatMap(item => item.players))]
+    .sort((first, second) => playerName(first).localeCompare(playerName(second), "th"));
   const byDate = history.reduce<Record<string, MatchHistory[]>>((groups, match) => {
     const date = new Intl.DateTimeFormat("th-TH", {
       dateStyle: "long",
@@ -54,12 +57,45 @@ export function StatsPanel({
           <strong>{item.members.map(playerName).join(" + ")}</strong><span>{item.wins}W · {item.losses}L</span>
         </div>
       ))}</div>}
-      {tab === "h2h" && <div className="stats-list">{headToHeadStats.map(item => (
-        <div className="stat-row" key={item.key}>
-          <strong>{playerName(item.players[0])} vs {playerName(item.players[1])}</strong>
-          <span>{item.firstWins} : {item.secondWins}</span>
-        </div>
-      ))}</div>}
+      {tab === "h2h" && !headToHeadPlayers.length && <p className="muted stats-empty">ยังไม่มีสถิติที่พบกัน</p>}
+      {tab === "h2h" && headToHeadPlayers.length > 0 && (
+        <>
+          <p className="h2h-hint">ตัวเลขฝั่งซ้ายคือจำนวนครั้งที่ผู้เล่นในแถวชนะ</p>
+          <div className="h2h-scroll">
+            <table className="h2h-matrix">
+              <thead>
+                <tr>
+                  <th scope="col" className="h2h-corner">ผู้เล่น</th>
+                  {headToHeadPlayers.map(playerId => (
+                    <th scope="col" key={playerId} title={playerName(playerId)}>
+                      <span>{playerName(playerId)}</span>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {headToHeadPlayers.map(rowId => (
+                  <tr key={rowId}>
+                    <th scope="row" title={playerName(rowId)}><span>{playerName(rowId)}</span></th>
+                    {headToHeadPlayers.map(columnId => {
+                      if (rowId === columnId) return <td className="self" key={columnId}>—</td>;
+                      const players = rowId < columnId
+                        ? [rowId, columnId] as const
+                        : [columnId, rowId] as const;
+                      const item = headToHeadByKey.get(players.join("|"));
+                      if (!item) return <td className="unplayed" key={columnId}>·</td>;
+                      const rowWins = item.players[0] === rowId ? item.firstWins : item.secondWins;
+                      const rowLosses = item.players[0] === rowId ? item.secondWins : item.firstWins;
+                      const result = rowWins > rowLosses ? "winning" : rowWins < rowLosses ? "losing" : "tied";
+                      return <td className={result} key={columnId}>{rowWins}:{rowLosses}</td>;
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
       {tab === "history" && !history.length && <p className="muted">ยังไม่มีผลการแข่งขัน</p>}
       {tab === "history" && Object.entries(byDate).reverse().map(([date, matches]) => (
         <div className="history-day" key={date}>
