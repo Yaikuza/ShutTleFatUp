@@ -82,11 +82,17 @@ export function SettingsPanel({
           <option value="pastel">Pastel</option><option value="sepia">Sepia</option>
         </select>
       </label>
-      <label>
+      <label className="color-setting">
         <span>สีสนาม</span>
-        <input type="color" value={settings.courtColor} onChange={event =>
-          onSettingsChange({ courtColor: event.target.value })
-        } />
+        <span className="color-control">
+          <input
+            type="color"
+            aria-label="เลือกสีสนาม"
+            value={settings.courtColor}
+            onChange={event => onSettingsChange({ courtColor: event.target.value })}
+          />
+          <b>{settings.courtColor.toUpperCase()}</b>
+        </span>
       </label>
       <label>
         <span>คอลัมน์สนาม</span>

@@ -182,6 +182,28 @@ export function fillCourt(state: AppState, courtId: number): AppState {
     };
   }
 
+  if (!court.teamA && court.teamB) {
+    const opponent = available.find(pair =>
+      pair.id !== pairKey(court.teamB!) && teamsCanPlay(next, pair.members, court.teamB!)
+    );
+    if (!opponent) return next;
+    const updatedCourt: Court = {
+      ...court,
+      status: "playing",
+      teamA: opponent.members,
+      liberoA: null,
+      liberoB: court.teamB.includes(LIBERO) ? assignLibero(next, court, court.teamB, "B") : null,
+      startedRound: next.round
+    };
+    updatedCourt.liberoA = assignLibero(next, updatedCourt, opponent.members, "A");
+    const opponentIds = new Set(realMembers(opponent.members));
+    return {
+      ...next,
+      queue: next.queue.filter(id => !opponentIds.has(id)),
+      courts: next.courts.map(item => item.id === courtId ? updatedCourt : item)
+    };
+  }
+
   let selected: [Pair, Pair] | null = null;
   for (let first = 0; first < available.length - 1 && !selected; first++) {
     for (let second = first + 1; second < available.length; second++) {
@@ -342,8 +364,8 @@ export function finishMatch(state: AppState, courtId: number, winner: "A" | "B")
   const nextCourt: Court = {
     ...court,
     status: "waiting",
-    teamA: winnerDone ? null : winnerTeam,
-    teamB: null,
+    teamA: winnerDone || winner === "B" ? null : winnerTeam,
+    teamB: winnerDone || winner === "A" ? null : winnerTeam,
     liberoA: null,
     liberoB: null
   };

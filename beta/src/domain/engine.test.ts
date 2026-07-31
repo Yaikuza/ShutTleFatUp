@@ -62,6 +62,29 @@ describe("court rotation", () => {
     expect([nextCourt.teamA, nextCourt.teamB].some(team => team?.includes(LIBERO))).toBe(true);
   });
 
+  it("keeps a right-side winner on the right", () => {
+    const base = stateWithPlayers(["human", "human", "human", "human", "human", "human"]);
+    const state: AppState = {
+      ...base,
+      settings: { ...base.settings, lowPlayerMode: "off" },
+      queue: ["E", "F"],
+      schedule: [
+        { id: "A|B", members: ["A", "B"] },
+        { id: "C|D", members: ["C", "D"] },
+        { id: "E|F", members: ["E", "F"] }
+      ],
+      courts: [{
+        ...base.courts[0],
+        status: "playing",
+        teamA: ["A", "B"],
+        teamB: ["C", "D"]
+      }]
+    };
+    const next = fillCourt(finishMatch(state, 1, "B"), 1);
+    expect(next.courts[0].teamA).toEqual(["E", "F"]);
+    expect(next.courts[0].teamB).toEqual(["C", "D"]);
+  });
+
   it("keeps the borrowed Libero player in match history", () => {
     const base = stateWithPlayers(["human", "human", "human", "human", "human"]);
     const state: AppState = {
