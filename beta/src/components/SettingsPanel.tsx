@@ -80,6 +80,7 @@ export function SettingsPanel({
         }>
           <option value="light">สว่าง</option><option value="dark">มืด</option>
           <option value="pastel">Pastel</option><option value="sepia">Sepia</option>
+          <option value="luxury">Luxury</option><option value="metallic">Metallic</option>
         </select>
       </label>
       <label className="color-setting">

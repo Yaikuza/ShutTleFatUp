@@ -43,7 +43,7 @@ export type Settings = {
   courtCount: number;
   lowPlayerMode: "auto" | "on" | "off";
   lowPlayerThreshold: number;
-  theme: "light" | "dark" | "pastel" | "sepia";
+  theme: "light" | "dark" | "pastel" | "sepia" | "luxury" | "metallic";
   courtColor: string;
   courtColumns: 0 | 1 | 2 | 3;
 };
