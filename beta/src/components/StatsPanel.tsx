@@ -19,6 +19,9 @@ export function StatsPanel({
   const pairStats = buildPairStats(history);
   const headToHeadStats = buildHeadToHeadStats(history);
   const pairWins = new Map(pairStats.map(item => [item.key, item.wins]));
+  const pairStatsByKey = new Map(pairStats.map(item => [item.key, item]));
+  const pairPlayers = [...new Set(pairStats.flatMap(item => item.members))]
+    .sort((first, second) => playerName(first).localeCompare(playerName(second), "th"));
   const headToHeadByKey = new Map(headToHeadStats.map(item => [item.key, item]));
   const headToHeadPlayers = [...new Set(headToHeadStats.flatMap(item => item.players))]
     .sort((first, second) => playerName(first).localeCompare(playerName(second), "th"));
@@ -52,11 +55,40 @@ export function StatsPanel({
           <small>Libero {item.liberoWins}W/{item.liberoLosses}L</small>
         </div>
       ))}</div>}
-      {tab === "pairs" && <div className="stats-list">{pairStats.map(item => (
-        <div className="stat-row" key={item.key}>
-          <strong>{item.members.map(playerName).join(" + ")}</strong><span>{item.wins}W · {item.losses}L</span>
-        </div>
-      ))}</div>}
+      {tab === "pairs" && !pairPlayers.length && <p className="muted stats-empty">ยังไม่มีสถิติคู่</p>}
+      {tab === "pairs" && pairPlayers.length > 0 && (
+        <>
+          <p className="h2h-hint">ผลการแข่งขันเมื่อผู้เล่นในแถวและคอลัมน์อยู่ทีมเดียวกัน</p>
+          <div className="h2h-scroll">
+            <table className="h2h-matrix pair-matrix">
+              <thead>
+                <tr>
+                  <th scope="col" className="h2h-corner">ผู้เล่น</th>
+                  {pairPlayers.map(playerId => (
+                    <th scope="col" key={playerId} title={playerName(playerId)}>
+                      <span>{playerName(playerId)}</span>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {pairPlayers.map(rowId => (
+                  <tr key={rowId}>
+                    <th scope="row" title={playerName(rowId)}><span>{playerName(rowId)}</span></th>
+                    {pairPlayers.map(columnId => {
+                      if (rowId === columnId) return <td className="self" key={columnId}>—</td>;
+                      const item = pairStatsByKey.get(pairKey([rowId, columnId]));
+                      if (!item) return <td className="unplayed" key={columnId}>·</td>;
+                      const result = item.wins > item.losses ? "winning" : item.wins < item.losses ? "losing" : "tied";
+                      return <td className={result} key={columnId}>{item.wins}W:{item.losses}L</td>;
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
       {tab === "h2h" && !headToHeadPlayers.length && <p className="muted stats-empty">ยังไม่มีสถิติที่พบกัน</p>}
       {tab === "h2h" && headToHeadPlayers.length > 0 && (
         <>

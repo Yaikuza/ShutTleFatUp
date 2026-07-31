@@ -337,6 +337,8 @@ form button { background: #f2b84b; color: #18362e; border: 0; }
 .h2h-matrix tr:last-child > * { border-bottom: 0; }
 .h2h-matrix tr > *:last-child { border-right: 0; }
 .h2h-matrix td { color: var(--text); font-weight: 900; font-variant-numeric: tabular-nums; }
+.pair-matrix th, .pair-matrix td { min-width: 72px; }
+.pair-matrix tbody th, .pair-matrix .h2h-corner { min-width: 96px; }
 .h2h-matrix td.winning { color: #55d69b; background: rgba(44, 175, 119, .1); }
 .h2h-matrix td.losing { color: #ff8a7f; background: rgba(215, 73, 61, .08); }
 .h2h-matrix td.tied { color: #f2b84b; background: rgba(242, 184, 75, .08); }
