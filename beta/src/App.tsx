@@ -12,6 +12,8 @@ import { loadState, saveState } from "./storage";
 import { useRoomSync } from "./supabase/useRoomSync";
 import "./styles.css";
 
+type MobileSheet = "queue" | "players" | "stats";
+
 export default function App() {
   const [state, dispatch] = useReducer(appReducer, undefined, loadState);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -21,6 +23,8 @@ export default function App() {
   const [notice, setNotice] = useState("");
   const [confirmAction, setConfirmAction] = useState<{ message: string; run: () => void } | null>(null);
   const [headerCompact, setHeaderCompact] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => window.matchMedia("(max-width: 760px)").matches);
+  const [activeSheet, setActiveSheet] = useState<MobileSheet | null>(null);
   const undoStack = useRef<AppState[]>([]);
   const roomSync = useRoomSync(state, dispatch);
 
@@ -35,16 +39,17 @@ export default function App() {
     return () => window.clearTimeout(timer);
   }, [notice]);
   useEffect(() => {
-    if (!confirmAction && customCourtId === null && !liberoPicker) return;
+    if (!confirmAction && customCourtId === null && !liberoPicker && !activeSheet) return;
     const close = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       setConfirmAction(null);
       setCustomCourtId(null);
       setLiberoPicker(null);
+      setActiveSheet(null);
     };
     window.addEventListener("keydown", close);
     return () => window.removeEventListener("keydown", close);
-  }, [confirmAction, customCourtId, liberoPicker]);
+  }, [activeSheet, confirmAction, customCourtId, liberoPicker]);
   useEffect(() => {
     let frame = 0;
     const update = () => {
@@ -58,6 +63,19 @@ export default function App() {
       window.removeEventListener("scroll", update);
     };
   }, []);
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 760px)");
+    const update = () => {
+      setIsMobile(media.matches);
+      if (!media.matches) setActiveSheet(null);
+    };
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+  useEffect(() => {
+    document.body.classList.toggle("sheet-open", Boolean(activeSheet));
+    return () => document.body.classList.remove("sheet-open");
+  }, [activeSheet]);
 
   const askConfirm = (message: string, run: () => void) =>
     setConfirmAction({ message, run });
@@ -207,23 +225,25 @@ export default function App() {
         onLibero={(courtId, side) => setLiberoPicker({ courtId, side })}
       />
 
-      <QueueSchedule state={state} playerName={playerName} onAction={send} />
-
-      <PlayersPanel
-        players={state.players}
-        busyIds={allBusyIds}
-        onAction={send}
-        onDelete={player => askConfirm(`ลบ ${player.name} ออกจากรายชื่อผู้เล่น?`, () => {
-          send({ type: "player/remove", id: player.id });
-          setNotice(`ลบ ${player.name} แล้ว`);
-        })}
-      />
-
-      <StatsPanel
-        history={visibleHistory}
-        playerName={playerName}
-        permanent={Boolean(roomSync.room)}
-      />
+      {!isMobile && (
+        <>
+          <QueueSchedule state={state} playerName={playerName} onAction={send} />
+          <PlayersPanel
+            players={state.players}
+            busyIds={allBusyIds}
+            onAction={send}
+            onDelete={player => askConfirm(`ลบ ${player.name} ออกจากรายชื่อผู้เล่น?`, () => {
+              send({ type: "player/remove", id: player.id });
+              setNotice(`ลบ ${player.name} แล้ว`);
+            })}
+          />
+          <StatsPanel
+            history={visibleHistory}
+            playerName={playerName}
+            permanent={Boolean(roomSync.room)}
+          />
+        </>
+      )}
 
       {customCourtId !== null && (
         <CustomMatchPicker
@@ -268,19 +288,81 @@ export default function App() {
       )}
 
       {notice && <div className="toast" role="status" aria-live="polite">{notice}</div>}
+      {isMobile && activeSheet && (
+        <>
+          <button
+            className="mobile-sheet-backdrop"
+            aria-label="ปิดหน้าต่าง"
+            onClick={() => setActiveSheet(null)}
+          />
+          <section className="mobile-sheet" role="dialog" aria-modal="true" aria-label={
+            activeSheet === "queue" ? "คิวและตารางรอบ"
+              : activeSheet === "players" ? "รายชื่อผู้เล่น"
+                : "สถิติ"
+          }>
+            <div className="mobile-sheet-handle" />
+            <header>
+              <div>
+                <p className="eyebrow">ShutTle Fat Up</p>
+                <h2>
+                  {activeSheet === "queue" ? "คิวและตารางรอบ"
+                    : activeSheet === "players" ? "รายชื่อผู้เล่น"
+                      : "สถิติการแข่งขัน"}
+                </h2>
+              </div>
+              <button onClick={() => setActiveSheet(null)} aria-label="ปิด">✕</button>
+            </header>
+            <div className="mobile-sheet-body">
+              {activeSheet === "queue" && (
+                <QueueSchedule state={state} playerName={playerName} onAction={send} />
+              )}
+              {activeSheet === "players" && (
+                <PlayersPanel
+                  players={state.players}
+                  busyIds={allBusyIds}
+                  onAction={send}
+                  onDelete={player => askConfirm(`ลบ ${player.name} ออกจากรายชื่อผู้เล่น?`, () => {
+                    send({ type: "player/remove", id: player.id });
+                    setNotice(`ลบ ${player.name} แล้ว`);
+                  })}
+                />
+              )}
+              {activeSheet === "stats" && (
+                <StatsPanel
+                  history={visibleHistory}
+                  playerName={playerName}
+                  permanent={Boolean(roomSync.room)}
+                />
+              )}
+            </div>
+          </section>
+        </>
+      )}
       {!modalOpen && (
         <nav className="mobile-dock" aria-label="เมนูส่วนหลัก">
-          <button onClick={() => scrollTo("queue")}>
+          <button
+            className={activeSheet === "queue" ? "active" : ""}
+            aria-expanded={activeSheet === "queue"}
+            onClick={() => setActiveSheet(current => current === "queue" ? null : "queue")}
+          >
             <span>⌛</span>
             คิว
             <b>{state.queue.length}</b>
           </button>
-          <button onClick={() => scrollTo("players")}>
+          <button
+            className={activeSheet === "players" ? "active" : ""}
+            aria-expanded={activeSheet === "players"}
+            onClick={() => setActiveSheet(current => current === "players" ? null : "players")}
+          >
             <span>♙</span>
             ผู้เล่น
             <b>{activeCount}</b>
           </button>
-          <button onClick={() => scrollTo("stats")}>
+          <button
+            className={activeSheet === "stats" ? "active" : ""}
+            aria-expanded={activeSheet === "stats"}
+            onClick={() => setActiveSheet(current => current === "stats" ? null : "stats")}
+          >
             <span>▥</span>
             สถิติ
             <b>{visibleHistory.length}</b>

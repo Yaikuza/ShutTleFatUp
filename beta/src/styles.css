@@ -306,6 +306,7 @@ form button { background: #f2b84b; color: #18362e; border: 0; }
   animation: toast-in .22s ease-out;
 }
 .mobile-dock { display: none; }
+.mobile-sheet, .mobile-sheet-backdrop { display: none; }
 #courts, #queue, #players, #stats { scroll-margin-top: 84px; }
 @keyframes toast-in { from { opacity: 0; transform: translateY(12px); } }
 
@@ -356,17 +357,77 @@ form button { background: #f2b84b; color: #18362e; border: 0; }
     color: #dce9e4; font-size: .7rem; font-weight: 800;
   }
   .mobile-dock button:active { background: rgba(255,255,255,.1); }
+  .mobile-dock button.active { background: #f2b84b; color: #18362e; }
+  .mobile-dock button.active > span, .mobile-dock button.active > b { color: #18362e; }
   .mobile-dock button > span { grid-row: 1 / 3; color: #f2b84b; font-size: 1.15rem; }
   .mobile-dock button > b { color: #8fb0a5; font-size: .62rem; font-weight: 700; }
+  .mobile-sheet-backdrop {
+    position: fixed; z-index: 47; inset: 0 0 calc(79px + env(safe-area-inset-bottom));
+    display: block; width: 100%; border: 0; background: rgba(3,15,12,.62); backdrop-filter: blur(4px);
+    animation: sheet-fade-in .22s ease-out;
+  }
+  .mobile-sheet {
+    position: fixed; z-index: 50; left: 0; right: 0; bottom: calc(78px + env(safe-area-inset-bottom));
+    display: flex; flex-direction: column; max-height: min(82dvh, 760px); overflow: hidden;
+    border: 1px solid rgba(255,255,255,.13); border-bottom: 0; border-radius: 26px 26px 0 0;
+    background: #123c31; box-shadow: 0 -24px 70px rgba(0,0,0,.42);
+    animation: sheet-slide-in .34s cubic-bezier(.22,.8,.2,1);
+  }
+  .mobile-sheet-handle {
+    flex: 0 0 auto; width: 42px; height: 4px; margin: 10px auto 5px; border-radius: 999px;
+    background: rgba(255,255,255,.24);
+  }
+  .mobile-sheet > header {
+    flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    padding: 7px 18px 13px; border-bottom: 1px solid rgba(255,255,255,.09);
+  }
+  .mobile-sheet > header h2 { margin: 3px 0 0; font-size: 1.25rem; }
+  .mobile-sheet > header > button {
+    width: 44px; height: 44px; border: 1px solid rgba(255,255,255,.14); border-radius: 50%;
+    background: rgba(255,255,255,.07); color: inherit; font-size: 1.05rem;
+  }
+  .mobile-sheet-body {
+    min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 14px 16px 24px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .mobile-sheet-body .workspace-grid {
+    display: grid; grid-template-columns: 1fr !important; gap: 18px; margin: 0;
+  }
+  .mobile-sheet-body .panel {
+    margin: 0; padding: 0; border: 0; border-radius: 0; background: transparent;
+    box-shadow: none; backdrop-filter: none;
+  }
+  .mobile-sheet-body .workspace-grid > .panel + .panel {
+    padding-top: 18px; border-top: 1px solid rgba(255,255,255,.1);
+  }
+  .mobile-sheet-body .player-grid { grid-template-columns: 1fr !important; }
+  .mobile-sheet-body .players-panel .panel-heading { display: grid; }
+  .mobile-sheet-body .stats-tabs { position: sticky; top: -14px; z-index: 2; padding-block: 8px; background: #123c31; }
+  body.sheet-open { overflow: hidden; }
   [data-theme="light"] .mobile-dock,
   [data-theme="pastel"] .mobile-dock,
   [data-theme="sepia"] .mobile-dock { background: rgba(240,246,241,.94); border-color: rgba(23,55,46,.12); }
   [data-theme="light"] .mobile-dock button,
   [data-theme="pastel"] .mobile-dock button,
   [data-theme="sepia"] .mobile-dock button { color: #17372e; }
+  [data-theme="light"] .mobile-sheet,
+  [data-theme="pastel"] .mobile-sheet,
+  [data-theme="sepia"] .mobile-sheet { border-color: rgba(23,55,46,.12); background: #eef5ef; color: #17372e; }
+  [data-theme="light"] .mobile-sheet-body .stats-tabs,
+  [data-theme="pastel"] .mobile-sheet-body .stats-tabs,
+  [data-theme="sepia"] .mobile-sheet-body .stats-tabs { background: #eef5ef; }
+  [data-theme="light"] .mobile-sheet > header > button,
+  [data-theme="pastel"] .mobile-sheet > header > button,
+  [data-theme="sepia"] .mobile-sheet > header > button {
+    border-color: rgba(23,55,46,.14); background: rgba(23,55,46,.06); color: #17372e;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .court-card { animation: none; }
   .team-result { transition: none; }
+  .mobile-sheet, .mobile-sheet-backdrop { animation: none; }
 }
+
+@keyframes sheet-slide-in { from { transform: translateY(100%); } }
+@keyframes sheet-fade-in { from { opacity: 0; } }
