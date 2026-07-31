@@ -1,6 +1,6 @@
-import { addPlayer, fillCourt, finishMatch, projectedRoundComplete, replaceCourt, setCourtLibero, setCustomMatch, startRound } from "../domain/engine";
+import { addPlayer, fillCourt, finishMatch, LIBERO, pairKey, projectedRoundComplete, replaceCourt, setCourtLibero, setCustomMatch, startRound } from "../domain/engine";
 import { createCourt, initialState } from "../domain/initialState";
-import type { AppState, PlayerLevel, Settings } from "../domain/types";
+import type { AppState, Pair, PlayerId, PlayerLevel, Settings, Team } from "../domain/types";
 
 export type AppAction =
   | { type: "state/replace"; state: AppState }
@@ -21,6 +21,60 @@ export type AppAction =
   | { type: "settings/update"; patch: Partial<Settings> }
   | { type: "session/reset" };
 
+function togglePlayerInRound(state: AppState, id: PlayerId, active: boolean): AppState {
+  const pairIndex = state.schedule.findIndex(pair => pair.members.includes(id));
+  let schedule = [...state.schedule];
+  const changedPairIds = new Set<string>();
+
+  if (active && pairIndex < 0 && schedule.length) {
+    const liberoIndex = schedule.findIndex(pair => pair.members.includes(LIBERO));
+    if (liberoIndex >= 0) {
+      const liberoPair = schedule[liberoIndex];
+      const members = liberoPair.members.map(member => member === LIBERO ? id : member) as Team;
+      changedPairIds.add(liberoPair.id);
+      schedule[liberoIndex] = { id: pairKey(members), members };
+    } else {
+      const members: Team = [id, LIBERO];
+      schedule.push({ id: pairKey(members), members });
+    }
+  }
+
+  if (!active && pairIndex >= 0) {
+    const removedPair = schedule[pairIndex];
+    const partner = removedPair.members.find(member => member !== id);
+    changedPairIds.add(removedPair.id);
+    schedule.splice(pairIndex, 1);
+
+    if (partner && partner !== LIBERO) {
+      const liberoIndex = schedule.findIndex(pair => pair.members.includes(LIBERO));
+      if (liberoIndex >= 0) {
+        const liberoPair = schedule[liberoIndex];
+        const members = liberoPair.members.map(member => member === LIBERO ? partner : member) as Team;
+        changedPairIds.add(liberoPair.id);
+        schedule[liberoIndex] = { id: pairKey(members), members };
+      } else {
+        const members: Team = [partner, LIBERO];
+        const replacement: Pair = { id: pairKey(members), members };
+        schedule.splice(Math.min(pairIndex, schedule.length), 0, replacement);
+      }
+    }
+  }
+
+  const validPairIds = new Set(schedule.map(pair => pair.id));
+  const pairGames = Object.fromEntries(
+    Object.entries(state.pairGames).filter(([key]) => validPairIds.has(key) && !changedPairIds.has(key))
+  );
+  return {
+    ...state,
+    players: state.players.map(player => player.id === id ? { ...player, active } : player),
+    queue: active
+      ? state.queue.includes(id) ? state.queue : [...state.queue, id]
+      : state.queue.filter(playerId => playerId !== id),
+    schedule,
+    pairGames
+  };
+}
+
 export function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case "state/replace":
@@ -32,13 +86,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         [...(court.teamA ?? []), ...(court.teamB ?? []), court.liberoA, court.liberoB].includes(action.id)
       )) return state;
       const active = !state.players.find(player => player.id === action.id)?.active;
-      return {
-        ...state,
-        players: state.players.map(player => player.id === action.id ? { ...player, active } : player),
-        queue: active
-          ? [...state.queue, action.id]
-          : state.queue.filter(id => id !== action.id)
-      };
+      return togglePlayerInRound(state, action.id, active);
     }
     case "player/level":
       return {

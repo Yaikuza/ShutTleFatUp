@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { appReducer } from "./appReducer";
+import { LIBERO } from "../domain/engine";
 import { initialState } from "../domain/initialState";
 import type { AppState } from "../domain/types";
 
@@ -34,6 +35,56 @@ describe("appReducer session controls", () => {
       courts: [{ ...state.courts[0], status: "playing", teamA: ["A", "C"], teamB: ["B", "A"] }]
     };
     expect(appReducer(playing, { type: "player/toggle", id: "A" })).toBe(playing);
+  });
+
+  it("moves the remaining partner into an existing Libero pair when pausing", () => {
+    const scheduled: AppState = {
+      ...state,
+      players: [
+        ...state.players,
+        { id: "D", name: "D", level: "human", active: true }
+      ],
+      queue: ["A", "C", "D"],
+      schedule: [
+        { id: "A|C", members: ["A", "C"] },
+        { id: "D|LIBERO", members: ["D", LIBERO] }
+      ],
+      pairGames: { "A|C": 1, "D|LIBERO": 1 }
+    };
+
+    const paused = appReducer(scheduled, { type: "player/toggle", id: "A" });
+
+    expect(paused.schedule).toEqual([{ id: "C|D", members: ["D", "C"] }]);
+    expect(paused.queue).toEqual(["C", "D"]);
+    expect(paused.pairGames).toEqual({});
+    expect(paused.players.find(player => player.id === "A")?.active).toBe(false);
+  });
+
+  it("replaces a paused player with Libero when no Libero pair exists", () => {
+    const scheduled: AppState = {
+      ...state,
+      schedule: [{ id: "A|C", members: ["A", "C"] }],
+      pairGames: { "A|C": 1 }
+    };
+
+    const paused = appReducer(scheduled, { type: "player/toggle", id: "A" });
+
+    expect(paused.schedule).toEqual([{ id: "C|LIBERO", members: ["C", LIBERO] }]);
+    expect(paused.pairGames).toEqual({});
+  });
+
+  it("fills an existing Libero slot when reactivating a player", () => {
+    const scheduled: AppState = {
+      ...state,
+      schedule: [{ id: "A|LIBERO", members: ["A", LIBERO] }],
+      pairGames: { "A|LIBERO": 1 }
+    };
+
+    const activated = appReducer(scheduled, { type: "player/toggle", id: "B" });
+
+    expect(activated.schedule).toEqual([{ id: "A|B", members: ["A", "B"] }]);
+    expect(activated.queue).toEqual(["A", "C", "B"]);
+    expect(activated.pairGames).toEqual({});
   });
 
   it("returns players when reducing the number of courts", () => {
