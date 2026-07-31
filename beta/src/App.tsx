@@ -334,17 +334,6 @@ export default function App() {
                 : "สถิติ"
           }>
             <div className="mobile-sheet-handle" />
-            <header>
-              <div>
-                <p className="eyebrow">ShutTle Fat Up</p>
-                <h2>
-                  {activeSheet === "queue" ? "คิวและตารางรอบ"
-                    : activeSheet === "players" ? "รายชื่อผู้เล่น"
-                      : "สถิติการแข่งขัน"}
-                </h2>
-              </div>
-              <button onClick={closeMobileSheet} aria-label="ปิด">✕</button>
-            </header>
             <div className="mobile-sheet-body">
               {activeSheet === "queue" && (
                 <QueueSchedule state={state} playerName={playerName} onAction={send} />

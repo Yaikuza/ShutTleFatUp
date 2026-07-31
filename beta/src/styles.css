@@ -379,20 +379,11 @@ form button { background: #f2b84b; color: #18362e; border: 0; }
   .mobile-sheet.is-closing { animation: sheet-slide-out .28s cubic-bezier(.4,0,1,1) forwards; pointer-events: none; }
   .mobile-sheet-backdrop.is-closing { animation: sheet-fade-out .28s ease-in forwards; pointer-events: none; }
   .mobile-sheet-handle {
-    flex: 0 0 auto; width: 42px; height: 4px; margin: 10px auto 5px; border-radius: 999px;
+    flex: 0 0 auto; width: 42px; height: 4px; margin: 10px auto 3px; border-radius: 999px;
     background: rgba(255,255,255,.24);
   }
-  .mobile-sheet > header {
-    flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 16px;
-    padding: 7px 18px 13px; border-bottom: 1px solid rgba(255,255,255,.09);
-  }
-  .mobile-sheet > header h2 { margin: 3px 0 0; font-size: 1.25rem; }
-  .mobile-sheet > header > button {
-    width: 44px; height: 44px; border: 1px solid rgba(255,255,255,.14); border-radius: 50%;
-    background: rgba(255,255,255,.07); color: inherit; font-size: 1.05rem;
-  }
   .mobile-sheet-body {
-    min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 14px 16px 24px;
+    min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 10px 16px 24px;
     -webkit-overflow-scrolling: touch;
   }
   .mobile-sheet-body .workspace-grid {
@@ -421,11 +412,6 @@ form button { background: #f2b84b; color: #18362e; border: 0; }
   [data-theme="light"] .mobile-sheet-body .stats-tabs,
   [data-theme="pastel"] .mobile-sheet-body .stats-tabs,
   [data-theme="sepia"] .mobile-sheet-body .stats-tabs { background: #eef5ef; }
-  [data-theme="light"] .mobile-sheet > header > button,
-  [data-theme="pastel"] .mobile-sheet > header > button,
-  [data-theme="sepia"] .mobile-sheet > header > button {
-    border-color: rgba(23,55,46,.14); background: rgba(23,55,46,.06); color: #17372e;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
