@@ -11,6 +11,13 @@ import {
 } from "../supabase/playEventRepository";
 import { leaveRoomChannel } from "../supabase/roomRepository";
 
+function errorMessage(caught: unknown, fallback: string): string {
+  if (caught && typeof caught === "object" && "message" in caught && typeof caught.message === "string") {
+    return caught.message;
+  }
+  return fallback;
+}
+
 export function PlayDayPanel({
   room,
   activeEventId,
@@ -47,7 +54,7 @@ export function PlayDayPanel({
       setSelectedId(current => next.some(event => event.id === current) ? current : next[0]?.id ?? "");
       setError("");
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "โหลดวันเล่นไม่สำเร็จ");
+      setError(errorMessage(caught, "โหลดวันเล่นไม่สำเร็จ"));
     }
   };
 
@@ -55,7 +62,7 @@ export function PlayDayPanel({
     try {
       setAttendance(await listEventAttendance(eventId));
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "โหลดรายชื่อไม่สำเร็จ");
+      setError(errorMessage(caught, "โหลดรายชื่อไม่สำเร็จ"));
     }
   };
 
@@ -75,7 +82,7 @@ export function PlayDayPanel({
     if (!room || !form.title.trim() || creating) return;
     setCreating(true);
     try {
-      const created = await createPlayEvent(room.id, {
+      const created = await createPlayEvent(room, {
         ...form,
         capacity: form.capacity ? Number(form.capacity) : undefined
       });
@@ -83,7 +90,7 @@ export function PlayDayPanel({
       setSelectedId(created.id);
       setError("");
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "สร้างวันเล่นไม่สำเร็จ");
+      setError(errorMessage(caught, "สร้างวันเล่นไม่สำเร็จ"));
     } finally {
       setCreating(false);
     }
@@ -117,7 +124,7 @@ export function PlayDayPanel({
       setAttendance(current => current.map(entry => entry.player_id === item.player_id ? updated : entry));
       setError("");
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "นำผู้เล่นเข้าคิวไม่สำเร็จ");
+      setError(errorMessage(caught, "นำผู้เล่นเข้าคิวไม่สำเร็จ"));
     } finally {
       setBusyPlayer("");
     }

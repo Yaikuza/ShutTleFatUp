@@ -1,6 +1,6 @@
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "./client";
-import { ensureAnonymousUser } from "./roomRepository";
+import { ensureAnonymousUser, joinRemoteRoom } from "./roomRepository";
 
 export type PlayEventStatus = "open" | "closed" | "finished";
 export type AttendanceResponse = "going" | "maybe" | "cancelled";
@@ -38,7 +38,7 @@ export type PublicPlayEvent = {
 };
 
 export async function createPlayEvent(
-  roomId: string,
+  room: { id: string; code: string },
   input: {
     title: string;
     playDate: string;
@@ -50,8 +50,9 @@ export async function createPlayEvent(
 ): Promise<PlayEvent> {
   if (!supabase) throw new Error("Supabase is not configured");
   await ensureAnonymousUser();
+  await joinRemoteRoom(room.code);
   const { data, error } = await supabase.rpc("create_play_event", {
-    p_room_id: roomId,
+    p_room_id: room.id,
     p_title: input.title,
     p_play_date: input.playDate,
     p_starts_at: input.startsAt,

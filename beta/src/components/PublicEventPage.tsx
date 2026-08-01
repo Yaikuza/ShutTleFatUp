@@ -20,6 +20,13 @@ function shortTime(value: string | null): string {
   return value ? value.slice(0, 5) : "";
 }
 
+function errorMessage(caught: unknown, fallback: string): string {
+  if (caught && typeof caught === "object" && "message" in caught && typeof caught.message === "string") {
+    return caught.message;
+  }
+  return fallback;
+}
+
 export function PublicEventPage({ publicCode }: { publicCode: string }) {
   const playerKey = `sfu_event_player:${publicCode.toUpperCase()}`;
   const [data, setData] = useState<PublicPlayEvent | null>(null);
@@ -39,7 +46,7 @@ export function PublicEventPage({ publicCode }: { publicCode: string }) {
         localStorage.removeItem(playerKey);
       }
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "โหลดกิจกรรมไม่สำเร็จ");
+      setError(errorMessage(caught, "โหลดกิจกรรมไม่สำเร็จ"));
     } finally {
       if (!quiet) setLoading(false);
     }
@@ -60,7 +67,7 @@ export function PublicEventPage({ publicCode }: { publicCode: string }) {
       setData(next);
       setError("");
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "บันทึกไม่สำเร็จ");
+      setError(errorMessage(caught, "บันทึกไม่สำเร็จ"));
     } finally {
       setSaving(false);
     }
