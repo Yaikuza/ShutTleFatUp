@@ -95,7 +95,7 @@ begin
   end if;
 
   loop
-    code := upper(substr(encode(gen_random_bytes(6), 'hex'), 1, 8));
+    code := upper(substr(md5(random()::text || clock_timestamp()::text), 1, 8));
     exit when not exists (select 1 from public.play_events where public_code = code);
   end loop;
 
