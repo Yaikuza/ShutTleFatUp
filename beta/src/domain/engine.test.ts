@@ -90,6 +90,7 @@ describe("court rotation", () => {
     const base = stateWithPlayers(["human", "human", "human", "human", "human"]);
     const state: AppState = {
       ...base,
+      activePlayEventId: "event-1",
       courts: [{
         ...base.courts[0],
         status: "playing",
@@ -100,6 +101,7 @@ describe("court rotation", () => {
     };
     const finished = finishMatch(state, 1, "A");
     expect(finished.history[0].liberoA).toBe("D");
+    expect(finished.history[0].playEventId).toBe("event-1");
   });
 
   it("counts an active final game when projecting round completion", () => {

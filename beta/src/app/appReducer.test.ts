@@ -94,6 +94,12 @@ describe("appReducer session controls", () => {
     expect(appReducer(checkedIn, { type: "player/checkin", id: "B" }).queue).toEqual(["A", "C", "B"]);
   });
 
+  it("selects the play event used as the current match session", () => {
+    const selected = appReducer(state, { type: "play-day/select", eventId: "event-1" });
+    expect(selected.activePlayEventId).toBe("event-1");
+    expect(appReducer(selected, { type: "play-day/select", eventId: "event-1" })).toBe(selected);
+  });
+
   it("returns players when reducing the number of courts", () => {
     const playing: AppState = {
       ...state,

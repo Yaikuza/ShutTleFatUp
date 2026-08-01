@@ -382,6 +382,12 @@ button:disabled { cursor: default; opacity: .35; }
 .play-event-summary strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .play-event-summary span { color: var(--muted-text); font-size: .75rem; }
 .play-event-summary .round-button { flex: 0 0 auto; margin: 0; }
+.play-event-actions { display: flex; align-items: center; gap: 7px; }
+.play-event-actions button { white-space: nowrap; }
+.play-event-actions .session-active {
+  border: 1px solid rgba(85,214,155,.25); border-radius: 999px; padding: 10px 13px;
+  background: rgba(85,214,155,.1); color: #55d69b; font-weight: 900; opacity: 1;
+}
 .attendance-board { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
 .attendance-column { min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 14px; }
 .attendance-column > header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
@@ -590,7 +596,8 @@ form button { background: #f2b84b; color: #18362e; border: 0; }
   .settings-panel, .courts-grid, .workspace-grid, .player-grid { grid-template-columns: 1fr !important; }
   .attendance-board, .play-event-create form { grid-template-columns: 1fr; }
   .play-event-summary { align-items: stretch; flex-direction: column; }
-  .play-event-summary .round-button { width: 100%; }
+  .play-event-actions { display: grid; grid-template-columns: 1fr 1fr; }
+  .play-event-actions button, .play-event-summary .round-button { width: 100%; }
   .room-settings, .room-actions { align-items: stretch; flex-direction: column; }
   .room-actions input { width: 100%; }
   .summary { display: grid; grid-template-columns: repeat(3, 1fr); }

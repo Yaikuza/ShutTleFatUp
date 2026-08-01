@@ -27,6 +27,7 @@ export type Court = {
 
 export type MatchHistory = {
   id: string;
+  playEventId?: string | null;
   round: number;
   courtId: number;
   teamA: Team;
@@ -51,6 +52,7 @@ export type Settings = {
 export type AppState = {
   schemaVersion: 2;
   playDate: string;
+  activePlayEventId: string | null;
   players: Player[];
   queue: PlayerId[];
   courts: Court[];

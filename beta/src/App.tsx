@@ -288,6 +288,8 @@ export default function App() {
           <QueueSchedule state={state} playerName={playerName} onAction={send} />
           <PlayDayPanel
             room={roomSync.room ? { id: roomSync.room.id, code: roomSync.room.code } : null}
+            activeEventId={state.activePlayEventId}
+            onActivateEvent={eventId => send({ type: "play-day/select", eventId })}
             onQueuePlayer={id => send({ type: "player/checkin", id })}
           />
           <PlayersPanel
@@ -390,6 +392,8 @@ export default function App() {
               {activeSheet === "attendance" && (
                 <PlayDayPanel
                   room={roomSync.room ? { id: roomSync.room.id, code: roomSync.room.code } : null}
+                  activeEventId={state.activePlayEventId}
+                  onActivateEvent={eventId => send({ type: "play-day/select", eventId })}
                   onQueuePlayer={id => send({ type: "player/checkin", id })}
                 />
               )}

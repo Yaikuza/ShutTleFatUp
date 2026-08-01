@@ -28,6 +28,12 @@ create table if not exists public.play_event_attendance (
   primary key (event_id, player_id)
 );
 
+alter table public.room_matches
+add column if not exists play_event_id uuid references public.play_events(id) on delete set null;
+
+create index if not exists room_matches_play_event_idx
+on public.room_matches (play_event_id, played_at);
+
 create index if not exists play_events_room_date_idx
 on public.play_events (room_id, play_date desc, starts_at desc);
 

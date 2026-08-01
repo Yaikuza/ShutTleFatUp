@@ -16,6 +16,7 @@ export function createCourt(id: number): Court {
 export const initialState: AppState = {
   schemaVersion: 2,
   playDate: bangkokDateKey(),
+  activePlayEventId: null,
   players: [],
   queue: [],
   courts: [createCourt(1), createCourt(2)],

@@ -83,6 +83,7 @@ export async function saveRemoteMatches(roomId: string, matches: MatchHistory[])
   const rows = matches.map(match => ({
     id: match.id,
     room_id: roomId,
+    play_event_id: match.playEventId ?? null,
     round: match.round,
     court_id: match.courtId,
     team_a: match.teamA,
@@ -100,12 +101,13 @@ export async function listRemoteMatches(roomId: string): Promise<MatchHistory[]>
   if (!supabase) return [];
   const { data, error } = await supabase
     .from("room_matches")
-    .select("id, round, court_id, team_a, team_b, libero_a, libero_b, winner, played_at")
+    .select("id, play_event_id, round, court_id, team_a, team_b, libero_a, libero_b, winner, played_at")
     .eq("room_id", roomId)
     .order("played_at", { ascending: true });
   if (error) throw error;
   return (data ?? []).map(row => ({
     id: row.id,
+    playEventId: row.play_event_id,
     round: row.round,
     courtId: row.court_id,
     teamA: row.team_a,

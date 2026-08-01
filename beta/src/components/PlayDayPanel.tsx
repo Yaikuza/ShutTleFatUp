@@ -13,9 +13,13 @@ import { leaveRoomChannel } from "../supabase/roomRepository";
 
 export function PlayDayPanel({
   room,
+  activeEventId,
+  onActivateEvent,
   onQueuePlayer
 }: {
   room: { id: string; code: string } | null;
+  activeEventId: string | null;
+  onActivateEvent: (eventId: string) => Promise<void>;
   onQueuePlayer: (playerId: string) => Promise<void>;
 }) {
   const [events, setEvents] = useState<PlayEvent[]>([]);
@@ -107,6 +111,7 @@ export function PlayDayPanel({
     if (!room || !selected || busyPlayer) return;
     setBusyPlayer(item.player_id);
     try {
+      if (activeEventId !== selected.id) await onActivateEvent(selected.id);
       await onQueuePlayer(item.player_id);
       const updated = await markAttendanceQueued(room.id, selected.id, item.player_id);
       setAttendance(current => current.map(entry => entry.player_id === item.player_id ? updated : entry));
@@ -145,7 +150,16 @@ export function PlayDayPanel({
       {selected && (
         <div className="play-event-summary">
           <div><strong>{selected.title}</strong><span>{selected.play_date} · {selected.starts_at.slice(0, 5)}{selected.location ? ` · ${selected.location}` : ""}</span></div>
-          <button className="round-button" onClick={() => void share()}>แชร์ไป LINE</button>
+          <div className="play-event-actions">
+            <button
+              className={activeEventId === selected.id ? "session-active" : "ghost"}
+              disabled={activeEventId === selected.id}
+              onClick={() => void onActivateEvent(selected.id)}
+            >
+              {activeEventId === selected.id ? "Session สนาม ✓" : "ใช้เป็น Session"}
+            </button>
+            <button className="round-button" onClick={() => void share()}>แชร์ไป LINE</button>
+          </div>
         </div>
       )}
 

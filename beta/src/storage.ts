@@ -26,6 +26,7 @@ export function normalizeState(state: AppState): AppState {
   return {
     ...state,
     playDate: today,
+    activePlayEventId: dayChanged ? null : state.activePlayEventId ?? null,
     courts,
     queue,
     round: dayChanged ? 1 : state.round,

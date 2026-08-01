@@ -328,6 +328,7 @@ export function finishMatch(state: AppState, courtId: number, winner: "A" | "B")
   if (!court?.teamA || !court.teamB || court.status !== "playing") return state;
   const historyEntry = {
     id: crypto.randomUUID(),
+    playEventId: state.activePlayEventId,
     round: court.startedRound,
     courtId,
     teamA: court.teamA,

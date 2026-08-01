@@ -5,7 +5,7 @@
 3. Open **SQL Editor** and run [`supabase/schema.sql`](supabase/schema.sql).
    - Existing project: run only [`supabase/stats-migration.sql`](supabase/stats-migration.sql) to add permanent daily and round statistics.
    - Then run [`supabase/realtime-actions-migration.sql`](supabase/realtime-actions-migration.sql) to allow safe editing from multiple devices.
-   - Run [`supabase/play-events-migration.sql`](supabase/play-events-migration.sql) to add play-day registration, public RSVP links, and court check-in.
+   - Run [`supabase/play-events-migration.sql`](supabase/play-events-migration.sql) to add play-day registration, public RSVP links, court check-in, and match Session IDs.
 4. Copy the Project URL and Publishable Key from **Project Settings > API**.
 5. For local development, copy `.env.example` to `.env.local` and fill both values.
 6. In GitHub, open **Settings > Secrets and variables > Actions > Variables** and add:

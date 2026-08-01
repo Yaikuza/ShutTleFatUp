@@ -7,6 +7,7 @@ export type AppAction =
   | { type: "player/add"; name: string }
   | { type: "player/toggle"; id: string }
   | { type: "player/checkin"; id: string }
+  | { type: "play-day/select"; eventId: string }
   | { type: "player/level"; id: string; level: PlayerLevel }
   | { type: "queue/shuffle" }
   | { type: "queue/move"; id: string; direction: -1 | 1 }
@@ -96,6 +97,10 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       )) return state;
       return togglePlayerInRound(state, action.id, true);
     }
+    case "play-day/select":
+      return state.activePlayEventId === action.eventId
+        ? state
+        : { ...state, activePlayEventId: action.eventId };
     case "player/level":
       return {
         ...state,
