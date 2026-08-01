@@ -6,6 +6,7 @@ export type AppAction =
   | { type: "state/replace"; state: AppState }
   | { type: "player/add"; name: string }
   | { type: "player/toggle"; id: string }
+  | { type: "player/checkin"; id: string }
   | { type: "player/level"; id: string; level: PlayerLevel }
   | { type: "queue/shuffle" }
   | { type: "queue/move"; id: string; direction: -1 | 1 }
@@ -87,6 +88,13 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       )) return state;
       const active = !state.players.find(player => player.id === action.id)?.active;
       return togglePlayerInRound(state, action.id, active);
+    }
+    case "player/checkin": {
+      if (!state.players.some(player => player.id === action.id)) return state;
+      if (state.courts.some(court =>
+        [...(court.teamA ?? []), ...(court.teamB ?? []), court.liberoA, court.liberoB].includes(action.id)
+      )) return state;
+      return togglePlayerInRound(state, action.id, true);
     }
     case "player/level":
       return {

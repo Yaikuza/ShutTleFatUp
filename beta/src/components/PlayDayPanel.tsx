@@ -1,0 +1,189 @@
+import { useEffect, useState } from "react";
+import { bangkokDateKey } from "../domain/date";
+import {
+  createPlayEvent,
+  listEventAttendance,
+  listPlayEvents,
+  markAttendanceQueued,
+  subscribeToEventAttendance,
+  type EventAttendance,
+  type PlayEvent
+} from "../supabase/playEventRepository";
+import { leaveRoomChannel } from "../supabase/roomRepository";
+
+export function PlayDayPanel({
+  room,
+  onQueuePlayer
+}: {
+  room: { id: string; code: string } | null;
+  onQueuePlayer: (playerId: string) => Promise<void>;
+}) {
+  const [events, setEvents] = useState<PlayEvent[]>([]);
+  const [selectedId, setSelectedId] = useState("");
+  const [attendance, setAttendance] = useState<EventAttendance[]>([]);
+  const [creating, setCreating] = useState(false);
+  const [busyPlayer, setBusyPlayer] = useState("");
+  const [error, setError] = useState("");
+  const [form, setForm] = useState({
+    title: "ตีแบดประจำสัปดาห์",
+    playDate: bangkokDateKey(),
+    startsAt: "19:00",
+    endsAt: "22:00",
+    location: "",
+    capacity: ""
+  });
+
+  const selected = events.find(event => event.id === selectedId) ?? events[0] ?? null;
+
+  const loadEvents = async () => {
+    if (!room) return;
+    try {
+      const next = await listPlayEvents(room.id);
+      setEvents(next);
+      setSelectedId(current => next.some(event => event.id === current) ? current : next[0]?.id ?? "");
+      setError("");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "โหลดวันเล่นไม่สำเร็จ");
+    }
+  };
+
+  const loadAttendance = async (eventId: string) => {
+    try {
+      setAttendance(await listEventAttendance(eventId));
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "โหลดรายชื่อไม่สำเร็จ");
+    }
+  };
+
+  useEffect(() => { void loadEvents(); }, [room?.id]);
+  useEffect(() => {
+    if (!selected) {
+      setAttendance([]);
+      return;
+    }
+    void loadAttendance(selected.id);
+    const channel = subscribeToEventAttendance(selected.id, () => void loadAttendance(selected.id));
+    return () => { void leaveRoomChannel(channel); };
+  }, [selected?.id]);
+
+  const create = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!room || !form.title.trim() || creating) return;
+    setCreating(true);
+    try {
+      const created = await createPlayEvent(room.id, {
+        ...form,
+        capacity: form.capacity ? Number(form.capacity) : undefined
+      });
+      setEvents(current => [created, ...current]);
+      setSelectedId(created.id);
+      setError("");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "สร้างวันเล่นไม่สำเร็จ");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const share = async () => {
+    if (!selected) return;
+    const url = `${window.location.origin}${window.location.pathname}#/event/${selected.public_code}`;
+    const going = attendance.filter(item => item.response === "going");
+    const names = going.map((item, index) => `${index + 1}. ${item.player_name}`).join("\n");
+    const text = `🏸 ${selected.title}\n📅 ${selected.play_date} · ${selected.starts_at.slice(0, 5)}\n${selected.location ? `📍 ${selected.location}\n` : ""}\nลงชื่อแล้ว ${going.length}${selected.capacity ? `/${selected.capacity}` : ""} คน${names ? `\n${names}` : ""}\n\nลงชื่อและเช็กอิน:\n${url}`;
+    try {
+      if (navigator.share) await navigator.share({ title: selected.title, text });
+      else {
+        await navigator.clipboard.writeText(text);
+        setError("คัดลอกข้อความแล้ว นำไปวางใน LINE ได้เลย");
+      }
+    } catch (caught) {
+      if (caught instanceof DOMException && caught.name === "AbortError") return;
+      setError("แชร์ไม่สำเร็จ กรุณาลองอีกครั้ง");
+    }
+  };
+
+  const queuePlayer = async (item: EventAttendance) => {
+    if (!room || !selected || busyPlayer) return;
+    setBusyPlayer(item.player_id);
+    try {
+      await onQueuePlayer(item.player_id);
+      const updated = await markAttendanceQueued(room.id, selected.id, item.player_id);
+      setAttendance(current => current.map(entry => entry.player_id === item.player_id ? updated : entry));
+      setError("");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "นำผู้เล่นเข้าคิวไม่สำเร็จ");
+    } finally {
+      setBusyPlayer("");
+    }
+  };
+
+  if (!room) return (
+    <section className="panel play-day-panel">
+      <p className="eyebrow">Play day</p><h2>ลงชื่อและเช็กอิน</h2>
+      <p className="muted">เชื่อมต่อหรือสร้างห้องใน Settings ก่อนสร้างวันเล่น</p>
+    </section>
+  );
+
+  const going = attendance.filter(item => item.response === "going");
+  const arrived = going.filter(item => item.checked_in_at);
+  const waiting = going.filter(item => !item.checked_in_at);
+
+  return (
+    <section className="panel play-day-panel">
+      <div className="panel-heading">
+        <div><p className="eyebrow">Play day</p><h2>ลงชื่อและเช็กอิน</h2></div>
+        <span>{room.code}</span>
+      </div>
+
+      {events.length > 0 && (
+        <select className="play-event-select" value={selected?.id ?? ""} onChange={event => setSelectedId(event.target.value)}>
+          {events.map(item => <option value={item.id} key={item.id}>{item.play_date} · {item.title}</option>)}
+        </select>
+      )}
+
+      {selected && (
+        <div className="play-event-summary">
+          <div><strong>{selected.title}</strong><span>{selected.play_date} · {selected.starts_at.slice(0, 5)}{selected.location ? ` · ${selected.location}` : ""}</span></div>
+          <button className="round-button" onClick={() => void share()}>แชร์ไป LINE</button>
+        </div>
+      )}
+
+      {selected && (
+        <div className="attendance-board">
+          <div className="attendance-column arrived">
+            <header><strong>ถึงสนามแล้ว</strong><span>{arrived.length}</span></header>
+            {arrived.map(item => (
+              <div className="attendance-person" key={item.player_id}>
+                <b>{item.player_name}</b>
+                {item.queued_at
+                  ? <span>เข้าคิวแล้ว</span>
+                  : <button disabled={Boolean(busyPlayer)} onClick={() => void queuePlayer(item)}>เข้าคิว</button>}
+              </div>
+            ))}
+            {!arrived.length && <small>ยังไม่มีคนเช็กอิน</small>}
+          </div>
+          <div className="attendance-column">
+            <header><strong>ยังมาไม่ถึง</strong><span>{waiting.length}</span></header>
+            {waiting.map(item => <div className="attendance-person" key={item.player_id}><b>{item.player_name}</b><span>ลงชื่อแล้ว</span></div>)}
+            {!waiting.length && <small>ไม่มีรายชื่อรอ</small>}
+          </div>
+        </div>
+      )}
+
+      <details className="play-event-create" open={!events.length}>
+        <summary>สร้างวันเล่นใหม่</summary>
+        <form onSubmit={create}>
+          <label>ชื่อกิจกรรม<input value={form.title} onChange={event => setForm({ ...form, title: event.target.value })} required /></label>
+          <label>วันที่<input type="date" value={form.playDate} onChange={event => setForm({ ...form, playDate: event.target.value })} required /></label>
+          <label>เริ่ม<input type="time" value={form.startsAt} onChange={event => setForm({ ...form, startsAt: event.target.value })} required /></label>
+          <label>จบ<input type="time" value={form.endsAt} onChange={event => setForm({ ...form, endsAt: event.target.value })} /></label>
+          <label>สนาม<input value={form.location} onChange={event => setForm({ ...form, location: event.target.value })} /></label>
+          <label>รับสูงสุด<input type="number" min="1" value={form.capacity} onChange={event => setForm({ ...form, capacity: event.target.value })} placeholder="ไม่จำกัด" /></label>
+          <button className="round-button" disabled={creating}>{creating ? "กำลังสร้าง…" : "สร้างและรับลิงก์"}</button>
+        </form>
+      </details>
+      {error && <p className={`play-event-message ${error.startsWith("คัดลอก") ? "success" : ""}`} role="status">{error}</p>}
+    </section>
+  );
+}

@@ -87,6 +87,13 @@ describe("appReducer session controls", () => {
     expect(activated.pairGames).toEqual({});
   });
 
+  it("checks a player into the queue without adding duplicates", () => {
+    const checkedIn = appReducer(state, { type: "player/checkin", id: "B" });
+    expect(checkedIn.players.find(player => player.id === "B")?.active).toBe(true);
+    expect(checkedIn.queue).toEqual(["A", "C", "B"]);
+    expect(appReducer(checkedIn, { type: "player/checkin", id: "B" }).queue).toEqual(["A", "C", "B"]);
+  });
+
   it("returns players when reducing the number of courts", () => {
     const playing: AppState = {
       ...state,

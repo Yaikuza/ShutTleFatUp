@@ -99,7 +99,7 @@ export function useRoomSync(state: AppState, dispatch: Dispatch<AppAction>) {
   const submitAction = (action: AppAction) => {
     if (!room || !isSupabaseConfigured) {
       dispatch(action);
-      return;
+      return Promise.resolve();
     }
     setStatus("saving");
     actionQueue.current = actionQueue.current.then(async () => {
@@ -149,6 +149,7 @@ export function useRoomSync(state: AppState, dispatch: Dispatch<AppAction>) {
       setStatus("error");
       setMessage("มีการแก้พร้อมกันหลายครั้ง กรุณาลอง action นี้อีกครั้ง");
     });
+    return actionQueue.current;
   };
 
   useEffect(() => {

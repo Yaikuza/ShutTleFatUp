@@ -6,13 +6,14 @@ import { CourtsGrid } from "./components/CourtsGrid";
 import { QueueSchedule } from "./components/QueueSchedule";
 import { PlayersPanel } from "./components/PlayersPanel";
 import { CustomMatchPicker, LiberoPicker } from "./components/MatchPickers";
+import { PlayDayPanel } from "./components/PlayDayPanel";
 import { LIBERO } from "./domain/engine";
 import type { AppState } from "./domain/types";
 import { loadState, saveState } from "./storage";
 import { useRoomSync } from "./supabase/useRoomSync";
 import "./styles.css";
 
-type MobileSheet = "queue" | "players" | "stats" | "settings";
+type MobileSheet = "queue" | "players" | "stats" | "attendance" | "settings";
 
 export default function App() {
   const [state, dispatch] = useReducer(appReducer, undefined, loadState);
@@ -118,12 +119,13 @@ export default function App() {
     setConfirmAction({ message, run });
 
   const send = (action: AppAction) => {
-    if (roomSync.status === "saving" && action.type === "match/finish") return;
+    if (roomSync.status === "saving" && action.type === "match/finish") return Promise.resolve();
     if (action.type === "match/finish") navigator.vibrate?.(35);
     undoStack.current.push(structuredClone(state));
     if (undoStack.current.length > 30) undoStack.current.shift();
-    if (roomSync.room) roomSync.submitAction(action);
-    else dispatch(action);
+    if (roomSync.room) return roomSync.submitAction(action);
+    dispatch(action);
+    return Promise.resolve();
   };
 
   const undo = () => {
@@ -284,6 +286,10 @@ export default function App() {
       {!isMobile && (
         <>
           <QueueSchedule state={state} playerName={playerName} onAction={send} />
+          <PlayDayPanel
+            room={roomSync.room ? { id: roomSync.room.id, code: roomSync.room.code } : null}
+            onQueuePlayer={id => send({ type: "player/checkin", id })}
+          />
           <PlayersPanel
             players={state.players}
             busyIds={allBusyIds}
@@ -355,7 +361,8 @@ export default function App() {
             activeSheet === "queue" ? "คิวและตารางรอบ"
               : activeSheet === "players" ? "รายชื่อผู้เล่น"
                 : activeSheet === "stats" ? "สถิติ"
-                  : "ตั้งค่า"
+                  : activeSheet === "attendance" ? "ลงชื่อและเช็กอิน"
+                    : "ตั้งค่า"
           }>
             <div className="mobile-sheet-handle" />
             <div className="mobile-sheet-body">
@@ -380,6 +387,12 @@ export default function App() {
                   permanent={Boolean(roomSync.room)}
                 />
               )}
+              {activeSheet === "attendance" && (
+                <PlayDayPanel
+                  room={roomSync.room ? { id: roomSync.room.id, code: roomSync.room.code } : null}
+                  onQueuePlayer={id => send({ type: "player/checkin", id })}
+                />
+              )}
               {activeSheet === "settings" && settingsPanel}
             </div>
           </section>
@@ -395,6 +408,15 @@ export default function App() {
             <span>⌛</span>
             คิว
             <b>{state.queue.length}</b>
+          </button>
+          <button
+            className={activeSheet === "attendance" ? "active" : ""}
+            aria-expanded={activeSheet === "attendance"}
+            onClick={() => toggleMobileSheet("attendance")}
+          >
+            <span>✓</span>
+            เช็กอิน
+            <b>วันเล่น</b>
           </button>
           <button
             className={activeSheet === "players" ? "active" : ""}

@@ -11,7 +11,7 @@ export type RemoteRoom = {
   updated_at: string;
 };
 
-async function ensureAnonymousUser(): Promise<void> {
+export async function ensureAnonymousUser(): Promise<void> {
   if (!supabase) throw new Error("Supabase is not configured");
   const { data } = await supabase.auth.getSession();
   if (data.session) return;
