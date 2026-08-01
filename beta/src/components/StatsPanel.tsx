@@ -48,13 +48,43 @@ export function StatsPanel({
         <button className={tab === "h2h" ? "active" : ""} onClick={() => setTab("h2h")}>H2H</button>
         <button className={tab === "history" ? "active" : ""} onClick={() => setTab("history")}>ประวัติ</button>
       </div>
-      {tab === "players" && <div className="stats-list">{playerStats.map(item => (
-        <div className="stat-row" key={item.playerId}>
-          <strong>{playerName(item.playerId)}</strong>
-          <span>W {item.wins} · L {item.losses} · เล่นจริง {item.games}</span>
-          <small>Libero {item.liberoWins}W/{item.liberoLosses}L</small>
-        </div>
-      ))}</div>}
+      {tab === "players" && !playerStats.length && <p className="muted stats-empty">ยังไม่มีสถิติผู้เล่น</p>}
+      {tab === "players" && <div className="player-gauges">{playerStats.map(item => {
+        const segments = [
+          { key: "libero-loss", label: "Libero แพ้", value: item.liberoLosses },
+          { key: "loss", label: "แพ้", value: item.losses - item.liberoLosses },
+          { key: "win", label: "ชนะ", value: item.wins - item.liberoWins },
+          { key: "libero-win", label: "Libero ชนะ", value: item.liberoWins }
+        ];
+        const played = item.wins + item.losses;
+        const summary = segments.map(segment => `${segment.label} ${segment.value}`).join(", ");
+        return (
+          <article className="player-gauge-card" key={item.playerId}>
+            <header>
+              <strong>{playerName(item.playerId)}</strong>
+              <span>Played <b>{played}</b></span>
+            </header>
+            <div className="player-gauge" role="img" aria-label={`${playerName(item.playerId)}: ${summary}`}>
+              {segments.filter(segment => segment.value > 0).map(segment => (
+                <i
+                  className={`gauge-${segment.key}`}
+                  style={{ flexGrow: segment.value }}
+                  title={`${segment.label} ${segment.value}`}
+                  key={segment.key}
+                />
+              ))}
+            </div>
+            <div className="gauge-legend">
+              {segments.map(segment => (
+                <span className={`gauge-${segment.key}`} key={segment.key}>
+                  <i aria-hidden="true" />
+                  {segment.label} <b>{segment.value}</b>
+                </span>
+              ))}
+            </div>
+          </article>
+        );
+      })}</div>}
       {tab === "pairs" && !pairPlayers.length && <p className="muted stats-empty">ยังไม่มีสถิติคู่</p>}
       {tab === "pairs" && pairPlayers.length > 0 && (
         <>
