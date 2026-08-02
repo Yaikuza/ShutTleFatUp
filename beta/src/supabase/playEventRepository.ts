@@ -16,6 +16,7 @@ export type PlayEvent = {
   location: string;
   capacity: number | null;
   status: PlayEventStatus;
+  checkin_mode: "manual" | "auto";
   created_at: string;
 };
 
@@ -26,6 +27,7 @@ export type EventAttendance = {
   response: AttendanceResponse;
   checked_in_at: string | null;
   queued_at: string | null;
+  is_guest: boolean;
   updated_at: string;
 };
 
@@ -46,22 +48,43 @@ export async function createPlayEvent(
     endsAt?: string;
     location: string;
     capacity?: number;
+    checkinMode?: "manual" | "auto";
   }
 ): Promise<PlayEvent> {
   if (!supabase) throw new Error("Supabase is not configured");
   await ensureAnonymousUser();
   await joinRemoteRoom(room.code);
-  const { data, error } = await supabase.rpc("create_play_event", {
+  const { data, error } = await supabase.rpc("create_play_event_with_mode", {
     p_room_id: room.id,
     p_title: input.title,
     p_play_date: input.playDate,
     p_starts_at: input.startsAt,
     p_ends_at: input.endsAt || null,
     p_location: input.location,
-    p_capacity: input.capacity ?? null
+    p_capacity: input.capacity ?? null,
+    p_checkin_mode: input.checkinMode ?? "manual"
   }).single();
   if (error) throw error;
   return data as PlayEvent;
+}
+
+export async function registerEventGuest(publicCode: string, name: string): Promise<PublicPlayEvent> {
+  if (!supabase) throw new Error("Supabase is not configured");
+  await ensureAnonymousUser();
+  const { data, error } = await supabase.rpc("register_event_guest", {
+    p_public_code: publicCode.toUpperCase(), p_name: name
+  }).single();
+  if (error) throw error;
+  return data as PublicPlayEvent;
+}
+
+export async function approveEventGuest(roomId: string, eventId: string, guestId: string): Promise<EventAttendance> {
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { data, error } = await supabase.rpc("approve_event_guest", {
+    p_room_id: roomId, p_event_id: eventId, p_guest_id: guestId
+  }).single();
+  if (error) throw error;
+  return data as EventAttendance;
 }
 
 export async function listPlayEvents(roomId: string): Promise<PlayEvent[]> {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   getPublicPlayEvent,
+  registerEventGuest,
   setPublicAttendance,
   type AttendanceResponse,
   type PublicPlayEvent
@@ -34,6 +35,7 @@ export function PublicEventPage({ publicCode }: { publicCode: string }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [guestName, setGuestName] = useState("");
 
   const load = async (quiet = false) => {
     if (!quiet) setLoading(true);
@@ -71,6 +73,25 @@ export function PublicEventPage({ publicCode }: { publicCode: string }) {
     } finally {
       setSaving(false);
     }
+  };
+
+  const registerGuest = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!guestName.trim() || saving) return;
+    setSaving(true);
+    try {
+      const next = await registerEventGuest(publicCode, guestName);
+      const guest = next.attendance.find(item => item.is_guest && item.player_name.toLocaleLowerCase() === guestName.trim().toLocaleLowerCase());
+      if (guest) {
+        setPlayerId(guest.player_id);
+        localStorage.setItem(playerKey, guest.player_id);
+      }
+      setData(next);
+      setGuestName("");
+      setError("");
+    } catch (caught) {
+      setError(errorMessage(caught, "ลงชื่อผู้เล่นใหม่ไม่สำเร็จ"));
+    } finally { setSaving(false); }
   };
 
   if (loading) return <main className="event-page"><div className="event-loading">กำลังโหลดกิจกรรม…</div></main>;
@@ -119,6 +140,7 @@ export function PublicEventPage({ publicCode }: { publicCode: string }) {
         }}>
           <option value="">เลือกชื่อผู้เล่น</option>
           {data.players.map(player => <option value={player.id} key={player.id}>{player.name}</option>)}
+          {data.attendance.filter(item => item.is_guest).map(item => <option value={item.player_id} key={item.player_id}>{item.player_name} (ผู้เล่นใหม่)</option>)}
         </select>
         <div className="event-response-actions">
           <button disabled={!playerId || saving || full} className={selected?.response === "going" ? "active" : ""} onClick={() => void update("going")}>มาเล่น</button>
@@ -130,6 +152,11 @@ export function PublicEventPage({ publicCode }: { publicCode: string }) {
         </div>
         {full && <p className="event-note">รายชื่อเต็มแล้ว กรุณาเลือก “อาจจะมา” หรือติดต่อผู้จัด</p>}
         {error && <p className="event-note error" role="alert">{error}</p>}
+        <form className="guest-signup" onSubmit={registerGuest}>
+          <label>ไม่พบชื่อของฉัน<input value={guestName} onChange={event => setGuestName(event.target.value)} placeholder="ชื่อที่ใช้ในวันนี้" maxLength={80} /></label>
+          <button disabled={!guestName.trim() || saving}>ลงชื่อเป็นผู้เล่นใหม่</button>
+          <small>ผู้จัดจะอนุมัติเป็นผู้เล่นถาวรภายหลัง · ระดับเริ่มต้น Human</small>
+        </form>
       </section>
 
       <section className="event-card event-roster">

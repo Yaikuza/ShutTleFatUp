@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { bangkokDateKey } from "../domain/date";
 import {
   createPlayEvent,
+  approveEventGuest,
   listEventAttendance,
   listPlayEvents,
   markAttendanceQueued,
@@ -34,6 +35,7 @@ export function PlayDayPanel({
   const [attendance, setAttendance] = useState<EventAttendance[]>([]);
   const [creating, setCreating] = useState(false);
   const [busyPlayer, setBusyPlayer] = useState("");
+  const [guestName, setGuestName] = useState("");
   const [error, setError] = useState("");
   const [form, setForm] = useState({
     title: "ตีแบดประจำสัปดาห์",
@@ -41,7 +43,8 @@ export function PlayDayPanel({
     startsAt: "19:00",
     endsAt: "22:00",
     location: "",
-    capacity: ""
+    capacity: "",
+    checkinMode: "manual" as "manual" | "auto"
   });
 
   const selected = events.find(event => event.id === selectedId) ?? events[0] ?? null;
@@ -119,8 +122,10 @@ export function PlayDayPanel({
     setBusyPlayer(item.player_id);
     try {
       if (activeEventId !== selected.id) await onActivateEvent(selected.id);
-      await onQueuePlayer(item.player_id);
-      const updated = await markAttendanceQueued(room.id, selected.id, item.player_id);
+      const updated = item.is_guest
+        ? await approveEventGuest(room.id, selected.id, item.player_id)
+        : await markAttendanceQueued(room.id, selected.id, item.player_id);
+      await onQueuePlayer(updated.player_id);
       setAttendance(current => current.map(entry => entry.player_id === item.player_id ? updated : entry));
       setError("");
     } catch (caught) {
@@ -179,7 +184,7 @@ export function PlayDayPanel({
                 <b>{item.player_name}</b>
                 {item.queued_at
                   ? <span>เข้าคิวแล้ว</span>
-                  : <button disabled={Boolean(busyPlayer)} onClick={() => void queuePlayer(item)}>เข้าคิว</button>}
+                  : <button disabled={Boolean(busyPlayer)} onClick={() => void queuePlayer(item)}>{item.is_guest ? "อนุมัติ + เข้าคิว" : "เข้าคิว"}</button>}
               </div>
             ))}
             {!arrived.length && <small>ยังไม่มีคนเช็กอิน</small>}
@@ -201,6 +206,7 @@ export function PlayDayPanel({
           <label>จบ<input type="time" value={form.endsAt} onChange={event => setForm({ ...form, endsAt: event.target.value })} /></label>
           <label>สนาม<input value={form.location} onChange={event => setForm({ ...form, location: event.target.value })} /></label>
           <label>รับสูงสุด<input type="number" min="1" value={form.capacity} onChange={event => setForm({ ...form, capacity: event.target.value })} placeholder="ไม่จำกัด" /></label>
+          <label>เช็กอิน<select value={form.checkinMode} onChange={event => setForm({ ...form, checkinMode: event.target.value as "manual" | "auto" })}><option value="manual">ผู้จัดกดเข้าคิว (แนะนำ)</option><option value="auto">เช็กอินแล้วเข้าคิวอัตโนมัติ</option></select></label>
           <button className="round-button" disabled={creating}>{creating ? "กำลังสร้าง…" : "สร้างและรับลิงก์"}</button>
         </form>
       </details>

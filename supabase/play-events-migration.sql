@@ -11,6 +11,7 @@ create table if not exists public.play_events (
   location text not null default '',
   capacity integer check (capacity is null or capacity > 0),
   status text not null default 'open' check (status in ('open', 'closed', 'finished')),
+  checkin_mode text not null default 'manual' check (checkin_mode in ('manual', 'auto')),
   created_by uuid not null references auth.users(id) on delete cascade,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -23,10 +24,16 @@ create table if not exists public.play_event_attendance (
   response text not null default 'going' check (response in ('going', 'maybe', 'cancelled')),
   checked_in_at timestamptz,
   queued_at timestamptz,
+  is_guest boolean not null default false,
   user_id uuid not null references auth.users(id) on delete cascade,
   updated_at timestamptz not null default now(),
   primary key (event_id, player_id)
 );
+
+alter table public.play_events add column if not exists checkin_mode text not null default 'manual';
+alter table public.play_events drop constraint if exists play_events_checkin_mode_check;
+alter table public.play_events add constraint play_events_checkin_mode_check check (checkin_mode in ('manual', 'auto'));
+alter table public.play_event_attendance add column if not exists is_guest boolean not null default false;
 
 alter table public.room_matches
 add column if not exists play_event_id uuid references public.play_events(id) on delete set null;
@@ -106,6 +113,36 @@ begin
     coalesce(trim(p_location), ''), p_capacity, auth.uid()
   ) returning * into created_event;
 
+  return created_event;
+end;
+$$;
+
+create or replace function public.create_play_event_with_mode(
+  p_room_id uuid,
+  p_title text,
+  p_play_date date,
+  p_starts_at time,
+  p_ends_at time default null,
+  p_location text default '',
+  p_capacity integer default null,
+  p_checkin_mode text default 'manual'
+)
+returns public.play_events
+language plpgsql security definer set search_path = public
+as $$
+declare created_event public.play_events; code text;
+begin
+  if p_checkin_mode not in ('manual', 'auto') then raise exception 'Invalid check-in mode'; end if;
+  if not exists (select 1 from public.room_members where room_id = p_room_id and user_id = auth.uid()) then
+    raise exception 'Room membership required';
+  end if;
+  loop
+    code := upper(substr(md5(random()::text || clock_timestamp()::text), 1, 8));
+    exit when not exists (select 1 from public.play_events where public_code = code);
+  end loop;
+  insert into public.play_events (room_id, public_code, title, play_date, starts_at, ends_at, location, capacity, checkin_mode, created_by)
+  values (p_room_id, code, trim(p_title), p_play_date, p_starts_at, p_ends_at, coalesce(trim(p_location), ''), p_capacity, p_checkin_mode, auth.uid())
+  returning * into created_event;
   return created_event;
 end;
 $$;
@@ -195,13 +232,14 @@ begin
   end if;
 
   insert into public.play_event_attendance (
-    event_id, player_id, player_name, response, checked_in_at, user_id
+    event_id, player_id, player_name, response, checked_in_at, queued_at, user_id
   ) values (
     target_event.id,
     p_player_id,
     selected_player ->> 'name',
     case when p_check_in then 'going' else p_response end,
     case when p_check_in then now() else null end,
+    case when p_check_in and target_event.checkin_mode = 'auto' then now() else null end,
     auth.uid()
   )
   on conflict (event_id, player_id) do update set
@@ -212,11 +250,64 @@ begin
       when p_check_in then now()
       else play_event_attendance.checked_in_at
     end,
-    queued_at = case when excluded.response = 'cancelled' then null else play_event_attendance.queued_at end,
+    queued_at = case when excluded.response = 'cancelled' then null
+      when p_check_in and target_event.checkin_mode = 'auto' then now()
+      else play_event_attendance.queued_at end,
     user_id = auth.uid(),
     updated_at = now();
 
+  if p_check_in and target_event.checkin_mode = 'auto' then
+    update public.rooms
+    set state = jsonb_set(
+      state,
+      '{queue}',
+      case when coalesce(state -> 'queue', '[]'::jsonb) ? p_player_id
+        then coalesce(state -> 'queue', '[]'::jsonb)
+        else coalesce(state -> 'queue', '[]'::jsonb) || to_jsonb(p_player_id)
+      end
+    ), updated_at = now(), version = version + 1
+    where id = target_event.room_id;
+  end if;
+
   return public.get_public_play_event(p_public_code);
+end;
+$$;
+
+create or replace function public.register_event_guest(p_public_code text, p_name text)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare target_event public.play_events; guest_id text; clean_name text;
+begin
+  clean_name := regexp_replace(trim(coalesce(p_name, '')), '\\s+', ' ', 'g');
+  if char_length(clean_name) < 1 or char_length(clean_name) > 80 then raise exception 'กรุณาใส่ชื่อ 1-80 ตัวอักษร'; end if;
+  select * into target_event from public.play_events where public_code = upper(p_public_code) and status = 'open' for update;
+  if target_event.id is null then raise exception 'Event not found or closed'; end if;
+  if exists (select 1 from public.play_event_attendance where event_id = target_event.id and lower(trim(player_name)) = lower(clean_name) and response <> 'cancelled') then
+    raise exception 'ชื่อนี้ลงทะเบียนแล้ว';
+  end if;
+  guest_id := 'guest:' || replace(gen_random_uuid()::text, '-', '');
+  insert into public.play_event_attendance (event_id, player_id, player_name, response, is_guest, user_id)
+  values (target_event.id, guest_id, clean_name, 'going', true, auth.uid());
+  return public.get_public_play_event(p_public_code);
+end;
+$$;
+
+create or replace function public.approve_event_guest(p_room_id uuid, p_event_id uuid, p_guest_id text)
+returns public.play_event_attendance language plpgsql security definer set search_path = public as $$
+declare guest public.play_event_attendance; target_room public.rooms; new_id text; new_player jsonb;
+begin
+  if not exists (select 1 from public.room_members where room_id = p_room_id and user_id = auth.uid()) then raise exception 'Room membership required'; end if;
+  select * into guest from public.play_event_attendance where event_id = p_event_id and player_id = p_guest_id and is_guest for update;
+  if guest.event_id is null then raise exception 'Guest not found'; end if;
+  select * into target_room from public.rooms where id = p_room_id for update;
+  if exists (select 1 from jsonb_array_elements(target_room.state -> 'players') p where lower(trim(p ->> 'name')) = lower(trim(guest.player_name))) then raise exception 'ชื่อนี้มีอยู่ในรายชื่อผู้เล่นแล้ว'; end if;
+  new_id := replace(gen_random_uuid()::text, '-', '');
+  new_player := jsonb_build_object('id', new_id, 'name', guest.player_name, 'level', 'human', 'active', true);
+  update public.rooms set state = jsonb_set(
+    jsonb_set(target_room.state, '{players}', coalesce(target_room.state -> 'players', '[]'::jsonb) || new_player),
+    '{queue}', coalesce(target_room.state -> 'queue', '[]'::jsonb) || to_jsonb(new_id)
+  ), updated_at = now(), version = target_room.version + 1 where id = p_room_id;
+  update public.play_event_attendance set player_id = new_id, is_guest = false, checked_in_at = coalesce(checked_in_at, now()), queued_at = coalesce(queued_at, now()), updated_at = now() where event_id = p_event_id and player_id = p_guest_id returning * into guest;
+  return guest;
 end;
 $$;
 
@@ -261,9 +352,12 @@ revoke all on function public.get_public_play_event(text) from public;
 revoke all on function public.set_public_play_attendance(text, text, text, boolean) from public;
 revoke all on function public.mark_play_attendance_queued(uuid, uuid, text) from public;
 grant execute on function public.create_play_event(uuid, text, date, time, time, text, integer) to authenticated;
+grant execute on function public.create_play_event_with_mode(uuid, text, date, time, time, text, integer, text) to authenticated;
 grant execute on function public.get_public_play_event(text) to authenticated;
 grant execute on function public.set_public_play_attendance(text, text, text, boolean) to authenticated;
 grant execute on function public.mark_play_attendance_queued(uuid, uuid, text) to authenticated;
+grant execute on function public.register_event_guest(text, text) to authenticated;
+grant execute on function public.approve_event_guest(uuid, uuid, text) to authenticated;
 
 do $$
 begin
