@@ -151,6 +151,7 @@ export function PublicEventPage({ publicCode }: { publicCode: string }) {
           <button disabled={!playerId || saving || !selected} className="cancel" onClick={() => void update("cancelled")}>ยกเลิก</button>
         </div>
         {full && <p className="event-note">รายชื่อเต็มแล้ว กรุณาเลือก “อาจจะมา” หรือติดต่อผู้จัด</p>}
+        {selected?.guest_fee_baht ? <p className="event-note">ค่า Guest {selected.guest_fee_baht} บาท · สถานะการชำระเงิน: {selected.payment_status === "confirmed" ? "ยืนยันแล้ว" : "รอผู้จัดยืนยัน"}</p> : null}
         {error && <p className="event-note error" role="alert">{error}</p>}
         <form className="guest-signup" onSubmit={registerGuest}>
           <label>ไม่พบชื่อของฉัน<input value={guestName} onChange={event => setGuestName(event.target.value)} placeholder="ชื่อที่ใช้ในวันนี้" maxLength={80} /></label>

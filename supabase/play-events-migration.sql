@@ -25,6 +25,8 @@ create table if not exists public.play_event_attendance (
   checked_in_at timestamptz,
   queued_at timestamptz,
   is_guest boolean not null default false,
+  guest_fee_baht integer not null default 0 check (guest_fee_baht >= 0),
+  payment_status text not null default 'not_required' check (payment_status in ('not_required', 'pending', 'confirmed')),
   user_id uuid not null references auth.users(id) on delete cascade,
   updated_at timestamptz not null default now(),
   primary key (event_id, player_id)
@@ -34,6 +36,10 @@ alter table public.play_events add column if not exists checkin_mode text not nu
 alter table public.play_events drop constraint if exists play_events_checkin_mode_check;
 alter table public.play_events add constraint play_events_checkin_mode_check check (checkin_mode in ('manual', 'auto'));
 alter table public.play_event_attendance add column if not exists is_guest boolean not null default false;
+alter table public.play_event_attendance add column if not exists guest_fee_baht integer not null default 0;
+alter table public.play_event_attendance add column if not exists payment_status text not null default 'not_required';
+alter table public.play_event_attendance drop constraint if exists play_event_attendance_payment_status_check;
+alter table public.play_event_attendance add constraint play_event_attendance_payment_status_check check (payment_status in ('not_required', 'pending', 'confirmed'));
 
 alter table public.room_matches
 add column if not exists play_event_id uuid references public.play_events(id) on delete set null;
@@ -285,8 +291,8 @@ begin
     raise exception 'ชื่อนี้ลงทะเบียนแล้ว';
   end if;
   guest_id := 'guest:' || replace(gen_random_uuid()::text, '-', '');
-  insert into public.play_event_attendance (event_id, player_id, player_name, response, is_guest, user_id)
-  values (target_event.id, guest_id, clean_name, 'going', true, auth.uid());
+  insert into public.play_event_attendance (event_id, player_id, player_name, response, is_guest, guest_fee_baht, payment_status, user_id)
+  values (target_event.id, guest_id, clean_name, 'going', true, 100, 'pending', auth.uid());
   return public.get_public_play_event(p_public_code);
 end;
 $$;
@@ -308,6 +314,22 @@ begin
   ), updated_at = now(), version = target_room.version + 1 where id = p_room_id;
   update public.play_event_attendance set player_id = new_id, is_guest = false, checked_in_at = coalesce(checked_in_at, now()), queued_at = coalesce(queued_at, now()), updated_at = now() where event_id = p_event_id and player_id = p_guest_id returning * into guest;
   return guest;
+end;
+$$;
+
+create or replace function public.confirm_guest_payment(p_room_id uuid, p_event_id uuid, p_player_id text)
+returns public.play_event_attendance language plpgsql security definer set search_path = public as $$
+declare updated_attendance public.play_event_attendance;
+begin
+  if not exists (select 1 from public.room_members where room_id = p_room_id and user_id = auth.uid()) then
+    raise exception 'Room membership required';
+  end if;
+  update public.play_event_attendance
+  set payment_status = 'confirmed', updated_at = now()
+  where event_id = p_event_id and player_id = p_player_id and guest_fee_baht = 100 and payment_status = 'pending'
+  returning * into updated_attendance;
+  if updated_attendance.event_id is null then raise exception 'Guest payment not found'; end if;
+  return updated_attendance;
 end;
 $$;
 
@@ -358,6 +380,7 @@ grant execute on function public.set_public_play_attendance(text, text, text, bo
 grant execute on function public.mark_play_attendance_queued(uuid, uuid, text) to authenticated;
 grant execute on function public.register_event_guest(text, text) to authenticated;
 grant execute on function public.approve_event_guest(uuid, uuid, text) to authenticated;
+grant execute on function public.confirm_guest_payment(uuid, uuid, text) to authenticated;
 
 do $$
 begin

@@ -28,6 +28,8 @@ export type EventAttendance = {
   checked_in_at: string | null;
   queued_at: string | null;
   is_guest: boolean;
+  guest_fee_baht: number;
+  payment_status: "not_required" | "pending" | "confirmed";
   updated_at: string;
 };
 
@@ -82,6 +84,15 @@ export async function approveEventGuest(roomId: string, eventId: string, guestId
   if (!supabase) throw new Error("Supabase is not configured");
   const { data, error } = await supabase.rpc("approve_event_guest", {
     p_room_id: roomId, p_event_id: eventId, p_guest_id: guestId
+  }).single();
+  if (error) throw error;
+  return data as EventAttendance;
+}
+
+export async function confirmGuestPayment(roomId: string, eventId: string, playerId: string): Promise<EventAttendance> {
+  if (!supabase) throw new Error("Supabase is not configured");
+  const { data, error } = await supabase.rpc("confirm_guest_payment", {
+    p_room_id: roomId, p_event_id: eventId, p_player_id: playerId
   }).single();
   if (error) throw error;
   return data as EventAttendance;

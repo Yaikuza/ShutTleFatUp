@@ -3,6 +3,7 @@ import { bangkokDateKey } from "../domain/date";
 import {
   createPlayEvent,
   approveEventGuest,
+  confirmGuestPayment,
   listEventAttendance,
   listPlayEvents,
   markAttendanceQueued,
@@ -135,6 +136,18 @@ export function PlayDayPanel({
     }
   };
 
+  const confirmPayment = async (item: EventAttendance) => {
+    if (!room || !selected || busyPlayer || item.payment_status === "confirmed") return;
+    setBusyPlayer(item.player_id);
+    try {
+      const updated = await confirmGuestPayment(room.id, selected.id, item.player_id);
+      setAttendance(current => current.map(entry => entry.player_id === item.player_id ? updated : entry));
+      setError("");
+    } catch (caught) {
+      setError(errorMessage(caught, "ยืนยันการชำระเงินไม่สำเร็จ"));
+    } finally { setBusyPlayer(""); }
+  };
+
   if (!room) return (
     <section className="panel play-day-panel">
       <p className="eyebrow">Play day</p><h2>ลงชื่อและเช็กอิน</h2>
@@ -171,6 +184,7 @@ export function PlayDayPanel({
               {activeEventId === selected.id ? "Session สนาม ✓" : "ใช้เป็น Session"}
             </button>
             <button className="round-button" onClick={() => void share()}>แชร์ไป LINE</button>
+            <button className="ghost" disabled title="ยังไม่มีบัญชีผู้รับเงิน">QR ชำระเงิน (รอบัญชีผู้รับ)</button>
           </div>
         </div>
       )}
@@ -183,8 +197,9 @@ export function PlayDayPanel({
               <div className="attendance-person" key={item.player_id}>
                 <b>{item.player_name}</b>
                 {item.queued_at
-                  ? <span>เข้าคิวแล้ว</span>
+                  ? <span>{item.guest_fee_baht ? `100 บาท · ${item.payment_status === "confirmed" ? "รับเงินแล้ว" : "รอยืนยันเงิน"}` : "เข้าคิวแล้ว"}</span>
                   : <button disabled={Boolean(busyPlayer)} onClick={() => void queuePlayer(item)}>{item.is_guest ? "อนุมัติ + เข้าคิว" : "เข้าคิว"}</button>}
+                {item.guest_fee_baht > 0 && item.payment_status === "pending" && <button disabled={Boolean(busyPlayer)} onClick={() => void confirmPayment(item)}>ยืนยันเงิน</button>}
               </div>
             ))}
             {!arrived.length && <small>ยังไม่มีคนเช็กอิน</small>}
