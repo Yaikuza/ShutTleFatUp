@@ -7,6 +7,7 @@ import {
   listEventAttendance,
   listPlayEvents,
   markAttendanceQueued,
+  setPublicAttendance,
   subscribeToEventAttendance,
   isPlayEventExpired,
   type EventAttendance,
@@ -146,6 +147,20 @@ export function PlayDayPanel({
     }
   };
 
+  const checkInPlayer = async (item: EventAttendance) => {
+    if (!selected || selectedExpired || busyPlayer || item.is_guest) return;
+    setBusyPlayer(item.player_id);
+    try {
+      const next = await setPublicAttendance(selected.public_code, item.player_id, "going", true);
+      setAttendance(next.attendance);
+      setError("");
+    } catch (caught) {
+      setError(errorMessage(caught, "เช็กอินไม่สำเร็จ"));
+    } finally {
+      setBusyPlayer("");
+    }
+  };
+
   const activateSelectedEvent = async () => {
     if (!selected || selectedExpired) return;
     try {
@@ -179,7 +194,7 @@ export function PlayDayPanel({
 
   const going = attendance.filter(item => item.response === "going");
   const arrived = going.filter(item => item.checked_in_at);
-  const waiting = going.filter(item => !item.checked_in_at);
+  const waiting = going.filter(item => !item.checked_in_at && !item.is_guest);
 
   return (
     <section className="panel play-day-panel">
@@ -232,7 +247,14 @@ export function PlayDayPanel({
           </div>
           <div className="attendance-column">
             <header><strong>ยังมาไม่ถึง</strong><span>{waiting.length}</span></header>
-            {waiting.map(item => <div className="attendance-person" key={item.player_id}><b>{item.player_name}</b><span>ลงชื่อแล้ว</span></div>)}
+            {waiting.map(item => (
+              <div className="attendance-person" key={item.player_id}>
+                <b>{item.player_name}</b>
+                <button disabled={selectedExpired || Boolean(busyPlayer)} onClick={() => void checkInPlayer(item)}>
+                  {busyPlayer === item.player_id ? "กำลังเช็กอิน…" : "ถึงแล้ว"}
+                </button>
+              </div>
+            ))}
             {!waiting.length && <small>ไม่มีรายชื่อรอ</small>}
           </div>
         </div>

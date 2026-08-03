@@ -211,10 +211,6 @@ export default function App() {
       return next;
     });
   };
-  const openOrganizerDashboard = () => {
-    toggleSettings();
-    if (!isMobile) window.requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" }));
-  };
   const settingsPanel = (
     <SettingsPanel
       settings={state.settings}
@@ -252,7 +248,6 @@ export default function App() {
             {roomSync.status}
           </span>
           <button className="ghost" onClick={undo} disabled={!undoStack.current.length}>↩ ย้อนกลับ</button>
-          <button className="round-button organizer-cta" onClick={openOrganizerDashboard}>🎛 {roomSync.room ? "คุมสนาม" : "เปิดคุมสนาม"}</button>
           <button className="ghost" onClick={toggleSettings}>⚙ ตั้งค่า</button>
         </div>
         <div className="mini-header" aria-hidden={!headerCompact}>

@@ -260,7 +260,6 @@ button:disabled { cursor: default; opacity: .35; }
 .room-settings small, .room-settings p { color: var(--muted-text); }
 .room-settings p { margin: 0; font-size: .8rem; }
 .room-actions { display: flex; gap: 8px; align-items: center; }
-.organizer-cta { margin: 0; white-space: nowrap; }
 .room-actions input {
   width: 130px; text-transform: uppercase; letter-spacing: .14em; text-align: center;
 }
