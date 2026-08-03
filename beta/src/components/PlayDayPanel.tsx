@@ -35,6 +35,7 @@ export function PlayDayPanel({
   onQueuePlayer: (playerId: string) => Promise<void>;
 }) {
   const [events, setEvents] = useState<PlayEvent[]>([]);
+  const [eventsLoaded, setEventsLoaded] = useState(false);
   const [selectedId, setSelectedId] = useState("");
   const [attendance, setAttendance] = useState<EventAttendance[]>([]);
   const [creating, setCreating] = useState(false);
@@ -56,10 +57,12 @@ export function PlayDayPanel({
 
   const loadEvents = async () => {
     if (!room) return;
+    setEventsLoaded(false);
     try {
-      const next = await listPlayEvents(room.id);
+      const next = (await listPlayEvents(room.id)).filter(event => !isPlayEventExpired(event));
       setEvents(next);
       setSelectedId(current => next.some(event => event.id === current) ? current : next[0]?.id ?? "");
+      setEventsLoaded(true);
       setError("");
     } catch (caught) {
       setError(errorMessage(caught, "โหลดวันเล่นไม่สำเร็จ"));
@@ -75,6 +78,9 @@ export function PlayDayPanel({
   };
 
   useEffect(() => { void loadEvents(); }, [room?.id]);
+  useEffect(() => {
+    if (eventsLoaded && activeEventId && !events.some(event => event.id === activeEventId)) void onEndSession();
+  }, [activeEventId, events, eventsLoaded]);
   useEffect(() => {
     if (!selected) {
       setAttendance([]);

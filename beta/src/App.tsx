@@ -11,6 +11,7 @@ import { LIBERO } from "./domain/engine";
 import type { AppState } from "./domain/types";
 import { loadState, saveState } from "./storage";
 import { useRoomSync } from "./supabase/useRoomSync";
+import { roomInviteCode } from "./invitation";
 import "./styles.css";
 
 type MobileSheet = "queue" | "players" | "stats" | "attendance" | "settings";
@@ -28,6 +29,7 @@ export default function App() {
   const [activeSheet, setActiveSheet] = useState<MobileSheet | null>(null);
   const [sheetClosing, setSheetClosing] = useState(false);
   const undoStack = useRef<AppState[]>([]);
+  const inviteJoinAttempted = useRef(false);
   const sheetCloseTimer = useRef<number | null>(null);
   const roomSync = useRoomSync(state, dispatch);
 
@@ -114,6 +116,12 @@ export default function App() {
   useEffect(() => () => {
     if (sheetCloseTimer.current !== null) window.clearTimeout(sheetCloseTimer.current);
   }, []);
+  useEffect(() => {
+    const inviteCode = roomInviteCode(window.location);
+    if (!inviteCode || !roomSync.configured || roomSync.room?.code === inviteCode || inviteJoinAttempted.current) return;
+    inviteJoinAttempted.current = true;
+    void roomSync.joinRoom(inviteCode);
+  }, [roomSync.configured, roomSync.room?.code]);
 
   const askConfirm = (message: string, run: () => void) =>
     setConfirmAction({ message, run });
@@ -203,6 +211,10 @@ export default function App() {
       return next;
     });
   };
+  const openOrganizerDashboard = () => {
+    toggleSettings();
+    if (!isMobile) window.requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" }));
+  };
   const settingsPanel = (
     <SettingsPanel
       settings={state.settings}
@@ -240,6 +252,7 @@ export default function App() {
             {roomSync.status}
           </span>
           <button className="ghost" onClick={undo} disabled={!undoStack.current.length}>↩ ย้อนกลับ</button>
+          <button className="round-button organizer-cta" onClick={openOrganizerDashboard}>🎛 {roomSync.room ? "คุมสนาม" : "เปิดคุมสนาม"}</button>
           <button className="ghost" onClick={toggleSettings}>⚙ ตั้งค่า</button>
         </div>
         <div className="mini-header" aria-hidden={!headerCompact}>
