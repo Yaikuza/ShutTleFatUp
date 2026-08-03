@@ -30,7 +30,7 @@ export function PlayDayPanel({
 }: {
   room: { id: string; code: string } | null;
   activeEventId: string | null;
-  onActivateEvent: (eventId: string) => Promise<void>;
+  onActivateEvent: (eventId: string, queuedPlayerIds: string[]) => Promise<void>;
   onEndSession: () => Promise<void>;
   onQueuePlayer: (playerId: string) => Promise<void>;
 }) {
@@ -126,7 +126,7 @@ export function PlayDayPanel({
     if (!room || !selected || selectedExpired || busyPlayer) return;
     setBusyPlayer(item.player_id);
     try {
-      if (activeEventId !== selected.id) await onActivateEvent(selected.id);
+      if (activeEventId !== selected.id) await activateSelectedEvent();
       const updated = item.is_guest
         ? await approveEventGuest(room.id, selected.id, item.player_id)
         : await markAttendanceQueued(room.id, selected.id, item.player_id);
@@ -137,6 +137,18 @@ export function PlayDayPanel({
       setError(errorMessage(caught, "นำผู้เล่นเข้าคิวไม่สำเร็จ"));
     } finally {
       setBusyPlayer("");
+    }
+  };
+
+  const activateSelectedEvent = async () => {
+    if (!selected || selectedExpired) return;
+    try {
+      const latest = await listEventAttendance(selected.id);
+      setAttendance(latest);
+      await onActivateEvent(selected.id, latest.filter(item => item.queued_at).map(item => item.player_id));
+      setError("");
+    } catch (caught) {
+      setError(errorMessage(caught, "เริ่ม Session ไม่สำเร็จ"));
     }
   };
 
@@ -184,7 +196,7 @@ export function PlayDayPanel({
               <button
                 className={activeEventId === selected.id ? "session-active" : "ghost"}
                 disabled={activeEventId === selected.id || selectedExpired}
-                onClick={() => void onActivateEvent(selected.id)}
+                onClick={() => void activateSelectedEvent()}
               >
                 {activeEventId === selected.id ? "Session สนาม ✓" : "ใช้เป็น Session"}
               </button>

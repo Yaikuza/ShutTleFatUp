@@ -289,7 +289,7 @@ export default function App() {
           <PlayDayPanel
             room={roomSync.room ? { id: roomSync.room.id, code: roomSync.room.code } : null}
             activeEventId={state.activePlayEventId}
-            onActivateEvent={eventId => send({ type: "play-day/select", eventId })}
+            onActivateEvent={(eventId, queuedPlayerIds) => send({ type: "play-day/select", eventId, queuedPlayerIds })}
             onEndSession={() => send({ type: "play-day/end" })}
             onQueuePlayer={id => send({ type: "player/checkin", id })}
           />
@@ -394,7 +394,7 @@ export default function App() {
                 <PlayDayPanel
                   room={roomSync.room ? { id: roomSync.room.id, code: roomSync.room.code } : null}
                   activeEventId={state.activePlayEventId}
-                  onActivateEvent={eventId => send({ type: "play-day/select", eventId })}
+                  onActivateEvent={(eventId, queuedPlayerIds) => send({ type: "play-day/select", eventId, queuedPlayerIds })}
                   onEndSession={() => send({ type: "play-day/end" })}
                   onQueuePlayer={id => send({ type: "player/checkin", id })}
                 />

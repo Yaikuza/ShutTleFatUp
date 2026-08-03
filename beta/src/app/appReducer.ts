@@ -7,7 +7,7 @@ export type AppAction =
   | { type: "player/add"; name: string }
   | { type: "player/toggle"; id: string }
   | { type: "player/checkin"; id: string }
-  | { type: "play-day/select"; eventId: string }
+  | { type: "play-day/select"; eventId: string; queuedPlayerIds?: PlayerId[] }
   | { type: "play-day/end" }
   | { type: "player/level"; id: string; level: PlayerLevel }
   | { type: "queue/shuffle" }
@@ -115,17 +115,21 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     case "play-day/select":
       return state.activePlayEventId === action.eventId
         ? state
-        : {
+        : (() => {
+            const queuedIds = [...new Set(action.queuedPlayerIds ?? [])]
+              .filter(id => state.players.some(player => player.id === id));
+            return {
             ...state,
             activePlayEventId: action.eventId,
             roomQueue: preservedRoomQueue(state),
-            players: state.players.map(player => ({ ...player, active: false })),
-            queue: [],
+            players: state.players.map(player => ({ ...player, active: queuedIds.includes(player.id) })),
+            queue: queuedIds,
             courts: Array.from({ length: state.settings.courtCount }, (_, index) => createCourt(index + 1)),
             round: 1,
             schedule: [],
             pairGames: {}
-          };
+            };
+          })();
     case "play-day/end":
       return persistRoomQueue(state, {
         ...state,

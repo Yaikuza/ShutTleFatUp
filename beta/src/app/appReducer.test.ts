@@ -103,6 +103,14 @@ describe("appReducer session controls", () => {
     expect(appReducer(selected, { type: "play-day/select", eventId: "event-1" })).toBe(selected);
   });
 
+  it("loads only queued attendees into an event session", () => {
+    const selected = appReducer(state, { type: "play-day/select", eventId: "event-1", queuedPlayerIds: ["B"] });
+    expect(selected.queue).toEqual(["B"]);
+    expect(selected.players.find(player => player.id === "B")?.active).toBe(true);
+    expect(selected.players.find(player => player.id === "A")?.active).toBe(false);
+    expect(selected.roomQueue).toEqual(["A", "C"]);
+  });
+
   it("ends an event session without deleting players or history", () => {
     const session = appReducer(state, { type: "play-day/select", eventId: "event-1" });
     const ended = appReducer(session, { type: "play-day/end" });
