@@ -3,6 +3,7 @@ import {
   getPublicPlayEvent,
   registerEventGuest,
   setPublicAttendance,
+  isPlayEventExpired,
   type AttendanceResponse,
   type PublicPlayEvent
 } from "../supabase/playEventRepository";
@@ -111,6 +112,7 @@ export function PublicEventPage({ publicCode }: { publicCode: string }) {
   const maybe = activeAttendance.filter(item => item.response === "maybe");
   const checkedIn = activeAttendance.filter(item => item.checked_in_at);
   const full = Boolean(data.event.capacity && going.length >= data.event.capacity && selected?.response !== "going");
+  const expired = isPlayEventExpired(data.event);
 
   return (
     <main className="event-page">
@@ -143,19 +145,20 @@ export function PublicEventPage({ publicCode }: { publicCode: string }) {
           {data.attendance.filter(item => item.is_guest).map(item => <option value={item.player_id} key={item.player_id}>{item.player_name} (ผู้เล่นใหม่)</option>)}
         </select>
         <div className="event-response-actions">
-          <button disabled={!playerId || saving || full} className={selected?.response === "going" ? "active" : ""} onClick={() => void update("going")}>มาเล่น</button>
-          <button disabled={!playerId || saving} className={selected?.response === "maybe" ? "active" : ""} onClick={() => void update("maybe")}>อาจจะมา</button>
-          <button disabled={!playerId || saving || selected?.response !== "going"} className="checkin" onClick={() => void update("going", true)}>
+          <button disabled={expired || !playerId || saving || full} className={selected?.response === "going" ? "active" : ""} onClick={() => void update("going")}>มาเล่น</button>
+          <button disabled={expired || !playerId || saving} className={selected?.response === "maybe" ? "active" : ""} onClick={() => void update("maybe")}>อาจจะมา</button>
+          <button disabled={expired || !playerId || saving || selected?.response !== "going"} className="checkin" onClick={() => void update("going", true)}>
             {selected?.checked_in_at ? "ถึงสนามแล้ว ✓" : "ถึงสนามแล้ว"}
           </button>
-          <button disabled={!playerId || saving || !selected} className="cancel" onClick={() => void update("cancelled")}>ยกเลิก</button>
+          <button disabled={expired || !playerId || saving || !selected} className="cancel" onClick={() => void update("cancelled")}>ยกเลิก</button>
         </div>
+        {expired && <p className="event-note">กิจกรรมจบแล้ว ไม่สามารถลงชื่อหรือเช็กอินได้</p>}
         {full && <p className="event-note">รายชื่อเต็มแล้ว กรุณาเลือก “อาจจะมา” หรือติดต่อผู้จัด</p>}
         {selected?.guest_fee_baht ? <p className="event-note">ค่า Guest {selected.guest_fee_baht} บาท · สถานะการชำระเงิน: {selected.payment_status === "confirmed" ? "ยืนยันแล้ว" : "รอผู้จัดยืนยัน"}</p> : null}
         {error && <p className="event-note error" role="alert">{error}</p>}
         <form className="guest-signup" onSubmit={registerGuest}>
           <label>ไม่พบชื่อของฉัน<input value={guestName} onChange={event => setGuestName(event.target.value)} placeholder="ชื่อที่ใช้ในวันนี้" maxLength={80} /></label>
-          <button disabled={!guestName.trim() || saving}>ลงชื่อเป็นผู้เล่นใหม่</button>
+          <button disabled={expired || !guestName.trim() || saving}>ลงชื่อเป็นผู้เล่นใหม่</button>
           <small>ผู้จัดจะอนุมัติเป็นผู้เล่นถาวรภายหลัง · ระดับเริ่มต้น Human</small>
         </form>
       </section>

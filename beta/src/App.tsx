@@ -290,6 +290,7 @@ export default function App() {
             room={roomSync.room ? { id: roomSync.room.id, code: roomSync.room.code } : null}
             activeEventId={state.activePlayEventId}
             onActivateEvent={eventId => send({ type: "play-day/select", eventId })}
+            onEndSession={() => send({ type: "play-day/end" })}
             onQueuePlayer={id => send({ type: "player/checkin", id })}
           />
           <PlayersPanel
@@ -394,6 +395,7 @@ export default function App() {
                   room={roomSync.room ? { id: roomSync.room.id, code: roomSync.room.code } : null}
                   activeEventId={state.activePlayEventId}
                   onActivateEvent={eventId => send({ type: "play-day/select", eventId })}
+                  onEndSession={() => send({ type: "play-day/end" })}
                   onQueuePlayer={id => send({ type: "player/checkin", id })}
                 />
               )}

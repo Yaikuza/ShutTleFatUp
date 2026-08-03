@@ -14,11 +14,12 @@ export function createCourt(id: number): Court {
 }
 
 export const initialState: AppState = {
-  schemaVersion: 2,
+  schemaVersion: 3,
   playDate: bangkokDateKey(),
   activePlayEventId: null,
   players: [],
   queue: [],
+  roomQueue: [],
   courts: [createCourt(1), createCourt(2)],
   round: 1,
   schedule: [],

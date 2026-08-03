@@ -23,12 +23,15 @@ export function normalizeState(state: AppState): AppState {
   const queue = dayChanged
     ? [...validActive]
     : [...new Set(state.queue.filter(id => validActive.has(id) && !onCourt.has(id)))];
+  const roomQueue = [...new Set((state.roomQueue ?? (state.activePlayEventId ? [] : state.queue)).filter(id => state.players.some(player => player.id === id)))];
   return {
     ...state,
+    schemaVersion: 3,
     playDate: today,
     activePlayEventId: dayChanged ? null : state.activePlayEventId ?? null,
     courts,
     queue,
+    roomQueue,
     round: dayChanged ? 1 : state.round,
     schedule: dayChanged ? [] : state.schedule,
     pairGames: dayChanged ? {} : state.pairGames,

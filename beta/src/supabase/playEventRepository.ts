@@ -41,6 +41,11 @@ export type PublicPlayEvent = {
   attendance: EventAttendance[];
 };
 
+export function isPlayEventExpired(event: Pick<PlayEvent, "play_date" | "starts_at" | "ends_at" | "status">, now = new Date()): boolean {
+  if (event.status !== "open") return true;
+  return new Date(`${event.play_date}T${(event.ends_at ?? event.starts_at).slice(0, 8)}+07:00`).getTime() <= now.getTime();
+}
+
 export async function createPlayEvent(
   room: { id: string; code: string },
   input: {

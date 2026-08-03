@@ -8,6 +8,7 @@ export type AppAction =
   | { type: "player/toggle"; id: string }
   | { type: "player/checkin"; id: string }
   | { type: "play-day/select"; eventId: string }
+  | { type: "play-day/end" }
   | { type: "player/level"; id: string; level: PlayerLevel }
   | { type: "queue/shuffle" }
   | { type: "queue/move"; id: string; direction: -1 | 1 }
@@ -66,7 +67,7 @@ function togglePlayerInRound(state: AppState, id: PlayerId, active: boolean): Ap
   const pairGames = Object.fromEntries(
     Object.entries(state.pairGames).filter(([key]) => validPairIds.has(key) && !changedPairIds.has(key))
   );
-  return {
+  const next = {
     ...state,
     players: state.players.map(player => player.id === id ? { ...player, active } : player),
     queue: active
@@ -75,14 +76,24 @@ function togglePlayerInRound(state: AppState, id: PlayerId, active: boolean): Ap
     schedule,
     pairGames
   };
+  return state.activePlayEventId ? next : { ...next, roomQueue: next.queue };
+}
+
+function persistRoomQueue(state: AppState, next: AppState): AppState {
+  return state.activePlayEventId ? next : { ...next, roomQueue: next.queue };
 }
 
 export function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case "state/replace":
       return action.state;
-    case "player/add":
-      return addPlayer(state, action.name);
+    case "player/add": {
+      const next = addPlayer(state, action.name);
+      if (next === state) return next;
+      if (!state.activePlayEventId) return { ...next, roomQueue: next.queue };
+      const added = next.players[next.players.length - 1];
+      return { ...next, players: next.players.map(player => player.id === added.id ? { ...player, active: false } : player), queue: next.queue.filter(id => id !== added.id) };
+    }
     case "player/toggle": {
       if (state.courts.some(court =>
         [...(court.teamA ?? []), ...(court.teamB ?? []), court.liberoA, court.liberoB].includes(action.id)
@@ -100,21 +111,42 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     case "play-day/select":
       return state.activePlayEventId === action.eventId
         ? state
-        : { ...state, activePlayEventId: action.eventId };
+        : {
+            ...state,
+            activePlayEventId: action.eventId,
+            roomQueue: state.roomQueue ?? state.queue,
+            players: state.players.map(player => ({ ...player, active: false })),
+            queue: [],
+            courts: Array.from({ length: state.settings.courtCount }, (_, index) => createCourt(index + 1)),
+            round: 1,
+            schedule: [],
+            pairGames: {}
+          };
+    case "play-day/end":
+      return persistRoomQueue(state, {
+        ...state,
+        activePlayEventId: null,
+        players: state.players.map(player => ({ ...player, active: false })),
+        queue: [],
+        courts: Array.from({ length: state.settings.courtCount }, (_, index) => createCourt(index + 1)),
+        round: 1,
+        schedule: [],
+        pairGames: {}
+      });
     case "player/level":
       return {
         ...state,
         players: state.players.map(player => player.id === action.id ? { ...player, level: action.level } : player)
       };
     case "queue/shuffle":
-      return { ...state, queue: [...state.queue].sort(() => Math.random() - 0.5) };
+      return persistRoomQueue(state, { ...state, queue: [...state.queue].sort(() => Math.random() - 0.5) });
     case "queue/move": {
       const from = state.queue.indexOf(action.id);
       const to = from + action.direction;
       if (from < 0 || to < 0 || to >= state.queue.length) return state;
       const queue = [...state.queue];
       [queue[from], queue[to]] = [queue[to], queue[from]];
-      return { ...state, queue };
+      return persistRoomQueue(state, { ...state, queue });
     }
     case "queue/reorder": {
       const from = state.queue.indexOf(action.fromId);
@@ -123,20 +155,20 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       const queue = [...state.queue];
       const [moved] = queue.splice(from, 1);
       queue.splice(to, 0, moved);
-      return { ...state, queue };
+      return persistRoomQueue(state, { ...state, queue });
     }
     case "queue/clear":
-      return { ...state, queue: [] };
+      return persistRoomQueue(state, { ...state, queue: [] });
     case "player/remove":
       if (state.courts.some(court =>
         [...(court.teamA ?? []), ...(court.teamB ?? []), court.liberoA, court.liberoB].includes(action.id)
       )) return state;
-      return {
+      return persistRoomQueue(state, {
         ...state,
         players: state.players.filter(player => player.id !== action.id),
         queue: state.queue.filter(id => id !== action.id),
         schedule: state.schedule.filter(pair => !pair.members.includes(action.id))
-      };
+      });
     case "round/start":
       return startRound(state);
     case "court/fill":
@@ -169,13 +201,14 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       };
     }
     case "session/reset":
-      return {
+      return persistRoomQueue(state, {
         ...structuredClone(initialState),
         players: state.players,
-        queue: state.players.filter(player => player.active).map(player => player.id),
+        queue: state.roomQueue ?? state.players.filter(player => player.active).map(player => player.id),
+        roomQueue: state.roomQueue ?? state.players.filter(player => player.active).map(player => player.id),
         courts: Array.from({ length: state.settings.courtCount }, (_, index) => createCourt(index + 1)),
         settings: state.settings
-      };
+      });
     default:
       return state;
   }

@@ -97,7 +97,20 @@ describe("appReducer session controls", () => {
   it("selects the play event used as the current match session", () => {
     const selected = appReducer(state, { type: "play-day/select", eventId: "event-1" });
     expect(selected.activePlayEventId).toBe("event-1");
+    expect(selected.queue).toEqual([]);
+    expect(selected.players.every(player => !player.active)).toBe(true);
+    expect(selected.roomQueue).toEqual(state.queue);
     expect(appReducer(selected, { type: "play-day/select", eventId: "event-1" })).toBe(selected);
+  });
+
+  it("ends an event session without deleting players or history", () => {
+    const session = appReducer(state, { type: "play-day/select", eventId: "event-1" });
+    const ended = appReducer(session, { type: "play-day/end" });
+    expect(ended.activePlayEventId).toBeNull();
+    expect(ended.queue).toEqual([]);
+    expect(ended.players).toEqual(state.players.map(player => ({ ...player, active: false })));
+    expect(ended.history).toEqual(state.history);
+    expect(ended.roomQueue).toEqual(state.queue);
   });
 
   it("returns players when reducing the number of courts", () => {

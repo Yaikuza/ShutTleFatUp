@@ -204,6 +204,7 @@ begin
   where public_code = upper(p_public_code) and status = 'open'
   for update;
   if target_event.id is null then raise exception 'Event not found or closed'; end if;
+  if (target_event.play_date + coalesce(target_event.ends_at, target_event.starts_at)) <= (now() at time zone 'Asia/Bangkok') then raise exception 'Event has ended'; end if;
 
   select * into target_room from public.rooms where id = target_event.room_id;
   select player into selected_player
@@ -265,7 +266,10 @@ begin
   if p_check_in and target_event.checkin_mode = 'auto' then
     update public.rooms
     set state = jsonb_set(
-      state,
+      jsonb_set(state, '{players}', coalesce((
+        select jsonb_agg(case when player ->> 'id' = p_player_id then player || '{"active": true}'::jsonb else player end)
+        from jsonb_array_elements(state -> 'players') player
+      ), '[]'::jsonb)),
       '{queue}',
       case when coalesce(state -> 'queue', '[]'::jsonb) ? p_player_id
         then coalesce(state -> 'queue', '[]'::jsonb)
@@ -287,6 +291,7 @@ begin
   if char_length(clean_name) < 1 or char_length(clean_name) > 80 then raise exception 'กรุณาใส่ชื่อ 1-80 ตัวอักษร'; end if;
   select * into target_event from public.play_events where public_code = upper(p_public_code) and status = 'open' for update;
   if target_event.id is null then raise exception 'Event not found or closed'; end if;
+  if (target_event.play_date + coalesce(target_event.ends_at, target_event.starts_at)) <= (now() at time zone 'Asia/Bangkok') then raise exception 'Event has ended'; end if;
   if exists (select 1 from public.play_event_attendance where event_id = target_event.id and lower(trim(player_name)) = lower(clean_name) and response <> 'cancelled') then
     raise exception 'ชื่อนี้ลงทะเบียนแล้ว';
   end if;
@@ -361,6 +366,7 @@ begin
     and exists (
       select 1 from public.play_events
       where play_events.id = p_event_id and play_events.room_id = p_room_id
+        and (play_events.play_date + coalesce(play_events.ends_at, play_events.starts_at)) > (now() at time zone 'Asia/Bangkok')
     )
   returning * into updated_attendance;
 

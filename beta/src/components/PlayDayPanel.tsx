@@ -8,6 +8,7 @@ import {
   listPlayEvents,
   markAttendanceQueued,
   subscribeToEventAttendance,
+  isPlayEventExpired,
   type EventAttendance,
   type PlayEvent
 } from "../supabase/playEventRepository";
@@ -24,11 +25,13 @@ export function PlayDayPanel({
   room,
   activeEventId,
   onActivateEvent,
+  onEndSession,
   onQueuePlayer
 }: {
   room: { id: string; code: string } | null;
   activeEventId: string | null;
   onActivateEvent: (eventId: string) => Promise<void>;
+  onEndSession: () => Promise<void>;
   onQueuePlayer: (playerId: string) => Promise<void>;
 }) {
   const [events, setEvents] = useState<PlayEvent[]>([]);
@@ -49,6 +52,7 @@ export function PlayDayPanel({
   });
 
   const selected = events.find(event => event.id === selectedId) ?? events[0] ?? null;
+  const selectedExpired = selected ? isPlayEventExpired(selected) : false;
 
   const loadEvents = async () => {
     if (!room) return;
@@ -119,7 +123,7 @@ export function PlayDayPanel({
   };
 
   const queuePlayer = async (item: EventAttendance) => {
-    if (!room || !selected || busyPlayer) return;
+    if (!room || !selected || selectedExpired || busyPlayer) return;
     setBusyPlayer(item.player_id);
     try {
       if (activeEventId !== selected.id) await onActivateEvent(selected.id);
@@ -173,20 +177,24 @@ export function PlayDayPanel({
       )}
 
       {selected && (
-        <div className="play-event-summary">
-          <div><strong>{selected.title}</strong><span>{selected.play_date} · {selected.starts_at.slice(0, 5)}{selected.location ? ` · ${selected.location}` : ""}</span></div>
-          <div className="play-event-actions">
-            <button
-              className={activeEventId === selected.id ? "session-active" : "ghost"}
-              disabled={activeEventId === selected.id}
-              onClick={() => void onActivateEvent(selected.id)}
-            >
-              {activeEventId === selected.id ? "Session สนาม ✓" : "ใช้เป็น Session"}
-            </button>
-            <button className="round-button" onClick={() => void share()}>แชร์ไป LINE</button>
-            <button className="ghost" disabled title="ยังไม่มีบัญชีผู้รับเงิน">QR ชำระเงิน (รอบัญชีผู้รับ)</button>
+        <>
+          <div className="play-event-summary">
+            <div><strong>{selected.title}</strong><span>{selected.play_date} · {selected.starts_at.slice(0, 5)}{selected.location ? ` · ${selected.location}` : ""} · Session {selected.public_code}</span></div>
+            <div className="play-event-actions">
+              <button
+                className={activeEventId === selected.id ? "session-active" : "ghost"}
+                disabled={activeEventId === selected.id || selectedExpired}
+                onClick={() => void onActivateEvent(selected.id)}
+              >
+                {activeEventId === selected.id ? "Session สนาม ✓" : "ใช้เป็น Session"}
+              </button>
+              <button className="round-button" onClick={() => void share()}>แชร์ไป LINE</button>
+              <button className="ghost" disabled title="ยังไม่มีบัญชีผู้รับเงิน">QR ชำระเงิน (รอบัญชีผู้รับ)</button>
+              {activeEventId === selected.id && <button className="ghost danger" onClick={() => void onEndSession()}>จบ Session</button>}
+            </div>
           </div>
-        </div>
+          {selectedExpired && <p className="play-event-message">กิจกรรมจบแล้ว · การเช็กอินและเข้าคิวถูกปิด</p>}
+        </>
       )}
 
       {selected && (
@@ -198,7 +206,7 @@ export function PlayDayPanel({
                 <b>{item.player_name}</b>
                 {item.queued_at
                   ? <span>{item.guest_fee_baht ? `100 บาท · ${item.payment_status === "confirmed" ? "รับเงินแล้ว" : "รอยืนยันเงิน"}` : "เข้าคิวแล้ว"}</span>
-                  : <button disabled={Boolean(busyPlayer)} onClick={() => void queuePlayer(item)}>{item.is_guest ? "อนุมัติ + เข้าคิว" : "เข้าคิว"}</button>}
+                  : <button disabled={selectedExpired || Boolean(busyPlayer)} onClick={() => void queuePlayer(item)}>{item.is_guest ? "อนุมัติ + เข้าคิว" : "เข้าคิว"}</button>}
                 {item.guest_fee_baht > 0 && item.payment_status === "pending" && <button disabled={Boolean(busyPlayer)} onClick={() => void confirmPayment(item)}>ยืนยันเงิน</button>}
               </div>
             ))}
