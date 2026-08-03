@@ -178,7 +178,11 @@ export function PublicEventPage({ publicCode }: { publicCode: string }) {
           {!activeAttendance.length && <p className="muted">ยังไม่มีผู้ลงชื่อ</p>}
         </div>
       </section>
-      <a className="event-admin-link" href="./">เปิดหน้าควบคุมสนาม</a>
+      <a className="event-admin-cta" href="./" aria-label="เปิดหน้าควบคุมสนามสำหรับผู้จัด">
+        <span aria-hidden="true">🎛</span>
+        <span><b>สำหรับผู้จัด: เปิดหน้าควบคุมสนาม</b><small>จัดคิว เช็กอิน และเริ่ม Session</small></span>
+        <i aria-hidden="true">→</i>
+      </a>
     </main>
   );
 }

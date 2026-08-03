@@ -126,7 +126,17 @@ body {
 .event-roster-list .arrived { border: 1px solid rgba(85,214,155,.22); background: rgba(85,214,155,.08); }
 .event-roster-list .arrived i { background: #55d69b; color: #12382b; }
 .event-roster-list .maybe { opacity: .72; }
-.event-admin-link { justify-self: center; padding: 10px; color: var(--muted-text); font-size: .75rem; }
+.event-admin-cta {
+  display: flex; align-items: center; gap: 11px; width: 100%; box-sizing: border-box;
+  padding: 14px 16px; border: 1px solid rgba(242,184,75,.58); border-radius: 15px;
+  background: linear-gradient(135deg, #f2b84b, #e79b35); color: #18362e; text-decoration: none;
+  box-shadow: 0 10px 24px rgba(0,0,0,.18);
+}
+.event-admin-cta > span:first-child { font-size: 1.45rem; }
+.event-admin-cta > span:nth-child(2) { display: grid; gap: 2px; flex: 1; }
+.event-admin-cta b { font-size: .88rem; }
+.event-admin-cta small { font-size: .7rem; opacity: .78; }
+.event-admin-cta i { font-style: normal; font-size: 1.2rem; font-weight: 900; }
 .event-loading, .event-error { align-self: center; margin-top: 20vh; text-align: center; }
 button, input, select { font: inherit; }
 button { cursor: pointer; }
@@ -560,6 +570,8 @@ form button { background: #f2b84b; color: #18362e; border: 0; }
 @keyframes toast-in { from { opacity: 0; transform: translateY(12px); } }
 
 @media (max-width: 760px) {
+  .event-page { padding-bottom: 92px; }
+  .event-admin-cta { position: sticky; bottom: 10px; z-index: 5; }
   .app-shell { padding-top: 0; padding-bottom: calc(104px + env(safe-area-inset-bottom)); }
   .topbar, .topbar.is-compact {
     min-height: calc(58px + env(safe-area-inset-top)); margin-inline: -14px;
