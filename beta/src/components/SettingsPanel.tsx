@@ -104,6 +104,11 @@ export function SettingsPanel({
           <option value="2">2</option><option value="3">3</option>
         </select>
       </label>
+      <label>
+        <span>พร้อมเพย์ผู้รับเงิน Guest</span>
+        <input inputMode="numeric" value={settings.promptPayRecipient} placeholder="มือถือ 10 หลัก หรือบัตร 13 หลัก" onChange={event => onSettingsChange({ promptPayRecipient: event.target.value.replace(/\D/g, "").slice(0, 13) })} />
+        <small>เว้นว่างไว้เพื่อปิด QR จนกว่าผู้จัดจะตั้งค่าผู้รับเงิน</small>
+      </label>
       <div className="data-actions">
         <button className="ghost" onClick={onExport}>Export</button>
         <label className="ghost file-button">

@@ -46,8 +46,8 @@ export function PlayDayPanel({
   const [form, setForm] = useState({
     title: "ตีแบดประจำสัปดาห์",
     playDate: bangkokDateKey(),
-    startsAt: "19:00",
-    endsAt: "22:00",
+    startsAt: "18:00",
+    endsAt: "20:00",
     location: "",
     capacity: "",
     checkinMode: "manual" as "manual" | "auto"
@@ -205,14 +205,14 @@ export function PlayDayPanel({
 
       {events.length > 0 && (
         <select className="play-event-select" value={selected?.id ?? ""} onChange={event => setSelectedId(event.target.value)}>
-          {events.map(item => <option value={item.id} key={item.id}>{item.play_date} · {item.title}</option>)}
+          {events.map(item => <option value={item.id} key={item.id}>{item.play_date} · {item.title} · {item.location || "ยังไม่ระบุสนาม"} · {item.public_code}</option>)}
         </select>
       )}
 
       {selected && (
         <>
           <div className="play-event-summary">
-            <div><strong>{selected.title}</strong><span>{selected.play_date} · {selected.starts_at.slice(0, 5)}{selected.location ? ` · ${selected.location}` : ""} · Session {selected.public_code}</span></div>
+            <div><strong>{selected.title}</strong><span>{selected.play_date} · {selected.starts_at.slice(0, 5)} · สนาม: {selected.location || "ยังไม่ระบุ"} · Session: {selected.public_code}</span></div>
             <div className="play-event-actions">
               <button
                 className={activeEventId === selected.id ? "session-active" : "ghost"}

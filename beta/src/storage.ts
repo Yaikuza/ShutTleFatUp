@@ -26,6 +26,7 @@ export function normalizeState(state: AppState): AppState {
   const roomQueue = [...new Set((state.roomQueue ?? (state.activePlayEventId ? [] : state.queue)).filter(id => state.players.some(player => player.id === id)))];
   return {
     ...state,
+    players: state.players.map(player => ({ ...player, member: player.member ?? true })),
     schemaVersion: 3,
     playDate: today,
     activePlayEventId: dayChanged ? null : state.activePlayEventId ?? null,
@@ -57,7 +58,8 @@ export function loadState(): AppState {
       id: name,
       name,
       level: (source.playerLevel?.[name] ?? "human") as PlayerLevel,
-      active: source.pool?.[name] !== false
+      active: source.pool?.[name] !== false,
+      member: true
     }));
     return normalizeState({
       ...structuredClone(initialState),

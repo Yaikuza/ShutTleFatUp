@@ -162,6 +162,7 @@ stable
 as $$
   select jsonb_build_object(
     'event', to_jsonb(play_events),
+    'promptpay_recipient', nullif(rooms.state -> 'settings' ->> 'promptPayRecipient', ''),
     'players', coalesce((
       select jsonb_agg(jsonb_build_object(
         'id', player ->> 'id',
@@ -304,9 +305,12 @@ $$;
 
 create or replace function public.approve_event_guest(p_room_id uuid, p_event_id uuid, p_guest_id text)
 returns public.play_event_attendance language plpgsql security definer set search_path = public as $$
-declare guest public.play_event_attendance; target_room public.rooms; new_id text; new_player jsonb;
+declare guest public.play_event_attendance; target_room public.rooms; target_event public.play_events; new_id text; new_player jsonb;
 begin
   if not exists (select 1 from public.room_members where room_id = p_room_id and user_id = auth.uid()) then raise exception 'Room membership required'; end if;
+  select * into target_event from public.play_events where id = p_event_id and room_id = p_room_id for update;
+  if target_event.id is null then raise exception 'Event not found'; end if;
+  if (target_event.play_date + coalesce(target_event.ends_at, target_event.starts_at)) <= (now() at time zone 'Asia/Bangkok') then raise exception 'Event has ended'; end if;
   select * into guest from public.play_event_attendance where event_id = p_event_id and player_id = p_guest_id and is_guest for update;
   if guest.event_id is null then raise exception 'Guest not found'; end if;
   select * into target_room from public.rooms where id = p_room_id for update;
@@ -324,11 +328,14 @@ $$;
 
 create or replace function public.confirm_guest_payment(p_room_id uuid, p_event_id uuid, p_player_id text)
 returns public.play_event_attendance language plpgsql security definer set search_path = public as $$
-declare updated_attendance public.play_event_attendance;
+declare updated_attendance public.play_event_attendance; target_event public.play_events;
 begin
   if not exists (select 1 from public.room_members where room_id = p_room_id and user_id = auth.uid()) then
     raise exception 'Room membership required';
   end if;
+  select * into target_event from public.play_events where id = p_event_id and room_id = p_room_id for update;
+  if target_event.id is null then raise exception 'Event not found'; end if;
+  if (target_event.play_date + coalesce(target_event.ends_at, target_event.starts_at)) <= (now() at time zone 'Asia/Bangkok') then raise exception 'Event has ended'; end if;
   update public.play_event_attendance
   set payment_status = 'confirmed', updated_at = now()
   where event_id = p_event_id and player_id = p_player_id and guest_fee_baht = 100 and payment_status = 'pending'
@@ -399,3 +406,6 @@ begin
   alter publication supabase_realtime add table public.play_event_attendance;
 exception when duplicate_object then null;
 end $$;
+
+-- Make newly created/replaced RPC signatures visible to PostgREST immediately.
+notify pgrst, 'reload schema';

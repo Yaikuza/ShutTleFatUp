@@ -252,7 +252,6 @@ export default function App() {
         </div>
         <div className="mini-header" aria-hidden={!headerCompact}>
           <span>รอบ <b>{state.round}</b></span>
-          <span>คิว <b>{state.queue.length}</b></span>
           <span className={`mini-sync sync-${roomSync.status}`}>
             {roomSync.room ? roomSync.room.code : roomSync.status}
           </span>
@@ -277,7 +276,6 @@ export default function App() {
       <section className="summary">
         <div><span>รอบ</span><strong>{state.round}</strong></div>
         <div><span>ผู้เล่น active</span><strong>{activeCount}</strong></div>
-        <div><span>ในคิว</span><strong>{state.queue.length}</strong></div>
         <button className="round-button" onClick={() => send({ type: "round/start" })}>
           สร้างรอบใหม่
         </button>

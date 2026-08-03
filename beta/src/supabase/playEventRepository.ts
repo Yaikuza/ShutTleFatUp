@@ -39,6 +39,7 @@ export type PublicPlayEvent = {
   event: PlayEvent;
   players: EventPlayer[];
   attendance: EventAttendance[];
+  promptpay_recipient?: string | null;
 };
 
 export function isPlayEventExpired(event: Pick<PlayEvent, "play_date" | "starts_at" | "ends_at" | "status">, now = new Date()): boolean {

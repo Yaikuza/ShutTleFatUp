@@ -8,6 +8,7 @@ export type Player = {
   name: string;
   level: PlayerLevel;
   active: boolean;
+  member?: boolean;
 };
 
 export type Pair = {
@@ -47,6 +48,7 @@ export type Settings = {
   theme: "light" | "dark" | "pastel" | "sepia" | "luxury" | "metallic";
   courtColor: string;
   courtColumns: 0 | 1 | 2 | 3;
+  promptPayRecipient: string;
 };
 
 export type AppState = {

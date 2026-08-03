@@ -33,6 +33,7 @@ export const initialState: AppState = {
     lowPlayerThreshold: 6,
     theme: "dark",
     courtColor: "#2d8a4e",
-    courtColumns: 0
+    courtColumns: 0,
+    promptPayRecipient: ""
   }
 };

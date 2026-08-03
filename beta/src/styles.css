@@ -113,6 +113,7 @@ body {
 }
 .event-response-actions .cancel { color: #ff8a7f; }
 .event-note { margin: 0; color: var(--muted-text); font-size: .78rem; }
+.guest-payment-qr { display: block; width: min(220px, 100%); margin: 10px auto; border-radius: 14px; background: #fff; padding: 8px; }
 .event-note.error { color: #ff8a7f; }
 .event-roster > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .event-roster > header > span { color: #55d69b; font-size: .78rem; font-weight: 900; }

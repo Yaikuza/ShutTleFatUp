@@ -22,6 +22,11 @@ function shortTime(value: string | null): string {
   return value ? value.slice(0, 5) : "";
 }
 
+function promptPayQr(recipient: string, amount: number): string | null {
+  const digits = recipient.replace(/\D/g, "");
+  return /^(0\d{9}|\d{13})$/.test(digits) ? `https://promptpay.io/${digits}/${amount}.png` : null;
+}
+
 function errorMessage(caught: unknown, fallback: string): string {
   if (caught && typeof caught === "object" && "message" in caught && typeof caught.message === "string") {
     return caught.message;
@@ -113,6 +118,8 @@ export function PublicEventPage({ publicCode }: { publicCode: string }) {
   const checkedIn = activeAttendance.filter(item => item.checked_in_at);
   const full = Boolean(data.event.capacity && going.length >= data.event.capacity && selected?.response !== "going");
   const expired = isPlayEventExpired(data.event);
+  const qrUrl = selected?.guest_fee_baht === 100 && selected.payment_status === "pending" && data.promptpay_recipient
+    ? promptPayQr(data.promptpay_recipient, 100) : null;
 
   return (
     <main className="event-page">
@@ -154,7 +161,7 @@ export function PublicEventPage({ publicCode }: { publicCode: string }) {
         </div>
         {expired && <p className="event-note">กิจกรรมจบแล้ว ไม่สามารถลงชื่อหรือเช็กอินได้</p>}
         {full && <p className="event-note">รายชื่อเต็มแล้ว กรุณาเลือก “อาจจะมา” หรือติดต่อผู้จัด</p>}
-        {selected?.guest_fee_baht ? <p className="event-note">ค่า Guest {selected.guest_fee_baht} บาท · สถานะการชำระเงิน: {selected.payment_status === "confirmed" ? "ยืนยันแล้ว" : "รอผู้จัดยืนยัน"}</p> : null}
+        {selected?.guest_fee_baht ? <div className="event-note"><p>ค่า Guest {selected.guest_fee_baht} บาท · สถานะการชำระเงิน: {selected.payment_status === "confirmed" ? "ยืนยันแล้ว" : "รอผู้จัดยืนยัน"}</p>{selected.payment_status === "pending" && (qrUrl ? <><img className="guest-payment-qr" src={qrUrl} alt="QR พร้อมเพย์ชำระค่า Guest 100 บาท" /><p>สแกนจ่าย 100 บาท แล้วรอผู้จัดยืนยัน</p></> : <p>ผู้จัดยังไม่ได้ตั้งค่าบัญชีพร้อมเพย์ จึงยังแสดง QR ไม่ได้</p>)}</div> : null}
         {error && <p className="event-note error" role="alert">{error}</p>}
         <form className="guest-signup" onSubmit={registerGuest}>
           <label>ไม่พบชื่อของฉัน<input value={guestName} onChange={event => setGuestName(event.target.value)} placeholder="ชื่อที่ใช้ในวันนี้" maxLength={80} /></label>

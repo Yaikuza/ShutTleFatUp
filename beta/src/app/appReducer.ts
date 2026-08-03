@@ -10,6 +10,7 @@ export type AppAction =
   | { type: "play-day/select"; eventId: string; queuedPlayerIds?: PlayerId[] }
   | { type: "play-day/end" }
   | { type: "player/level"; id: string; level: PlayerLevel }
+  | { type: "player/member"; id: string; member: boolean }
   | { type: "queue/shuffle" }
   | { type: "queue/move"; id: string; direction: -1 | 1 }
   | { type: "queue/reorder"; fromId: string; toId: string }
@@ -146,6 +147,8 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         players: state.players.map(player => player.id === action.id ? { ...player, level: action.level } : player)
       };
+    case "player/member":
+      return { ...state, players: state.players.map(player => player.id === action.id ? { ...player, member: action.member } : player) };
     case "queue/shuffle":
       return persistRoomQueue(state, { ...state, queue: [...state.queue].sort(() => Math.random() - 0.5) });
     case "queue/move": {
