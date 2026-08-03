@@ -83,6 +83,10 @@ function persistRoomQueue(state: AppState, next: AppState): AppState {
   return state.activePlayEventId ? next : { ...next, roomQueue: next.queue };
 }
 
+function preservedRoomQueue(state: AppState): PlayerId[] {
+  return state.activePlayEventId ? (state.roomQueue ?? []) : (state.roomQueue?.length ? state.roomQueue : state.queue);
+}
+
 export function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case "state/replace":
@@ -114,7 +118,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         : {
             ...state,
             activePlayEventId: action.eventId,
-            roomQueue: state.roomQueue ?? state.queue,
+            roomQueue: preservedRoomQueue(state),
             players: state.players.map(player => ({ ...player, active: false })),
             queue: [],
             courts: Array.from({ length: state.settings.courtCount }, (_, index) => createCourt(index + 1)),
@@ -204,8 +208,8 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return persistRoomQueue(state, {
         ...structuredClone(initialState),
         players: state.players,
-        queue: state.roomQueue ?? state.players.filter(player => player.active).map(player => player.id),
-        roomQueue: state.roomQueue ?? state.players.filter(player => player.active).map(player => player.id),
+        queue: preservedRoomQueue(state).length ? preservedRoomQueue(state) : state.players.filter(player => player.active).map(player => player.id),
+        roomQueue: preservedRoomQueue(state).length ? preservedRoomQueue(state) : state.players.filter(player => player.active).map(player => player.id),
         courts: Array.from({ length: state.settings.courtCount }, (_, index) => createCourt(index + 1)),
         settings: state.settings
       });
