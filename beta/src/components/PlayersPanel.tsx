@@ -41,7 +41,7 @@ export function PlayersPanel({ players, busyIds, onAction, onDelete }: PlayersPa
             />
             <strong>{player.name}</strong>
             <button className="ghost compact" onClick={() => onAction({ type: "player/member", id: player.id, member: !player.member })}>
-              {player.member ? "สมาชิก" : "ไม่ใช่สมาชิก"}
+              {player.member ? "Member" : "Guest"}
             </button>
             <button className="ghost compact" onClick={() => onAction({ type: "player/toggle", id: player.id })}>
               {player.active ? "พัก" : "เปิด"}
