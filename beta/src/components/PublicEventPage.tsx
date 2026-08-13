@@ -49,7 +49,8 @@ export function PublicEventPage({ publicCode }: { publicCode: string }) {
       const next = await getPublicPlayEvent(publicCode);
       setData(next);
       setError("");
-      if (playerId && !next.players.some(player => player.id === playerId)) {
+      if (playerId && !next.players.some(player => player.id === playerId)
+        && !next.attendance.some(item => item.player_id === playerId)) {
         setPlayerId("");
         localStorage.removeItem(playerKey);
       }

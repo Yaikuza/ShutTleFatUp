@@ -225,6 +225,15 @@ begin
   select player into selected_player
   from jsonb_array_elements(target_room.state -> 'players') player
   where player ->> 'id' = p_player_id;
+  if selected_player is null then
+    select jsonb_build_object('id', player_id, 'name', player_name)
+      into selected_player
+    from public.play_event_attendance
+    where event_id = target_event.id
+      and player_id = p_player_id
+      and is_guest = true
+      and user_id = auth.uid();
+  end if;
   if selected_player is null then raise exception 'Player not found'; end if;
 
   if exists (
