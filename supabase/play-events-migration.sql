@@ -175,6 +175,7 @@ stable
 as $$
   select jsonb_build_object(
     'event', to_jsonb(play_events),
+    'room_code', rooms.code,
     'promptpay_recipient', nullif(rooms.state -> 'settings' ->> 'promptPayRecipient', ''),
     'players', coalesce((
       select jsonb_agg(jsonb_build_object(

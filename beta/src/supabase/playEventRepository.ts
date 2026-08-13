@@ -37,6 +37,7 @@ export type EventPlayer = { id: string; name: string };
 
 export type PublicPlayEvent = {
   event: PlayEvent;
+  room_code?: string;
   players: EventPlayer[];
   attendance: EventAttendance[];
   promptpay_recipient?: string | null;

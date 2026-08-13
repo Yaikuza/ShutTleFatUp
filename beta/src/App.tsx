@@ -30,6 +30,7 @@ export default function App() {
   const [sheetClosing, setSheetClosing] = useState(false);
   const undoStack = useRef<AppState[]>([]);
   const inviteJoinAttempted = useRef(false);
+  const inviteEventAttempted = useRef(false);
   const sheetCloseTimer = useRef<number | null>(null);
   const roomSync = useRoomSync(state, dispatch);
 
@@ -122,6 +123,12 @@ export default function App() {
     inviteJoinAttempted.current = true;
     void roomSync.joinRoom(inviteCode);
   }, [roomSync.configured, roomSync.room?.code]);
+  useEffect(() => {
+    const eventId = new URLSearchParams(window.location.search).get("event");
+    if (!eventId || !roomSync.room || state.activePlayEventId === eventId || inviteEventAttempted.current) return;
+    inviteEventAttempted.current = true;
+    void roomSync.submitAction({ type: "play-day/select", eventId });
+  }, [roomSync.room?.id, state.activePlayEventId]);
 
   const askConfirm = (message: string, run: () => void) =>
     setConfirmAction({ message, run });
