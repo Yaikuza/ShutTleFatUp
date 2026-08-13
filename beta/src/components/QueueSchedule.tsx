@@ -67,6 +67,9 @@ export function QueueSchedule({ state, playerName, onAction }: QueueScheduleProp
             <p className="eyebrow">Round schedule</p>
             <h2>คู่รอบ {state.round}</h2>
           </div>
+          <button className="round-button compact" onClick={() => onAction({ type: "round/start" })}>
+            สร้างรอบใหม่
+          </button>
         </div>
         <div className="pair-list">
           {state.schedule.map(pair => {

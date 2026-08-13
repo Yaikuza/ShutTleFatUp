@@ -280,14 +280,6 @@ export default function App() {
       </header>
 
       {settingsOpen && !isMobile && settingsPanel}
-      <section className="summary">
-        <div><span>รอบ</span><strong>{state.round}</strong></div>
-        <div><span>ผู้เล่น active</span><strong>{activeCount}</strong></div>
-        <button className="round-button" onClick={() => send({ type: "round/start" })}>
-          สร้างรอบใหม่
-        </button>
-      </section>
-
       <CourtsGrid
         state={state}
         saving={roomSync.status === "saving"}

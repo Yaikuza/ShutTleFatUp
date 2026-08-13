@@ -143,7 +143,7 @@ button, input, select { font: inherit; }
 button { cursor: pointer; }
 button:disabled { cursor: default; opacity: .35; }
 .app-shell { width: min(1180px, calc(100% - 28px)); margin: 0 auto; padding: 36px 0 80px; }
-.topbar, .panel-heading, .court-card > header, .summary, .history-row {
+.topbar, .panel-heading, .court-card > header, .history-row {
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
 }
 .topbar {
@@ -207,12 +207,10 @@ button:disabled { cursor: default; opacity: .35; }
 }
 [data-theme="luxury"] .settings-panel,
 [data-theme="luxury"] .panel,
-[data-theme="luxury"] .court-card,
-[data-theme="luxury"] .summary { box-shadow: 0 24px 80px rgba(0,0,0,.42), inset 0 1px rgba(255,224,148,.035); }
+[data-theme="luxury"] .court-card { box-shadow: 0 24px 80px rgba(0,0,0,.42), inset 0 1px rgba(255,224,148,.035); }
 [data-theme="metallic"] .settings-panel,
 [data-theme="metallic"] .panel,
-[data-theme="metallic"] .court-card,
-[data-theme="metallic"] .summary { box-shadow: 0 24px 80px rgba(4,10,14,.34), inset 0 1px rgba(255,255,255,.07); }
+[data-theme="metallic"] .court-card { box-shadow: 0 24px 80px rgba(4,10,14,.34), inset 0 1px rgba(255,255,255,.07); }
 .sync-badge {
   display: inline-flex; align-items: center; padding: 8px 11px; border-radius: 999px;
   background: var(--surface-soft); color: var(--muted-text); font-size: .75rem; text-transform: uppercase;
@@ -226,7 +224,7 @@ button:disabled { cursor: default; opacity: .35; }
 }
 .link { text-decoration: none; }
 .compact { padding: 7px 11px; font-size: .84rem; }
-.settings-panel, .panel, .court-card, .summary {
+.settings-panel, .panel, .court-card {
   border: 1px solid var(--line); background: var(--surface);
   box-shadow: 0 24px 80px rgba(0,0,0,.16); backdrop-filter: blur(12px);
 }
@@ -277,12 +275,6 @@ button:disabled { cursor: default; opacity: .35; }
 .room-actions input {
   width: 130px; text-transform: uppercase; letter-spacing: .14em; text-align: center;
 }
-.summary {
-  margin-top: 28px; padding: 14px; border-radius: 20px;
-}
-.summary div { display: flex; align-items: baseline; gap: 12px; padding: 8px 16px; }
-.summary span { color: var(--muted-text); }
-.summary strong { color: #f2b84b; font-size: 1.8rem; }
 .round-button { margin-left: auto; background: #f2b84b; color: #18362e; border: 0; }
 .courts-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
 .court-card { overflow: hidden; min-height: 310px; border-radius: 24px; }
@@ -635,8 +627,6 @@ form button { background: #f2b84b; color: #18362e; border: 0; }
   .play-event-actions button, .play-event-summary .round-button { width: 100%; }
   .room-settings, .room-actions { align-items: stretch; flex-direction: column; }
   .room-actions input { width: 100%; }
-  .summary { display: grid; grid-template-columns: repeat(3, 1fr); }
-  .summary div { display: grid; gap: 0; padding: 5px; text-align: center; }
   .round-button { grid-column: 1 / -1; width: 100%; margin: 0; }
   .court-card { min-height: 300px; }
   .court-floor { margin-inline: 8px; }
