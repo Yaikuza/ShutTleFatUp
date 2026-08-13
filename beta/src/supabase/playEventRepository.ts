@@ -57,6 +57,7 @@ export async function createPlayEvent(
     location: string;
     capacity?: number;
     checkinMode?: "manual" | "auto";
+    autoIncludeMembers?: boolean;
   }
 ): Promise<PlayEvent> {
   if (!supabase) throw new Error("Supabase is not configured");
@@ -70,7 +71,8 @@ export async function createPlayEvent(
     p_ends_at: input.endsAt || null,
     p_location: input.location,
     p_capacity: input.capacity ?? null,
-    p_checkin_mode: input.checkinMode ?? "manual"
+    p_checkin_mode: input.checkinMode ?? "manual",
+    p_auto_include_members: input.autoIncludeMembers ?? true
   }).single();
   if (error) throw error;
   return data as PlayEvent;

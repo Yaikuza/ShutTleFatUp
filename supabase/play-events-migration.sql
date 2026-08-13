@@ -131,12 +131,13 @@ create or replace function public.create_play_event_with_mode(
   p_ends_at time default null,
   p_location text default '',
   p_capacity integer default null,
-  p_checkin_mode text default 'manual'
+  p_checkin_mode text default 'manual',
+  p_auto_include_members boolean default true
 )
 returns public.play_events
 language plpgsql security definer set search_path = public
 as $$
-declare created_event public.play_events; code text;
+declare created_event public.play_events; code text; member jsonb; included_count integer := 0;
 begin
   if p_checkin_mode not in ('manual', 'auto') then raise exception 'Invalid check-in mode'; end if;
   if not exists (select 1 from public.room_members where room_id = p_room_id and user_id = auth.uid()) then
@@ -149,6 +150,18 @@ begin
   insert into public.play_events (room_id, public_code, title, play_date, starts_at, ends_at, location, capacity, checkin_mode, created_by)
   values (p_room_id, code, trim(p_title), p_play_date, p_starts_at, p_ends_at, coalesce(trim(p_location), ''), p_capacity, p_checkin_mode, auth.uid())
   returning * into created_event;
+  if p_auto_include_members then
+    for member in select player from jsonb_array_elements((select state -> 'players' from public.rooms where id = p_room_id)) player
+    loop
+      exit when p_capacity is not null and included_count >= p_capacity;
+      if coalesce((member ->> 'active')::boolean, true) and nullif(member ->> 'id', '') is not null then
+        insert into public.play_event_attendance (event_id, player_id, player_name, response, user_id)
+        values (created_event.id, member ->> 'id', coalesce(member ->> 'name', member ->> 'id'), 'going', auth.uid())
+        on conflict (event_id, player_id) do nothing;
+        included_count := included_count + 1;
+      end if;
+    end loop;
+  end if;
   return created_event;
 end;
 $$;
@@ -388,6 +401,7 @@ revoke all on function public.set_public_play_attendance(text, text, text, boole
 revoke all on function public.mark_play_attendance_queued(uuid, uuid, text) from public;
 grant execute on function public.create_play_event(uuid, text, date, time, time, text, integer) to authenticated;
 grant execute on function public.create_play_event_with_mode(uuid, text, date, time, time, text, integer, text) to authenticated;
+grant execute on function public.create_play_event_with_mode(uuid, text, date, time, time, text, integer, text, boolean) to authenticated;
 grant execute on function public.get_public_play_event(text) to authenticated;
 grant execute on function public.set_public_play_attendance(text, text, text, boolean) to authenticated;
 grant execute on function public.mark_play_attendance_queued(uuid, uuid, text) to authenticated;

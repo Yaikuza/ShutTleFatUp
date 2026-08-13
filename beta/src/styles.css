@@ -419,6 +419,10 @@ button:disabled { cursor: default; opacity: .35; }
   background: var(--field-bg); color: var(--field-text);
 }
 .play-event-create .round-button { grid-column: 1 / -1; justify-self: start; margin: 0; }
+.play-event-checkbox { grid-column: 1 / -1; display: flex !important; grid-template-columns: auto 1fr; align-items: flex-start; gap: 8px !important; }
+.play-event-checkbox input { width: 18px; height: 18px; margin-top: 2px; }
+.play-event-checkbox span { color: inherit; font-weight: 800; }
+.play-event-checkbox small { font-weight: 400; }
 .play-event-message { margin: 10px 0 0; color: #ff8a7f; font-size: .75rem; }
 .play-event-message.success { color: #55d69b; }
 form { display: flex; gap: 8px; }

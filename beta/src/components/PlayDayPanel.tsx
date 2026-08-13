@@ -50,7 +50,8 @@ export function PlayDayPanel({
     endsAt: "20:00",
     location: "",
     capacity: "",
-    checkinMode: "manual" as "manual" | "auto"
+    checkinMode: "manual" as "manual" | "auto",
+    autoIncludeMembers: true
   });
 
   const selected = events.find(event => event.id === selectedId) ?? events[0] ?? null;
@@ -99,7 +100,8 @@ export function PlayDayPanel({
     try {
       const created = await createPlayEvent(room, {
         ...form,
-        capacity: form.capacity ? Number(form.capacity) : undefined
+        capacity: form.capacity ? Number(form.capacity) : undefined,
+        autoIncludeMembers: form.autoIncludeMembers
       });
       setEvents(current => [created, ...current]);
       setSelectedId(created.id);
@@ -270,6 +272,7 @@ export function PlayDayPanel({
           <label>สนาม<input value={form.location} onChange={event => setForm({ ...form, location: event.target.value })} /></label>
           <label>รับสูงสุด<input type="number" min="1" value={form.capacity} onChange={event => setForm({ ...form, capacity: event.target.value })} placeholder="ไม่จำกัด" /></label>
           <label>เช็กอิน<select value={form.checkinMode} onChange={event => setForm({ ...form, checkinMode: event.target.value as "manual" | "auto" })}><option value="manual">ผู้จัดกดเข้าคิว (แนะนำ)</option><option value="auto">เช็กอินแล้วเข้าคิวอัตโนมัติ</option></select></label>
+          <label className="play-event-checkbox"><input type="checkbox" checked={form.autoIncludeMembers} onChange={event => setForm({ ...form, autoIncludeMembers: event.target.checked })} /><span>เพิ่มสมาชิกในห้องเข้าอีเว้นต์อัตโนมัติ<br /><small>สมาชิก active จะเป็น “มาเล่น” ทันที</small></span></label>
           <button className="round-button" disabled={creating}>{creating ? "กำลังสร้าง…" : "สร้างและรับลิงก์"}</button>
         </form>
       </details>
