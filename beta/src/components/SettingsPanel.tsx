@@ -34,6 +34,10 @@ export function SettingsPanel({
 
   return (
     <section className="settings-panel">
+      <div className="settings-heading">
+        <div><strong>ตั้งค่าทั่วไป</strong><small>ตัวเลือกที่ใช้บ่อยระหว่างจัดเกม</small></div>
+        <span className={`settings-sync sync-${syncStatus}`}>{connectedRoomCode ? `พร้อมใช้งาน · ${connectedRoomCode}` : configured ? "โหมดเครื่องนี้" : "ออฟไลน์"}</span>
+      </div>
       <label>
         <span>จำนวนเกมต่อคู่</span>
         <select value={settings.gamesPerPair} onChange={event =>
@@ -51,27 +55,10 @@ export function SettingsPanel({
         </select>
       </label>
       <label className="toggle-row">
-        <span>Hellven Mode</span>
+        <span>Hellven Mode<small>จำกัดการจับคู่ตามระดับผู้เล่น</small></span>
         <input type="checkbox" checked={settings.hellvenMode} onChange={event =>
           onSettingsChange({ hellvenMode: event.target.checked })
         } />
-      </label>
-      <label>
-        <span>โหมดคนน้อย</span>
-        <select value={settings.lowPlayerMode} onChange={event =>
-          onSettingsChange({ lowPlayerMode: event.target.value as Settings["lowPlayerMode"] })
-        }>
-          <option value="auto">อัตโนมัติ</option><option value="on">เปิดตลอด</option>
-          <option value="off">ปิด</option>
-        </select>
-      </label>
-      <label>
-        <span>เกณฑ์คนน้อย</span>
-        <select value={settings.lowPlayerThreshold} onChange={event =>
-          onSettingsChange({ lowPlayerThreshold: Number(event.target.value) })
-        }>
-          {[4, 6, 8, 10].map(value => <option key={value} value={value}>{value} คน</option>)}
-        </select>
       </label>
       <label>
         <span>ธีม</span>
@@ -95,30 +82,33 @@ export function SettingsPanel({
           <b>{settings.courtColor.toUpperCase()}</b>
         </span>
       </label>
-      <label>
-        <span>คอลัมน์สนาม</span>
-        <select value={settings.courtColumns} onChange={event =>
-          onSettingsChange({ courtColumns: Number(event.target.value) as Settings["courtColumns"] })
-        }>
-          <option value="0">อัตโนมัติ</option><option value="1">1</option>
-          <option value="2">2</option><option value="3">3</option>
-        </select>
-      </label>
-      <label>
-        <span>พร้อมเพย์ผู้รับเงิน Guest</span>
-        <input inputMode="numeric" value={settings.promptPayRecipient} placeholder="มือถือ 10 หลัก หรือบัตร 13 หลัก" onChange={event => onSettingsChange({ promptPayRecipient: event.target.value.replace(/\D/g, "").slice(0, 13) })} />
-        <small>เว้นว่างไว้เพื่อปิด QR จนกว่าผู้จัดจะตั้งค่าผู้รับเงิน</small>
-      </label>
-      <div className="data-actions">
-        <button className="ghost" onClick={onExport}>Export</button>
-        <label className="ghost file-button">
-          Import
-          <input type="file" accept=".json" onChange={event => onImport(event.target.files?.[0])} />
-        </label>
-        <button className="ghost danger" onClick={onReset}>รีเซต Session</button>
-        <a className="ghost link" href="../">เปิดแอปเดิม</a>
-      </div>
-      <div className="room-settings">
+      <details className="advanced-settings">
+        <summary><span>⚙ การตั้งค่าขั้นสูง<small>ห้องออนไลน์ กฎเพิ่มเติม การชำระเงิน และข้อมูล</small></span></summary>
+        <div className="advanced-settings-grid">
+          <label>
+            <span>โหมดคนน้อย</span>
+            <select value={settings.lowPlayerMode} onChange={event => onSettingsChange({ lowPlayerMode: event.target.value as Settings["lowPlayerMode"] })}>
+              <option value="auto">อัตโนมัติ</option><option value="on">เปิดตลอด</option><option value="off">ปิด</option>
+            </select>
+          </label>
+          <label>
+            <span>เกณฑ์คนน้อย</span>
+            <select value={settings.lowPlayerThreshold} onChange={event => onSettingsChange({ lowPlayerThreshold: Number(event.target.value) })}>
+              {[4, 6, 8, 10].map(value => <option key={value} value={value}>{value} คน</option>)}
+            </select>
+          </label>
+          <label>
+            <span>คอลัมน์สนาม</span>
+            <select value={settings.courtColumns} onChange={event => onSettingsChange({ courtColumns: Number(event.target.value) as Settings["courtColumns"] })}>
+              <option value="0">อัตโนมัติ</option><option value="1">1</option><option value="2">2</option><option value="3">3</option>
+            </select>
+          </label>
+          <label className="advanced-wide">
+            <span>พร้อมเพย์ผู้รับเงิน Guest</span>
+            <input inputMode="numeric" value={settings.promptPayRecipient} placeholder="มือถือ 10 หลัก หรือบัตร 13 หลัก" onChange={event => onSettingsChange({ promptPayRecipient: event.target.value.replace(/\D/g, "").slice(0, 13) })} />
+            <small>เว้นว่างไว้เพื่อปิด QR</small>
+          </label>
+          <div className="room-settings advanced-wide">
         <div>
           <strong>ห้อง Realtime</strong>
           <small>{configured
@@ -141,7 +131,15 @@ export function SettingsPanel({
         )}
         {connectedRoomCode && <button className="ghost" onClick={onLeaveRoom}>ออกจากห้อง</button>}
         {syncMessage && <p role="alert">{syncMessage}</p>}
-      </div>
+          </div>
+          <div className="data-actions advanced-wide">
+            <button className="ghost" onClick={onExport}>ส่งออกข้อมูล</button>
+            <label className="ghost file-button">นำเข้าข้อมูล<input type="file" accept=".json" onChange={event => onImport(event.target.files?.[0])} /></label>
+            <a className="ghost link" href="../">เปิดแอปเดิม</a>
+            <button className="ghost danger" onClick={onReset}>รีเซต Session</button>
+          </div>
+        </div>
+      </details>
     </section>
   );
 }

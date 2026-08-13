@@ -270,9 +270,14 @@ export function PlayDayPanel({
           <label>เริ่ม<input type="time" value={form.startsAt} onChange={event => setForm({ ...form, startsAt: event.target.value })} required /></label>
           <label>จบ<input type="time" value={form.endsAt} onChange={event => setForm({ ...form, endsAt: event.target.value })} /></label>
           <label>สนาม<input value={form.location} onChange={event => setForm({ ...form, location: event.target.value })} /></label>
-          <label>รับสูงสุด<input type="number" min="1" value={form.capacity} onChange={event => setForm({ ...form, capacity: event.target.value })} placeholder="ไม่จำกัด" /></label>
-          <label>เช็กอิน<select value={form.checkinMode} onChange={event => setForm({ ...form, checkinMode: event.target.value as "manual" | "auto" })}><option value="manual">ผู้จัดกดเข้าคิว (แนะนำ)</option><option value="auto">เช็กอินแล้วเข้าคิวอัตโนมัติ</option></select></label>
           <label className="play-event-checkbox"><input type="checkbox" checked={form.autoIncludeMembers} onChange={event => setForm({ ...form, autoIncludeMembers: event.target.checked })} /><span>เพิ่มสมาชิกในห้องเข้าอีเว้นต์อัตโนมัติ<br /><small>สมาชิก active จะเป็น “มาเล่น” ทันที</small></span></label>
+          <details className="play-event-advanced">
+            <summary>ตัวเลือกเพิ่มเติม</summary>
+            <div>
+              <label>รับสูงสุด<input type="number" min="1" value={form.capacity} onChange={event => setForm({ ...form, capacity: event.target.value })} placeholder="ไม่จำกัด" /></label>
+              <label>การเช็กอิน<select value={form.checkinMode} onChange={event => setForm({ ...form, checkinMode: event.target.value as "manual" | "auto" })}><option value="manual">ผู้จัดกดเข้าคิว (แนะนำ)</option><option value="auto">เช็กอินแล้วเข้าคิวอัตโนมัติ</option></select></label>
+            </div>
+          </details>
           <button className="round-button" disabled={creating}>{creating ? "กำลังสร้าง…" : "สร้างและรับลิงก์"}</button>
         </form>
       </details>
