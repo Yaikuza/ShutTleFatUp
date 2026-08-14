@@ -143,8 +143,8 @@ export function assignLibero(state: AppState, court: Court, team: Team, side: "A
 }
 
 export function fillCourt(state: AppState, courtId: number): AppState {
-  const lowMode = state.settings.lowPlayerMode === "on"
-    || (state.settings.lowPlayerMode === "auto" && state.queue.length <= state.settings.lowPlayerThreshold);
+  const lowMode = !state.schedule.length && (state.settings.lowPlayerMode === "on"
+    || (state.settings.lowPlayerMode === "auto" && state.queue.length <= state.settings.lowPlayerThreshold));
   let next = lowMode ? state : state.schedule.length ? state : startRound(state);
   const court = next.courts.find(item => item.id === courtId);
   if (!court || court.status === "playing") return next;

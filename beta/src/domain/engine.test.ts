@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { appReducer } from "../app/appReducer";
 import { assignLibero, createPairs, fillCourt, finishMatch, LIBERO, projectedRoundComplete, realMembers, setCourtLibero, setCustomMatch, teamsCanPlay } from "./engine";
 import { initialState } from "./initialState";
@@ -236,6 +236,35 @@ describe("court safety", () => {
     expect(next.courts[0]).toEqual(state.courts[0]);
     expect(next.schedule.map(pair => pair.id)).toEqual(["E|G", "F|H", "A|B", "C|D"]);
     expect(next.pairGames).toEqual({ "A|B": 1, "C|D": 1 });
+  });
+
+  it("uses scheduled leftovers after a custom match even when the queue is below the low-player threshold", () => {
+    const base = stateWithPlayers(["human", "human", "human", "human", "human", "human", "human", "human"]);
+    const state: AppState = {
+      ...base,
+      settings: { ...base.settings, gamesPerPair: 1, lowPlayerMode: "auto", lowPlayerThreshold: 10 },
+      queue: ["E", "F", "G", "H"],
+      schedule: [
+        { id: "A|B", members: ["A", "B"] },
+        { id: "C|D", members: ["C", "D"] },
+        { id: "E|F", members: ["E", "F"] },
+        { id: "G|H", members: ["G", "H"] }
+      ],
+      courts: [{
+        ...base.courts[0],
+        status: "playing",
+        teamA: ["A", "B"],
+        teamB: ["C", "D"],
+        startedRound: 1
+      }]
+    };
+
+    const random = vi.spyOn(Math, "random").mockReturnValue(0);
+    const next = fillCourt(finishMatch(state, 1, "A"), 1);
+    random.mockRestore();
+
+    expect(next.courts[0].status).toBe("playing");
+    expect([next.courts[0].teamA, next.courts[0].teamB]).toEqual(expect.arrayContaining([["E", "F"], ["G", "H"]]));
   });
 
   it("does not pull a player from another playing court into a custom match", () => {
