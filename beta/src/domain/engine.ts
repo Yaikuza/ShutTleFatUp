@@ -260,6 +260,41 @@ export function setCustomMatch(state: AppState, courtId: number, members: [Playe
   const selected = new Set(members);
   const queue = [...state.queue, ...oldIds.filter(id => !state.queue.includes(id))]
     .filter(id => !selected.has(id));
+  const selectedPairs: Pair[] = [teamA, teamB].map(pairMembers => ({
+    id: pairKey(pairMembers),
+    members: pairMembers
+  }));
+
+  // Rebuild only the affected part of the current round. Selected players are
+  // removed from their former pairs, while unrelated and currently playing
+  // pairs keep their identity (and therefore their game counts).
+  const used = new Set<PlayerId>(members);
+  const schedule: Pair[] = [...selectedPairs];
+  const appendPair = (pair: Pair) => {
+    const real = realMembers(pair.members);
+    if (!real.length || real.some(id => used.has(id))) return;
+    schedule.push(pair);
+    real.forEach(id => used.add(id));
+  };
+
+  for (const otherCourt of state.courts) {
+    if (otherCourt.id === courtId || otherCourt.status !== "playing" || otherCourt.startedRound !== state.round) continue;
+    if (otherCourt.teamA) appendPair({ id: pairKey(otherCourt.teamA), members: otherCourt.teamA });
+    if (otherCourt.teamB) appendPair({ id: pairKey(otherCourt.teamB), members: otherCourt.teamB });
+  }
+  for (const pair of state.schedule) {
+    if (pair.members.some(id => selected.has(id))) continue;
+    appendPair(pair);
+  }
+
+  const repairPool = [...new Set([...queue, ...state.schedule.flatMap(pair => realMembers(pair.members))])]
+    .filter(id => !used.has(id) && !busyElsewhere.has(id) && state.players.some(player => player.id === id && player.active));
+  createPairs(state, repairPool).forEach(appendPair);
+
+  const validPairIds = new Set(schedule.map(pair => pair.id));
+  const pairGames = Object.fromEntries(
+    Object.entries(state.pairGames).filter(([id]) => validPairIds.has(id))
+  );
   const nextCourt: Court = {
     ...court,
     status: "playing",
@@ -272,6 +307,8 @@ export function setCustomMatch(state: AppState, courtId: number, members: [Playe
   return {
     ...state,
     queue,
+    schedule,
+    pairGames,
     courts: state.courts.map(item => item.id === courtId ? nextCourt : item)
   };
 }

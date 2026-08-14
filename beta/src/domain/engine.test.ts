@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { appReducer } from "../app/appReducer";
-import { assignLibero, createPairs, fillCourt, finishMatch, LIBERO, projectedRoundComplete, setCourtLibero, setCustomMatch, teamsCanPlay } from "./engine";
+import { assignLibero, createPairs, fillCourt, finishMatch, LIBERO, projectedRoundComplete, realMembers, setCourtLibero, setCustomMatch, teamsCanPlay } from "./engine";
 import { initialState } from "./initialState";
 import type { AppState, Pair, Player, Team } from "./types";
 
@@ -189,6 +189,55 @@ describe("Hellven court compatibility", () => {
 });
 
 describe("court safety", () => {
+  it("replaces selected players in the current schedule without duplicates", () => {
+    const base = stateWithPlayers(["human", "human", "human", "human", "human", "human", "human", "human"]);
+    const state: AppState = {
+      ...base,
+      queue: ["A", "B", "C", "D", "E", "F", "G", "H"],
+      schedule: [
+        { id: "A|E", members: ["A", "E"] },
+        { id: "B|F", members: ["B", "F"] },
+        { id: "C|G", members: ["C", "G"] },
+        { id: "D|H", members: ["D", "H"] }
+      ],
+      pairGames: { "A|E": 1, "B|F": 1, "C|G": 1, "D|H": 1 }
+    };
+
+    const next = setCustomMatch(state, 1, ["A", "B", "C", "D"]);
+    const realIds = next.schedule.flatMap(pair => realMembers(pair.members));
+
+    expect(next.schedule.slice(0, 2).map(pair => pair.id)).toEqual(["A|B", "C|D"]);
+    expect(new Set(realIds).size).toBe(realIds.length);
+    expect(new Set(realIds)).toEqual(new Set(["A", "B", "C", "D", "E", "F", "G", "H"]));
+    expect(next.queue).toEqual(["E", "F", "G", "H"]);
+    expect(next.pairGames).toEqual({});
+  });
+
+  it("preserves an unaffected playing court and its pair scores in a custom match", () => {
+    const base = stateWithPlayers(["human", "human", "human", "human", "human", "human", "human", "human"]);
+    const state: AppState = {
+      ...base,
+      queue: ["E", "F", "G", "H"],
+      schedule: [
+        { id: "A|B", members: ["A", "B"] },
+        { id: "C|D", members: ["C", "D"] },
+        { id: "E|F", members: ["E", "F"] },
+        { id: "G|H", members: ["G", "H"] }
+      ],
+      pairGames: { "A|B": 1, "C|D": 1, "E|F": 1 },
+      courts: [
+        { ...base.courts[0], status: "playing", teamA: ["A", "B"], teamB: ["C", "D"], startedRound: 1 },
+        { ...base.courts[1] }
+      ]
+    };
+
+    const next = setCustomMatch(state, 2, ["E", "G", "F", "H"]);
+
+    expect(next.courts[0]).toEqual(state.courts[0]);
+    expect(next.schedule.map(pair => pair.id)).toEqual(["E|G", "F|H", "A|B", "C|D"]);
+    expect(next.pairGames).toEqual({ "A|B": 1, "C|D": 1 });
+  });
+
   it("does not pull a player from another playing court into a custom match", () => {
     const base = stateWithPlayers(["human", "human", "human", "human", "human"]);
     const state: AppState = {
