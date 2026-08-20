@@ -1,7 +1,8 @@
-import { useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { AppAction } from "../app/appReducer";
 import type { AppState } from "../domain/types";
 import { levelMeta } from "./LevelSlider";
+import { availableScheduleRounds, roundPairViews } from "./roundScheduleView";
 
 interface QueueScheduleProps {
   state: AppState;
@@ -11,6 +12,23 @@ interface QueueScheduleProps {
 
 export function QueueSchedule({ state, playerName, onAction }: QueueScheduleProps) {
   const draggedQueueId = useRef<string | null>(null);
+  const swipeStart = useRef<{ x: number; y: number } | null>(null);
+  const [selectedRound, setSelectedRound] = useState<number | null>(null);
+  const rounds = useMemo(() => availableScheduleRounds(state), [state]);
+  const viewedRound = selectedRound ?? state.round;
+  const viewedIndex = rounds.indexOf(viewedRound);
+  const viewedPairs = useMemo(() => roundPairViews(state, viewedRound), [state, viewedRound]);
+  const isCurrentRound = viewedRound === state.round;
+
+  useEffect(() => {
+    if (selectedRound !== null && !rounds.includes(selectedRound)) setSelectedRound(null);
+  }, [rounds, selectedRound]);
+
+  const moveRound = (direction: -1 | 1) => {
+    const nextRound = rounds[viewedIndex + direction];
+    if (!nextRound) return;
+    setSelectedRound(nextRound === state.round ? null : nextRound);
+  };
 
   return (
     <div id="queue" className="workspace-grid">
@@ -65,24 +83,68 @@ export function QueueSchedule({ state, playerName, onAction }: QueueScheduleProp
         <div className="panel-heading">
           <div>
             <p className="eyebrow">Round schedule</p>
-            <h2>คู่รอบ {state.round}</h2>
+            <h2>ตารางคู่</h2>
           </div>
-          <button className="round-button compact" onClick={() => onAction({ type: "round/start" })}>
-            สร้างรอบใหม่
+          {isCurrentRound
+            ? <button className="round-button compact" onClick={() => onAction({ type: "round/start" })}>สร้างรอบใหม่</button>
+            : <span className="round-readonly">อ่านอย่างเดียว</span>}
+        </div>
+        <div className="round-browser" aria-label="เลือกรอบที่ต้องการดู">
+          <button
+            className="round-nav-button"
+            disabled={viewedIndex <= 0}
+            aria-label="ดูรอบก่อนหน้า"
+            onClick={() => moveRound(-1)}
+          >
+            ‹
+          </button>
+          <div>
+            <b>รอบ {viewedRound}</b>
+            <span>{isCurrentRound ? "ปัจจุบัน" : "เล่นแล้ว"} · {viewedIndex + 1}/{rounds.length}</span>
+          </div>
+          <button
+            className="round-nav-button"
+            disabled={viewedIndex < 0 || viewedIndex >= rounds.length - 1}
+            aria-label="ดูรอบถัดไป"
+            onClick={() => moveRound(1)}
+          >
+            ›
           </button>
         </div>
-        <div className="pair-list">
-          {state.schedule.map(pair => {
-            const games = state.pairGames[pair.id] ?? 0;
+        <div
+          className="pair-list round-pair-list"
+          onTouchStart={event => {
+            const touch = event.touches[0];
+            swipeStart.current = { x: touch.clientX, y: touch.clientY };
+          }}
+          onTouchEnd={event => {
+            const start = swipeStart.current;
+            swipeStart.current = null;
+            if (!start) return;
+            const touch = event.changedTouches[0];
+            const deltaX = touch.clientX - start.x;
+            const deltaY = touch.clientY - start.y;
+            if (Math.abs(deltaX) < 45 || Math.abs(deltaX) <= Math.abs(deltaY)) return;
+            moveRound(deltaX > 0 ? -1 : 1);
+          }}
+        >
+          {viewedPairs.map(pair => {
             return (
               <div className="pair-row" key={pair.id}>
                 <span>{pair.members.map(playerName).join(" + ")}</span>
-                <b>{games}/{state.settings.gamesPerPair}</b>
+                <b>{isCurrentRound ? `${pair.games}/${state.settings.gamesPerPair}` : `${pair.games} เกม`}</b>
               </div>
             );
           })}
-          {!state.schedule.length && <p className="muted">กดสร้างรอบใหม่เพื่อจัดคู่</p>}
+          {!viewedPairs.length && <p className="muted">
+            {isCurrentRound ? "กดสร้างรอบใหม่เพื่อจัดคู่" : "รอบนี้ยังไม่มีผลการแข่งขันที่บันทึกไว้"}
+          </p>}
         </div>
+        {!isCurrentRound && (
+          <button className="ghost compact current-round-button" onClick={() => setSelectedRound(null)}>
+            กลับรอบปัจจุบัน
+          </button>
+        )}
       </section>
     </div>
   );

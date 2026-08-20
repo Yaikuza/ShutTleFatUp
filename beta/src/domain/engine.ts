@@ -1,4 +1,4 @@
-import type { AppState, Court, Pair, Player, PlayerId, PlayerLevel, Team } from "./types";
+import type { AppState, Court, MatchHistory, Pair, Player, PlayerId, PlayerLevel, Team, TeamMember } from "./types";
 
 export const LIBERO = "LIBERO" as const;
 
@@ -37,48 +37,100 @@ export function teamsCanPlay(state: AppState, first: Team, second: Team): boolea
   return !((a === "hell" && b === "heaven") || (a === "heaven" && b === "hell"));
 }
 
-export function createPairs(state: AppState, ids: PlayerId[]): Pair[] {
-  const makePair = (members: Team): Pair => ({
-    id: pairKey(members),
-    members
+function currentSessionHistory(state: AppState): MatchHistory[] {
+  return state.activePlayEventId
+    ? state.history.filter(match => match.playEventId === state.activePlayEventId)
+    : state.history.filter(match => !match.playEventId);
+}
+
+function partnerPenalty(state: AppState, team: Team): number {
+  const id = pairKey(team);
+  let count = 0;
+  let lastPlayed = -1;
+  currentSessionHistory(state).forEach((match, index) => {
+    if (pairKey(match.teamA) === id || pairKey(match.teamB) === id) {
+      count += 1;
+      lastPlayed = index;
+    }
   });
-  if (!state.settings.hellvenMode) {
-    const pool = shuffled(ids);
-    const pairs: Pair[] = [];
-    while (pool.length >= 2) pairs.push(makePair([pool.shift()!, pool.shift()!]));
-    if (pool.length) pairs.push(makePair([pool[0], LIBERO]));
-    return pairs;
-  }
+  // Repeating less often matters first. For equal counts, prefer the pair that
+  // has gone the longest without playing together.
+  return count * 1_000_000 + (lastPlayed + 1) * 1_000;
+}
 
-  const hell = shuffled(ids.filter(id => playerLevel(state, id) === "hell"));
-  const human = shuffled(ids.filter(id => playerLevel(state, id) === "human"));
-  const heaven = shuffled(ids.filter(id => playerLevel(state, id) === "heaven"));
-  const pairs: Pair[] = [];
+function teammatesAllowed(state: AppState, first: TeamMember, second: TeamMember): boolean {
+  if (first === LIBERO || second === LIBERO || !state.settings.hellvenMode) return true;
+  return !(
+    (playerLevel(state, first) === "hell" && playerLevel(state, second) === "heaven")
+    || (playerLevel(state, first) === "heaven" && playerLevel(state, second) === "hell")
+  );
+}
 
-  const hellPool = shuffled([...hell, ...human]);
-  while (hellPool.some(id => playerLevel(state, id) === "hell")) {
-    const hellIndex = hellPool.findIndex(id => playerLevel(state, id) === "hell");
-    const hellId = hellPool.splice(hellIndex, 1)[0];
-    if (!hellPool.length) {
-      pairs.push(makePair([hellId, LIBERO]));
-      break;
+function bestPartnerPairs(state: AppState, ids: PlayerId[]): Pair[] {
+  const unique: TeamMember[] = [...new Set(ids)];
+  if (unique.length % 2) unique.push(LIBERO);
+  if (!unique.length) return [];
+
+  const makePair = (members: Team): Pair => ({ id: pairKey(members), members });
+  const penaltyCache = new Map<string, number>();
+  const scoreTeam = (members: Team): number => {
+    const id = pairKey(members);
+    if (!penaltyCache.has(id)) penaltyCache.set(id, partnerPenalty(state, members));
+    return penaltyCache.get(id)!;
+  };
+  const greedyPairs = (): Pair[] => {
+    const pool = unique.filter(member => member !== LIBERO);
+    const result: Pair[] = [];
+    while (pool.length) {
+      const first = pool.shift()!;
+      const choices = pool
+        .map((second, index) => ({ second, index, penalty: teammatesAllowed(state, first, second)
+          ? scoreTeam([first, second])
+          : Number.POSITIVE_INFINITY }))
+        .filter(choice => Number.isFinite(choice.penalty))
+        .sort((a, b) => a.penalty - b.penalty);
+      const choice = choices[0];
+      if (!choice) {
+        result.push(makePair([first, LIBERO]));
+        continue;
+      }
+      pool.splice(choice.index, 1);
+      result.push(makePair([first, choice.second]));
     }
-    pairs.push(makePair([hellId, hellPool.splice(Math.floor(Math.random() * hellPool.length), 1)[0]]));
-  }
+    return result;
+  };
+  // Session groups are normally small enough for exact matching. Keep a
+  // bounded greedy fallback so a very large imported roster stays responsive.
+  if (unique.length > 20) return greedyPairs();
 
-  const heavenPool = shuffled([...heaven, ...hellPool]);
-  while (heavenPool.some(id => playerLevel(state, id) === "heaven")) {
-    const heavenIndex = heavenPool.findIndex(id => playerLevel(state, id) === "heaven");
-    const heavenId = heavenPool.splice(heavenIndex, 1)[0];
-    if (!heavenPool.length) {
-      pairs.push(makePair([heavenId, LIBERO]));
-      break;
+  type Solution = { penalty: number; pairs: Pair[] };
+  const memo = new Map<number, Solution | null>();
+  const solve = (mask: number): Solution | null => {
+    if (!mask) return { penalty: 0, pairs: [] };
+    if (memo.has(mask)) return memo.get(mask)!;
+    const firstIndex = Math.clz32(mask & -mask) ^ 31;
+    const remaining = mask & ~(1 << firstIndex);
+    let best: Solution | null = null;
+    for (let secondIndex = firstIndex + 1; secondIndex < unique.length; secondIndex++) {
+      if (!(remaining & (1 << secondIndex))) continue;
+      const first = unique[firstIndex];
+      const second = unique[secondIndex];
+      if (!teammatesAllowed(state, first, second)) continue;
+      const rest = solve(remaining & ~(1 << secondIndex));
+      if (!rest) continue;
+      const pair = makePair([first, second]);
+      const candidate = { penalty: scoreTeam(pair.members) + rest.penalty, pairs: [pair, ...rest.pairs] };
+      if (!best || candidate.penalty < best.penalty) best = candidate;
     }
-    pairs.push(makePair([heavenId, heavenPool.splice(Math.floor(Math.random() * heavenPool.length), 1)[0]]));
-  }
-  while (heavenPool.length >= 2) pairs.push(makePair([heavenPool.shift()!, heavenPool.shift()!]));
-  if (heavenPool.length) pairs.push(makePair([heavenPool[0], LIBERO]));
-  return pairs;
+    memo.set(mask, best);
+    return best;
+  };
+
+  return solve((1 << unique.length) - 1)?.pairs ?? greedyPairs();
+}
+
+export function createPairs(state: AppState, ids: PlayerId[]): Pair[] {
+  return bestPartnerPairs(state, ids);
 }
 
 export function startRound(state: AppState): AppState {

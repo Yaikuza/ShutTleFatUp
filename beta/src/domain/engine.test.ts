@@ -39,6 +39,95 @@ describe("createPairs", () => {
       expect(levels.includes("hell") && levels.includes("heaven")).toBe(false);
     }
   });
+
+  it("falls back to separate Libero teams when Hellven players cannot be teammates", () => {
+    const state = {
+      ...stateWithPlayers(["hell", "heaven"]),
+      settings: { ...initialState.settings, hellvenMode: true }
+    };
+
+    const pairs = createPairs(state, state.queue);
+
+    expect(pairs).toHaveLength(2);
+    expect(pairs.every(pair => pair.members.includes(LIBERO))).toBe(true);
+  });
+
+  it("avoids partners who already played together in the current session", () => {
+    const base = stateWithPlayers(["human", "human", "human", "human", "human", "human"]);
+    const state: AppState = {
+      ...base,
+      history: [{
+        id: "match-1",
+        round: 1,
+        courtId: 1,
+        teamA: ["A", "B"],
+        teamB: ["C", "D"],
+        winner: "A",
+        playedAt: "2026-08-20T10:00:00.000Z"
+      }, {
+        id: "match-2",
+        round: 1,
+        courtId: 2,
+        teamA: ["E", "F"],
+        teamB: ["A", "C"],
+        winner: "B",
+        playedAt: "2026-08-20T10:05:00.000Z"
+      }]
+    };
+
+    const pairIds = new Set(createPairs(state, state.queue).map(pair => pair.id));
+
+    expect(pairIds.has("A|B")).toBe(false);
+    expect(pairIds.has("C|D")).toBe(false);
+    expect(pairIds.has("E|F")).toBe(false);
+    expect(pairIds.has("A|C")).toBe(false);
+  });
+
+  it("uses only the active event history when avoiding repeated partners", () => {
+    const base = stateWithPlayers(["human", "human", "human", "human"]);
+    const state: AppState = {
+      ...base,
+      activePlayEventId: "event-new",
+      history: [{
+        id: "old-event-match",
+        playEventId: "event-old",
+        round: 1,
+        courtId: 1,
+        teamA: ["A", "B"],
+        teamB: ["C", "D"],
+        winner: "A",
+        playedAt: "2026-08-19T10:00:00.000Z"
+      }]
+    };
+
+    expect(createPairs(state, state.queue).map(pair => pair.id)).toEqual(["A|B", "C|D"]);
+  });
+
+  it("keeps producing pairs when every possible partner combination has been used", () => {
+    const base = stateWithPlayers(["human", "human", "human", "human"]);
+    const combinations: Array<[Team, Team]> = [
+      [["A", "B"], ["C", "D"]],
+      [["A", "C"], ["B", "D"]],
+      [["A", "D"], ["B", "C"]]
+    ];
+    const state: AppState = {
+      ...base,
+      history: combinations.map(([teamA, teamB], index) => ({
+        id: `match-${index}`,
+        round: index + 1,
+        courtId: 1,
+        teamA,
+        teamB,
+        winner: "A" as const,
+        playedAt: `2026-08-20T10:${String(index).padStart(2, "0")}:00.000Z`
+      }))
+    };
+
+    const pairs = createPairs(state, state.queue);
+
+    expect(pairs).toHaveLength(2);
+    expect(new Set(pairs.flatMap(pair => realMembers(pair.members)))).toEqual(new Set(state.queue));
+  });
 });
 
 describe("court rotation", () => {
